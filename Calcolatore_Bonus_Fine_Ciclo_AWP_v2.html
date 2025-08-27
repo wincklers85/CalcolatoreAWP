@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<title>Calcolatore Bonus di Fine Ciclo (AWP) – v2</title>
+<style>
+  body{margin:0;background:#0f1220;color:#e9edf7;font-family:Verdana,Arial,sans-serif}
+  header{text-align:center;padding:16px}
+  h1{margin:0;font-size:20px}
+  .sub{color:#8e98b0;font-size:12px}
+  .wrap{padding:12px;max-width:900px;margin:0 auto}
+  .card{background:#151a2e;border:1px solid #2a3356;border-radius:12px;padding:14px;margin-bottom:12px}
+  label{display:block;font-weight:bold;font-size:13px;margin-bottom:4px;color:#c7d0ea}
+  input,select{width:100%;padding:10px;border-radius:8px;border:1px solid #2a3356;background:#0e1326;color:#e9edf7;font-size:15px}
+  .row{display:flex;gap:10px} .row .field{flex:1}
+  .buttons{margin-top:10px;display:flex;gap:8px}
+  button{padding:10px;border:none;border-radius:8px;font-weight:bold;cursor:pointer}
+  button#example{background:#6bdcff;color:#08121f}
+  button#clear{background:transparent;border:1px solid #2a3356;color:#e9edf7}
+  .kpi{display:flex;gap:8px}
+  .box{flex:1;background:#0e1326;border:1px solid #2a3356;border-radius:8px;padding:10px;text-align:center}
+  .title{font-size:12px;color:#c7d0ea}
+  .val{font-size:16px;font-weight:bold}
+  .bar{height:10px;background:#0b1130;border:1px solid #212b50;border-radius:999px;overflow:hidden}
+  .fill{height:100%;background:linear-gradient(90deg,#6bdcff,#7cf17b);width:0}
+  .pair{display:flex;justify-content:space-between;background:#0e1326;border:1px solid #2a3356;border-radius:8px;padding:6px 10px;margin-top:6px}
+  .summary{margin-top:10px;font-size:13px;background:#101635;border:1px dashed #3b4775;border-radius:8px;padding:10px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Calcolatore Bonus di Fine Ciclo (AWP)</h1>
+  <div class="sub">v2 – Seleziona un ciclo comune o inserisci "Altro"</div>
+</header>
+<div class="wrap">
+  <div class="card">
+    <label for="cycleSel">Ciclo</label>
+    <select id="cycleSel">
+      <option value="28000">28.000</option>
+      <option value="30000" selected>30.000</option>
+      <option value="40000">40.000</option>
+      <option value="other">Altro…</option>
+    </select>
+    <div id="cycleOtherWrap" style="display:none;margin-top:6px">
+      <label for="cycleOther">Inserisci ciclo personalizzato (EUR)</label>
+      <input id="cycleOther" type="text" placeholder="es. 35000">
+    </div>
+    <label for="pct">Percentuale pagamento minima (%)</label>
+    <input id="pct" type="text" value="65">
+    <div class="row">
+      <div class="field">
+        <label for="in">Globale IN (EUR)</label>
+        <input id="in" type="text" placeholder="es. 89950">
+      </div>
+      <div class="field">
+        <label for="out">Globale OUT (EUR)</label>
+        <input id="out" type="text" placeholder="es. 58000">
+      </div>
+    </div>
+    <div class="buttons">
+      <button id="example">Esempio</button>
+      <button id="clear">Azzera</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="kpi">
+      <div class="box"><div class="title">Indice ciclo attuale</div><div class="val" id="kCycle">—</div></div>
+      <div class="box"><div class="title">Residuo IN</div><div class="val" id="kResIn">—</div></div>
+      <div class="box"><div class="title">Bonus garantito</div><div class="val" id="kBonus">—</div></div>
+    </div>
+    <div style="margin-top:8px">Avanzamento IN <span id="pctIn">0%</span><div class="bar"><div class="fill" id="barIn"></div></div></div>
+    <div style="margin-top:8px">Payout vs minimo <span id="pctOut">0%</span><div class="bar"><div class="fill" id="barOut"></div></div></div>
+    <div class="pair"><span>Cicli completi (IN)</span><b id="cIn">—</b></div>
+    <div class="pair"><span>Introito nel ciclo corrente</span><b id="inCorr">—</b></div>
+    <div class="pair"><span>Payout teorico per ciclo</span><b id="pCycle">—</b></div>
+    <div class="pair"><span>Cicli completi pagati (OUT)</span><b id="cOut">—</b></div>
+    <div class="pair"><span>Payout ciclo corrente</span><b id="outCorr">—</b></div>
+    <div class="pair"><span>Payout % globale</span><b id="pGlob">—</b></div>
+    <div class="pair"><span>Residuo payout per minimo</span><b id="resOut">—</b></div>
+    <div class="summary" id="summary">Inserisci i dati per calcolare.</div>
+  </div>
+</div>
+<script>
+(function(){
+  function $(id){return document.getElementById(id);}
+  var sel=$("cycleSel"), otherWrap=$("cycleOtherWrap"), other=$("cycleOther");
+  var iPct=$("pct"), iIn=$("in"), iOut=$("out");
+  var kCycle=$("kCycle"), kResIn=$("kResIn"), kBonus=$("kBonus");
+  var cIn=$("cIn"), inCorr=$("inCorr"), pCycle=$("pCycle"), cOut=$("cOut"), outCorr=$("outCorr");
+  var pGlob=$("pGlob"), resOut=$("resOut");
+  var barIn=$("barIn"), barOut=$("barOut"), pctIn=$("pctIn"), pctOut=$("pctOut");
+  var summary=$("summary");
+
+  function parseNum(v){v=(v||"").toString().replace(/\./g,"").replace(",",".");
+    var n=parseFloat(v);return isFinite(n)?n:0;}
+  function fmtEUR(n){return Math.round(n).toLocaleString("it-IT")+" €";}
+  function fmtP(n){return (n*100).toFixed(2)+"%";}
+  function safeDiv(a,b){return b>0?a/b:0;}
+  function getCycle(){return sel.value==="other"?parseNum(other.value):parseNum(sel.value);}
+
+  function compute(){
+    var cycle=getCycle(), pctMin=parseNum(iPct.value), gIn=parseNum(iIn.value), gOut=parseNum(iOut.value);
+    if(!(cycle>0&&pctMin>0)){resetUI();return;}
+    var payPerCycle=cycle*pctMin/100;
+    var fullIn=Math.floor(gIn/cycle); var inCurrent=gIn-fullIn*cycle; var resIn=cycle-inCurrent;
+    var fullOut=Math.floor(gOut/payPerCycle); var outCurrent=gOut-fullOut*payPerCycle;
+    var idx=fullIn+1; var pctGlob=gIn>0?gOut/gIn:0; var pctInRatio=inCurrent/cycle; var pctOutMin=payPerCycle>0?outCurrent/payPerCycle:0;
+    var resPayout=Math.max(payPerCycle-outCurrent,0);
+    kCycle.textContent=idx; kResIn.textContent=fmtEUR(resIn); kBonus.textContent=fmtEUR(resPayout);
+    cIn.textContent=fullIn; inCorr.textContent=fmtEUR(inCurrent); pCycle.textContent=fmtEUR(payPerCycle);
+    cOut.textContent=fullOut; outCorr.textContent=fmtEUR(outCurrent); pGlob.textContent=fmtP(pctGlob); resOut.textContent=fmtEUR(resPayout);
+    barIn.style.width=(pctInRatio*100).toFixed(1)+"%"; pctIn.textContent=fmtP(pctInRatio);
+    barOut.style.width=(pctOutMin*100).toFixed(1)+"%"; pctOut.textContent=fmtP(pctOutMin);
+    summary.innerHTML="• Ciclo: "+fmtEUR(cycle)+" – Payout minimo: "+pctMin+"%<br>"+
+    "• IN: "+fmtEUR(gIn)+" – OUT: "+fmtEUR(gOut)+" (payout globale: "+fmtP(pctGlob)+")<br>"+
+    "• Siamo nel ciclo n."+idx+", introdotti "+fmtEUR(inCurrent)+" ("+fmtP(pctInRatio)+").<br>"+
+    "• Pagati "+fmtEUR(outCurrent)+" nel ciclo ("+fmtP(pctOutMin)+" del minimo).<br>"+
+    (resIn>0?"• Mancano "+fmtEUR(resIn)+" di IN, bonus garantito "+fmtEUR(resPayout)+".":"• Ciclo già oltre il minimo.");
+  }
+  function resetUI(){[kCycle,kResIn,kBonus,cIn,inCorr,pCycle,cOut,outCorr,pGlob,resOut].forEach(e=>e.textContent="—");
+    barIn.style.width=barOut.style.width="0%"; pctIn.textContent=pctOut.textContent="0%"; summary.textContent="Inserisci i dati per calcolare.";}
+  sel.addEventListener("change",()=>{otherWrap.style.display=sel.value==="other"?"block":"none";compute();});
+  [other,iPct,iIn,iOut].forEach(el=>{el.addEventListener("input",compute);el.addEventListener("change",compute);});
+  $("example").addEventListener("click",()=>{sel.value="30000";otherWrap.style.display="none";iPct.value="65";iIn.value="89950";iOut.value="58000";compute();});
+  $("clear").addEventListener("click",()=>{if(sel.value==="other")other.value="";iPct.value="65";iIn.value="";iOut.value="";compute();});
+  compute();
+})();</script>
+</body>
+</html>
