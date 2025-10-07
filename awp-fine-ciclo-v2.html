@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AWP Fine Ciclo - Analyzer</title>
+<style>
+  :root {
+    --bg:#0f1220; --card:#161a2b; --ink:#eef1ff; --muted:#9aa3c7; --ok:#2bd576; --warn:#ffcc00; --bad:#ff5b5b; --accent:#5b8cff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background:linear-gradient(180deg, #0d1020, #121733);
+    color:var(--ink);
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+  }
+  .app { width:min(1100px, 95vw); }
+  .card { background:var(--card); border:1px solid #273057; border-radius:16px; padding:24px; box-shadow:0 10px 30px rgba(0,0,0,.35); }
+  h1,h2,h3 { margin:0 0 10px; }
+  .muted { color:var(--muted); }
+  button, input[type="file"], input[type="password"] {
+    background:#101733; border:1px solid #2a3a7a; color:var(--ink); padding:12px 14px; border-radius:12px;
+    font-weight:600;
+  }
+  button { cursor:pointer; transition:.2s transform, .2s opacity; }
+  button:hover { transform: translateY(-1px); }
+  .accent { background:linear-gradient(135deg, #476cff, #5b8cff); border-color:#5b8cff; }
+  .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .grow { flex:1; }
+  .hidden { display:none !important; }
+  .center { text-align:center; }
+
+  /* Splash */
+  .splash { position:fixed; inset:0; display:grid; place-items:center; background:radial-gradient(1000px 600px at 50% 0%, #1b2260 0, #0d112f 45%, #0a0e24 100%); z-index:5; }
+  .logo { font-size: clamp(28px, 5vw, 54px); font-weight:900; letter-spacing:.5px; }
+  .pulse { animation: pulse 1.6s infinite; display:inline-block; }
+  @keyframes pulse {
+    0% { transform:scale(1); filter:drop-shadow(0 0 0 rgba(91,140,255,.0)); }
+    50% { transform:scale(1.03); filter:drop-shadow(0 0 14px rgba(91,140,255,.55)); }
+    100% { transform:scale(1); filter:drop-shadow(0 0 0 rgba(91,140,255,.0)); }
+  }
+  .pinbox { margin-top:18px; display:flex; gap:10px; justify-content:center; }
+  .pinbox input { width:180px; text-align:center; letter-spacing:6px; font-size:20px; }
+  .error { color:var(--bad); font-weight:700; margin-top:6px; }
+  .ok { color:var(--ok); font-weight:700; margin-top:6px; }
+
+  table { width:100%; border-collapse:collapse; margin-top:14px; font-size:14px; }
+  th, td { padding:10px 8px; border-bottom:1px solid #28325f; vertical-align:middle; }
+  th { text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:#b5c2ff; cursor:pointer; position:sticky; top:0; background:linear-gradient(180deg, #1a2040, #161a2b); }
+  tr:hover td { background:#121735; }
+  .tag { padding:3px 8px; border-radius:999px; font-size:12px; font-weight:700; }
+  .tag.good { background:rgba(43,213,118,.15); color:#2bd576; border:1px solid rgba(43,213,118,.4); }
+  .tag.mid { background:rgba(255,204,0,.12); color:#ffd24a; border:1px solid rgba(255,204,0,.35); }
+  .tag.bad { background:rgba(255,91,91,.12); color:#ff8c8c; border:1px solid rgba(255,91,91,.35); }
+
+  .toolbar { display:flex; gap:10px; flex-wrap:wrap; justify-content:space-between; margin-top:10px; }
+  .stat { background:#111737; border:1px dashed #2c3c7a; border-radius:12px; padding:10px 12px; font-size:13px; color:#c4cdf8; }
+  .footer { margin-top:10px; font-size:12px; color:#9aa3c7; }
+  .note { margin-top:6px; color:#9aa3c7; font-size:12px; }
+  .search { padding:10px 12px; border-radius:10px; width:240px; background:#0e1440; border:1px solid #2a3a7a; color:var(--ink); }
+</style>
+</head>
+<body>
+<div class="splash" id="splash">
+  <div class="card" style="text-align:center; max-width:560px;">
+    <div class="logo"><span class="pulse">AWP Fine Ciclo</span></div>
+    <div class="muted">Analizza i sinottici e ordina le macchine migliori per fine ciclo</div>
+    <div class="pinbox">
+      <input type="password" id="pin" maxlength="4" placeholder="PIN" autocomplete="off">
+      <button class="accent" id="enterBtn">Entra</button>
+    </div>
+    <div id="pinMsg" class="error" style="display:none;">PIN errato</div>
+    
+  </div>
+</div>
+
+<div class="app hidden" id="app">
+  <div class="card">
+    <h1>AWP Fine Ciclo <span class="muted">· Analyzer</span></h1>
+    <div class="muted">1) Carica il file <b>Sinottico AWP</b> (CSV consigliato). 2) Premi <b>Calcola</b>.</div>
+
+    <div class="row" style="margin-top:12px;">
+      <input type="file" id="fileInput" accept=".xlsx,.XLSX,.csv,.CSV,.numbers" class="grow">
+      <button id="calcBtn" class="accent">Calcola</button>
+      <input type="text" id="search" class="search" placeholder="Cerca modello, sede, indirizzo…">
+      <button id="exportBtn">Esporta CSV</button>
+    </div>
+
+    <div class="toolbar">
+      <div class="stat" id="statCount">Macchine: 0</div>
+      <div class="stat" id="statGood">Top (residuo OUT &gt; residuo IN): 0</div>
+      <div class="stat" id="statWarn">Equilibrate (±10%): 0</div>
+    </div>
+
+    <table id="resultTable">
+      <thead>
+        <tr>
+          <th data-k="perc_cycle">Percentuale Ciclo</th>
+          <th data-k="cycle_idx">Ciclo Corrente</th>
+          <th data-k="resid_in">Residuo IN</th>
+          <th data-k="resid_out">Residuo OUT</th>
+          <th data-k="MODELLO">MODELLO</th>
+          <th data-k="DENOMIN">DENOMIN.</th>
+          <th data-k="SEDE">SEDE</th>
+          <th data-k="INDIRIZZO">INDIRIZZO</th>
+          <th data-k="PROVINCIA">PROVINCIA</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="footer">Payout target per ciclo: <b>65%</b>. Se il residuo OUT calcolato risulta negativo, viene fissato a <b>€0</b> come da regola.</div>
+  </div>
+</div>
+
+<script>
+// === Embedded cicloslot mapping (code -> cycle, model) ===
+const CICLOSLOT = [{"code": "776723002965168", "model": "MARIM CHAMPIONS SLOT", "cycle": 32000.0}, {"code": "776732934865181", "model": "GIGASET SOLAR OGS MX G", "cycle": 28000.0}, {"code": "776732935065174", "model": "MARIM LUXURY", "cycle": 28000.0}, {"code": "776732938965186", "model": "MPM 7 ASSI", "cycle": 28000.0}, {"code": "776732939765185", "model": "MPM CHAMPION BET", "cycle": 28000.0}, {"code": "776732940765177", "model": "CHERRY VEGAS", "cycle": 30000.0}, {"code": "776732942765179", "model": "LUCKY LEGENDS", "cycle": 30000.0}, {"code": "776732942965181", "model": "PRAGMATIC TOPGAMES", "cycle": 28000.0}, {"code": "776732943365176", "model": "MARIM PH HERO", "cycle": 30000.0}, {"code": "776732950865179", "model": "DIAMANTE ULTRALINK", "cycle": 32000.0}, {"code": "776732952765180", "model": "NOVOMATIC GAME CLUB", "cycle": 28000.0}, {"code": "776732962965183", "model": "LA SFINGE", "cycle": 30000.0}, {"code": "776732967365182", "model": "BET MAX TIGER OGS MX G", "cycle": 28000.0}, {"code": "776732968765187", "model": "MASTER CLUB MIRAGE OGS MX G", "cycle": 28000.0}, {"code": "776732970865181", "model": "MARIM FORTUNE", "cycle": 32000.0}, {"code": "776732974765184", "model": "NOVOMATIC TOP 7 LONDON", "cycle": 28000.0}, {"code": "776732976865187", "model": "TENNESSEE", "cycle": 30000.0}, {"code": "776732978965190", "model": "NOVOMATIC TOP 7 VIENNA", "cycle": 28000.0}, {"code": "776732984765185", "model": "MARIM CRAZY GAME", "cycle": 28000.0}, {"code": "776732987165182", "model": "MARIM CRAZY FUN", "cycle": 28000.0}, {"code": "776732987265183", "model": "MARIM CRAZY BET", "cycle": 28000.0}, {"code": "776732992865185", "model": "MARIM CRAZY CLUB", "cycle": 28000.0}, {"code": "776742864965185", "model": "SUPERSTRIKE OGS MX G", "cycle": 28000.0}, {"code": "776742866965187", "model": "PH NITRO", "cycle": 30000.0}, {"code": "776742868765187", "model": "SEVEN WONDERS", "cycle": 30000.0}, {"code": "776742868865188", "model": "NOVOMATIC TOP 7 TEXAS", "cycle": 28000.0}, {"code": "776742870765180", "model": "PH EMPIRE", "cycle": 30000.0}, {"code": "776742886865188", "model": "TECNOMAR MYTHIC GAMING", "cycle": 28000.0}, {"code": "776742886965189", "model": "GIGASET ARMAGEDDON OGS MX G", "cycle": 28000.0}, {"code": "776742893065178", "model": "GIGASET VERTIGO OGS MX G", "cycle": 28000.0}, {"code": "776742900865175", "model": "ROXI FLASH GORDON", "cycle": 30000.0}, {"code": "776742904865179", "model": "CASH PARTY", "cycle": 28000.0}, {"code": "776742905565177", "model": "GIGAMIX FUSION OGS MX G", "cycle": 28000.0}, {"code": "776742907065174", "model": "ROXI MANDRAKE THE LEGEND", "cycle": 30000.0}, {"code": "776742907765181", "model": "SEVEN ADVENTURES", "cycle": 30000.0}, {"code": "776742907965183", "model": "X-ROCKS", "cycle": 28000.0}, {"code": "776742908665181", "model": "TECNOMAR CASINO ROYALE", "cycle": 32000.0}, {"code": "776742920765176", "model": "MARIM BIG ADVENTURE", "cycle": 28000.0}, {"code": "776742922765178", "model": "MARIM PIGGY GOLD MULTIGAME", "cycle": 30000.0}, {"code": "776742930765177", "model": "TERRY WHITE GOLD", "cycle": 28000.0}, {"code": "776742930865178", "model": "MARIM CASH BACK", "cycle": 27000.0}, {"code": "776752793065178", "model": "SPECIAL NIGHT", "cycle": 28000.0}, {"code": "776752794965188", "model": "ROXI GOLDEN POT", "cycle": 30000.0}, {"code": "776752796865189", "model": "PH PARADISE", "cycle": 30000.0}, {"code": "776752803165171", "model": "COFFEE TIME", "cycle": 30000.0}, {"code": "776752805365175", "model": "PH WANTED", "cycle": 30000.0}, {"code": "776752808765182", "model": "PLAYNET SUPER FIRE", "cycle": 28000.0}, {"code": "776752812765177", "model": "NOVOMATIC TOKYO FEVER", "cycle": 28000.0}, {"code": "776752816865182", "model": "SEVEN SUN", "cycle": 28000.0}, {"code": "776752818765183", "model": "POWER SHOW", "cycle": 30000.0}, {"code": "776752828965186", "model": "CASINO' PARADISE ORO", "cycle": 30000.0}, {"code": "776752830765177", "model": "MARIM MAGIC CARD REVOLUTION", "cycle": 28000.0}, {"code": "776752831065171", "model": "ACME DIABOLIK 022", "cycle": 28000.0}, {"code": "776752832965181", "model": "SEVEN MOON", "cycle": 28000.0}, {"code": "776752833065173", "model": "DREAMSET REVENGE OGS MX G", "cycle": 28000.0}, {"code": "776752835065175", "model": "NOVOMATIC GAME COLLECTION BLU", "cycle": 28000.0}, {"code": "776752842865181", "model": "BALDAZZI TOP 7 SMERALDO", "cycle": 28000.0}, {"code": "776752844865183", "model": "DREAMSET DIABLO OGS MX G", "cycle": 28000.0}, {"code": "776752846765184", "model": "MARIM DRAGON REVOLUTION", "cycle": 28000.0}, {"code": "776752850765179", "model": "IMA 7 FORTUNES DELPHINUS", "cycle": 30000.0}, {"code": "776762756665184", "model": "DREAMSET SCORPIO OGS MX M", "cycle": 28000.0}, {"code": "776762758765187", "model": "MPM DIAMOND DELUXE", "cycle": 28000.0}, {"code": "776762760665179", "model": "MARIM ROYAL DELUXE", "cycle": 28000.0}, {"code": "776762768265183", "model": "ROXI MYSTIC FORTUNE", "cycle": 30000.0}, {"code": "776762772765183", "model": "MARIM MAGIC GIRL", "cycle": 28000.0}, {"code": "776762776165181", "model": "ROXI REELS OF FORTUNE", "cycle": 30000.0}, {"code": "776762784965188", "model": "DREAMSET ARENA OGS MX G", "cycle": 28000.0}, {"code": "776762785165181", "model": "MPM MAGIC SLOT", "cycle": 28000.0}, {"code": "776772678165183", "model": "MARIM DIAMANTE", "cycle": 30000.0}, {"code": "776772724265176", "model": "DREAMSET INFINITY OGS MX G", "cycle": 28000.0}, {"code": "776772732365176", "model": "DREAMSET CASINO OGS MX G", "cycle": 28000.0}, {"code": "776772738165180", "model": "MARIM GOLD DELUXE", "cycle": 28000.0}, {"code": "776772738265181", "model": "MARIM FIRE", "cycle": 28000.0}, {"code": "776772738365182", "model": "MARIM CIRCUS MULTIGAME", "cycle": 30000.0}, {"code": "776772742265176", "model": "DREAMSET OLYMPUS OGS MX I", "cycle": 28000.0}];
+
+// Utility: normalize strings
+const norm = s => (s||"").toString().trim();
+
+// Pin gate
+const splash = document.getElementById('splash');
+const app = document.getElementById('app');
+const pinInput = document.getElementById('pin');
+const pinMsg = document.getElementById('pinMsg');
+document.getElementById('enterBtn').addEventListener('click', ()=>{ checkPin(); });
+pinInput.addEventListener('keydown', (e)=>{ if(e.key==='Enter') checkPin(); });
+function checkPin() {
+  if (pinInput.value === '2025') {
+    splash.classList.add('hidden');
+    app.classList.remove('hidden');
+  } else if (name.endsWith('.xlsx')) {
+    alert('Questo file è XLSX. La versione attuale richiede temporaneamente di esportare il Sinottico in CSV per la lettura offline in un unico file. (Se vuoi, posso incorporare il parser XLSX direttamente nel file singolo.)');
+    return null;
+  } else {
+    pinMsg.style.display = 'block';
+    setTimeout(()=> pinMsg.style.display='none', 1500);
+  }
+}
+
+// Minimal CSV parser (supports ; or , delimiter, quotes)
+function parseCSV(text) {
+  const delim = (text.indexOf(';')> -1 && text.split('\\n')[0].split(';').length > text.split('\\n')[0].split(',').length) ? ';' : ',';
+  const rows = [];
+  let i=0, cur='', inq=false, row=[];
+  while(i<text.length) {
+    const ch=text[i];
+    if(ch === '"') {
+      if(inq && text[i+1] === '"') { cur +='"'; i++; }
+      else inq = !inq;
+    } else if(ch === delim && !inq) {
+      row.push(cur); cur='';
+    } else if((ch === '\\n' || ch === '\\r') && !inq) {
+      if(cur.length || row.length) { row.push(cur); rows.push(row); }
+      cur=''; row=[];
+      if(ch==='\\r' && text[i+1]==='\\n') i++;
+    } else if (name.endsWith('.xlsx')) {
+    alert('Questo file è XLSX. La versione attuale richiede temporaneamente di esportare il Sinottico in CSV per la lettura offline in un unico file. (Se vuoi, posso incorporare il parser XLSX direttamente nel file singolo.)');
+    return null;
+  } else { cur += ch; }
+    i++;
+  }
+  if(cur.length || row.length) { row.push(cur); rows.push(row); }
+  const headers = rows.shift().map(h=>norm(h).toLowerCase());
+  return rows.map(r=>{ const o={}; headers.forEach((h,idx)=>o[h]=r[idx]); return o; });
+}
+
+// Try to read .xlsx or .numbers by asking user to export CSV
+async function readFile(file) {
+  const name = file.name.toLowerCase();
+  const buf = await file.arrayBuffer();
+  if (name.endsWith('.csv')) {
+    const text = new TextDecoder('utf-8').decode(buf);
+    return parseCSV(text);
+  } else if (name.endsWith('.xlsx')) {
+    alert('Questo file è XLSX. La versione attuale richiede temporaneamente di esportare il Sinottico in CSV per la lettura offline in un unico file. (Se vuoi, posso incorporare il parser XLSX direttamente nel file singolo.)');
+    return null;
+  } else {
+    alert('Per favore esporta il Sinottico in CSV e ricarica. (File attuale: ' + file.name + ')');
+    return null;
+  }
+}
+
+// Locate columns with fuzzy names
+function pickCol(map, candidates) {
+  const keys = Object.keys(map);
+  for (const c of candidates) {
+    if (c in map) return c;
+  }
+  return null;
+}
+
+// Build fast lookup from CICLOSLOT by code
+const cicloByCode = (()=>{
+  const m = new Map();
+  CICLOSLOT.forEach(x=> m.set(norm(x.code).toLowerCase(), +x.cycle));
+  return m;
+})();
+
+const modelByCode = (()=>{
+  const m = new Map();
+  CICLOSLOT.forEach(x=> m.set(norm(x.code).toLowerCase(), norm(x.model)));
+  return m;
+})();
+
+// Calculate
+let fullRows = [];
+
+document.getElementById('calcBtn').addEventListener('click', async ()=>{
+  const f = document.getElementById('fileInput').files[0];
+  if(!f) return alert('Seleziona un file Sinottico (CSV).');
+  const rows = await readFile(f);
+  if(!rows) return;
+
+  // Map header variants
+  const first = rows[0] || {}
+  const headerMap = {}
+  Object.keys(first).forEach(k=> headerMap[k]=k);
+
+  const codeKey = pickCol(headerMap, ['codice modello','cod. modello','codicemodello','codice_modello','codice','codice awp','modello codice']);
+  const modelloKey = pickCol(headerMap, ['modello','descrizione modello','nome modello']);
+  const inKey = pickCol(headerMap, ['in','introdotto','incasso','introiti','incassato']);
+  const outKey = pickCol(headerMap, ['out','vinto','vincite','pagato']);
+  const denomKey = pickCol(headerMap, ['denomin.','denominazione','denom.','denomin']);
+  const sedeKey = pickCol(headerMap, ['sede','località','comune','città']);
+  const indirKey = pickCol(headerMap, ['indirizzo','via','indir.']);
+  const provKey = pickCol(headerMap, ['provincia','prov.']);
+
+  if(!codeKey || !inKey || !outKey) {
+    alert('Colonne fondamentali mancanti. Devono esserci: CODICE MODELLO, IN, OUT (anche con nomi simili).');
+    return;
+  }
+
+  // Helper to parse euro with , or .
+  const parseEuro = v => {
+    let s = (v||'').toString().trim().replace(/\s+/g,'');
+    // remove thousands dots, normalize comma
+    // preserve decimals if only one comma present
+    if ((s.match(/,/g)||[]).length===1 && (s.match(/\./g)||[]).length===0) {
+      s = s.replace('.', '').replace(',', '.');
+    } else if (name.endsWith('.xlsx')) {
+    alert('Questo file è XLSX. La versione attuale richiede temporaneamente di esportare il Sinottico in CSV per la lettura offline in un unico file. (Se vuoi, posso incorporare il parser XLSX direttamente nel file singolo.)');
+    return null;
+  } else {
+      s = s.replace(/\./g,'').replace(',', '.');
+    }
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  }
+
+  const payout = 0.65;
+
+  fullRows = rows.map(r=>{
+    const code = norm(r[codeKey]).toLowerCase();
+    const C = cicloByCode.get(code);
+    if(!C) return null;
+
+    const I = parseEuro(r[inKey]);
+    const V = parseEuro(r[outKey]);
+    const cycles_done = Math.floor(I / C);
+    const in_cycle = I - cycles_done*C;
+    const target_prev = cycles_done * (payout * C);
+    let paid_cycle = V - target_prev;
+    if (paid_cycle < 0) paid_cycle = 0; // non negativo
+
+    const cycle_idx = cycles_done + 1;
+    const resid_in = in_cycle > 0 ? (C - in_cycle) : C; // se appena chiuso, nuovo ciclo
+    let resid_out = (payout * C) - paid_cycle;
+    if (resid_out < 0) resid_out = 0; // clamp a 0 per regola
+
+    const perc_cycle = in_cycle > 0 ? (paid_cycle / in_cycle) * 100 : 0;
+
+    const delta = resid_out - resid_in; // ranking: più alto è meglio
+
+    return {
+      perc_cycle,
+      cycle_idx,
+      resid_in,
+      resid_out,
+      MODELLO: norm(r[modelloKey]) || (modelByCode.get(code) || ''),
+      DENOMIN: norm(r[denomKey]),
+      SEDE: norm(r[sedeKey]),
+      INDIRIZZO: norm(r[indirKey]),
+      PROVINCIA: norm(r[provKey]),
+      _delta: delta
+    };
+  }).filter(Boolean);
+
+  // Sort by best (residuo OUT > residuo IN), then by delta desc
+  fullRows.sort((a,b)=> (b._delta - a._delta) || (b.resid_out - a.resid_out));
+
+  renderTable(fullRows);
+  updateStats(fullRows);
+});
+
+function euro(n) {
+  return new Intl.NumberFormat('it-IT', {style:'currency', currency:'EUR'}).format(n||0);
+}
+
+function renderTable(rows) {
+  const tb = document.querySelector('#resultTable tbody');
+  tb.innerHTML = '';
+  for (const r of rows) {
+    const tagClass = r.resid_out > r.resid_in ? 'good' : (Math.abs(r.resid_out - r.resid_in) <= 0.1*r.resid_in ? 'mid' : 'bad');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="tag ${tagClass}">${r.perc_cycle ? r.perc_cycle.toFixed(2) : '0.00'}%</span></td>
+      <td>${r.cycle_idx}</td>
+      <td>${euro(r.resid_in)}</td>
+      <td>${euro(r.resid_out)}</td>
+      <td>${escapeHTML(r.MODELLO)}</td>
+      <td>${escapeHTML(r.DENOMIN)}</td>
+      <td>${escapeHTML(r.SEDE)}</td>
+      <td>${escapeHTML(r.INDIRIZZO)}</td>
+      <td>${escapeHTML(r.PROVINCIA)}</td>
+    `;
+    tb.appendChild(tr);
+  }
+}
+
+function updateStats(rows) {
+  document.getElementById('statCount').textContent = 'Macchine: ' + rows.length;
+  const good = rows.filter(r=> r.resid_out > r.resid_in).length;
+  const warn = rows.filter(r=> Math.abs(r.resid_out - r.resid_in) <= 0.1*(r.resid_in||1)).length;
+  document.getElementById('statGood').textContent = 'Top (residuo OUT > residuo IN): ' + good;
+  document.getElementById('statWarn').textContent = 'Equilibrate (±10%): ' + warn;
+}
+
+// Simple search
+document.getElementById('search').addEventListener('input', (e)=>{
+  const q = e.target.value.toLowerCase();
+  const filtered = fullRows.filter(r=>{
+    return [r.MODELLO, r.DENOMIN, r.SEDE, r.INDIRIZZO, r.PROVINCIA].some(x=> (x||'').toLowerCase().includes(q));
+  });
+  renderTable(filtered);
+  updateStats(filtered);
+});
+
+// Sorting by clicking headers
+document.querySelectorAll('th[data-k]').forEach(th=> {
+  th.addEventListener('click', ()=> {
+    const k = th.getAttribute('data-k');
+    const isNum = ['perc_cycle','cycle_idx','resid_in','resid_out','_delta'].includes(k);
+    const dir = th.dataset.dir === 'asc' ? 'desc' : 'asc';
+    th.dataset.dir = dir;
+    const arr = [...fullRows];
+    arr.sort((a,b)=> {
+      const A = a[k] ?? '';
+      const B = b[k] ?? '';
+      if (isNum) return dir==='asc' ? (A - B) : (B - A);
+      return dir==='asc' ? String(A).localeCompare(String(B)) : String(A).localeCompare(String(B));
+    });
+    renderTable(arr);
+  });
+});
+
+// Export CSV
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const rows = [['Percentuale Ciclo','Ciclo Corrente','Residuo IN','Residuo OUT','MODELLO','DENOMIN.','SEDE','INDIRIZZO','PROVINCIA']];
+  document.querySelectorAll('#resultTable tbody tr').forEach(tr=> {
+    const tds = tr.querySelectorAll('td');
+    rows.push([
+      tds[0].innerText.replace('%',''),
+      tds[1].innerText,
+      tds[2].innerText.replace('€','').replace('.','').replace(',','.'),
+      tds[3].innerText.replace('€','').replace('.','').replace(',','.'),
+      tds[4].innerText, tds[5].innerText, tds[6].innerText, tds[7].innerText, tds[8].innerText
+    ]);
+  });
+  const csv = rows.map(r=> r.map(c=> '"' + String(c).replace(/"/g,'""') + '"').join(';')).join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'awp_fine_ciclo.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+
+function escapeHTML(s) {
+  return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+}
+</script>
+</body>
+</html>
