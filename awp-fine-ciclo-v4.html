@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AWP Fine Ciclo · Analyzer Pro</title>
+<link rel="preconnect" href="https://cdn.jsdelivr.net">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#f6f8fc; --ink:#0b1220; --muted:#5a6885; --card:#ffffff; --border:#e7ecf5;
+    --accent:#2563eb; --accent-2:#3b82f6; --ok:#16a34a; --warn:#f59e0b; --bad:#ef4444;
+    --thead:#f8fafc; --hover:#f3f7ff; --zebra:#fbfdff;
+  }
+  /* Themes */
+  html[data-theme="dark"]{
+    --bg:#0f1220; --ink:#eef1ff; --muted:#9aa3c7; --card:#161a2b; --border:#273057;
+    --accent:#5b8cff; --accent-2:#476cff; --ok:#2bd576; --warn:#ffd24a; --bad:#ff8c8c;
+    --thead:#1a2040; --hover:#121735; --zebra:#12162e;
+  }
+  html[data-theme="mint"]{
+    --bg:#f2fbf7; --ink:#072018; --muted:#4c7a69; --card:#ffffff; --border:#d7efe4;
+    --accent:#10b981; --accent-2:#34d399; --ok:#0ea5a5; --warn:#f59e0b; --bad:#ef4444;
+    --thead:#ecfdf5; --hover:#e6fff5; --zebra:#f6fffb;
+  }
+  html[data-theme="amber"]{
+    --bg:#fffaf2; --ink:#201508; --muted:#8b6a3a; --card:#ffffff; --border:#f1e3c8;
+    --accent:#f59e0b; --accent-2:#fbbf24; --ok:#22c55e; --warn:#d97706; --bad:#ef4444;
+    --thead:#fff4e0; --hover:#fff0d4; --zebra:#fff8ea;
+  }
+
+  *{box-sizing:border-box}
+  body{ margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background:var(--bg); color:var(--ink); min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .app{ width:min(1200px,96vw); }
+  .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:22px; box-shadow:0 6px 20px rgba(15,23,42,.06); }
+  h1{ font-size:24px; margin:0 0 6px; letter-spacing:.2px; }
+  .muted{ color:var(--muted); }
+  .row{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .grow{ flex:1; }
+  .hidden{ display:none !important; }
+
+  input[type="file"], input[type="password"], input[type="text"], button{
+    border:1px solid var(--border); background:#fff0; color:var(--ink);
+    padding:11px 13px; border-radius:12px; font-weight:600;
+  }
+  input[type="text"]::placeholder{ color:#94a3b8; }
+  button{ cursor:pointer; background:linear-gradient(180deg, var(--accent), var(--accent-2)); color:#fff; border:none; }
+  button.secondary{ background:#fff0; color:var(--ink); border:1px solid var(--border); }
+  button:hover{ filter:brightness(1.02); }
+  .toolbar{ display:flex; gap:10px; flex-wrap:wrap; justify-content:space-between; margin-top:12px; }
+  .stat{ background:var(--card); border:1px dashed var(--border); border-radius:12px; padding:10px 12px; font-size:13px; }
+
+  table{ width:100%; border-collapse:separate; border-spacing:0; margin-top:14px; font-size:14px; }
+  thead th{
+    position:sticky; top:0; z-index:2; background:var(--thead);
+    text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted);
+    border-bottom:1px solid var(--border); padding:10px 8px; cursor:pointer;
+  }
+  tbody td{ padding:10px 8px; border-bottom:1px solid var(--border); }
+  tbody tr:nth-child(odd) td{ background:var(--zebra); }
+  tbody tr:hover td{ background:var(--hover); }
+
+  .tag{ padding:4px 9px; border-radius:999px; font-size:12px; font-weight:700; display:inline-block; }
+  .tag.good{ background:color-mix(in oklab, var(--ok) 15%, transparent); color:var(--ok); border:1px solid color-mix(in oklab, var(--ok) 40%, transparent); }
+  .tag.mid{ background:color-mix(in oklab, var(--warn) 15%, transparent); color:var(--warn); border:1px solid color-mix(in oklab, var(--warn) 40%, transparent); }
+  .tag.bad{ background:color-mix(in oklab, var(--bad) 15%, transparent); color:var(--bad); border:1px solid color-mix(in oklab, var(--bad) 40%, transparent); }
+
+  /* Splash (PIN) */
+  .splash{ position:fixed; inset:0; display:grid; place-items:center; background:radial-gradient(1200px 700px at 50% 0%, var(--thead) 0, var(--bg) 60%, var(--bg) 100%); z-index:5; overflow:hidden;}
+  .brand{ font-weight:900; font-size: clamp(28px, 5vw, 48px); letter-spacing:.3px; color:var(--ink); text-align:center; }
+  .pinbox{ margin-top:16px; display:flex; gap:10px; justify-content:center; }
+  .pinbox input{ width:200px; text-align:center; letter-spacing:6px; font-size:20px; }
+  .error{ color:var(--bad); font-weight:700; margin-top:6px; text-align:center; }
+
+  /* Fun animated icons */
+  .icon{ position:absolute; font-size:50px; opacity:.15; animation: floaty 12s ease-in-out infinite; filter:drop-shadow(0 2px 6px rgba(0,0,0,.2));}
+  .icon:nth-child(1){ top:8%; left:10%; animation-delay:0s; }
+  .icon:nth-child(2){ top:20%; right:12%; animation-delay:1.5s; }
+  .icon:nth-child(3){ bottom:12%; left:16%; animation-delay:3s; }
+  .icon:nth-child(4){ bottom:15%; right:22%; animation-delay:4.5s; }
+  @keyframes floaty{
+    0%,100%{ transform:translateY(0) rotate(0deg); }
+    50%{ transform:translateY(-18px) rotate(6deg); }
+  }
+
+  .themebar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .pill{ border:1px solid var(--border); background:var(--card); color:var(--ink); padding:8px 12px; border-radius:999px; cursor:pointer; }
+</style>
+</head>
+<body>
+<div class="splash" id="splash">
+  <div class="icon">🎰</div>
+  <div class="icon">💸</div>
+  <div class="icon">🧮</div>
+  <div class="icon">📊</div>
+  <div class="card" style="text-align:center; max-width:640px;">
+    <div class="brand">AWP Fine Ciclo · Analyzer Pro</div>
+    <div class="muted" style="margin-top:4px; text-align:center;">Accesso riservato</div>
+    <div class="pinbox">
+      <input type="password" id="pin" maxlength="4" placeholder="PIN" autocomplete="off">
+      <button class="secondary" id="enterBtn">Entra</button>
+    </div>
+    <div id="pinMsg" class="error" style="display:none;">PIN errato</div>
+  </div>
+</div>
+
+<div class="app hidden" id="app">
+  <div class="card">
+    <div class="row" style="justify-content:space-between; align-items:flex-start;">
+      <div>
+        <h1>Analisi Fine Ciclo</h1>
+        <div class="muted">Carica il <b>Sinottico AWP</b> (<b>XLSX</b> o CSV) e premi <b>Calcola</b>. Payout per ciclo: <b>65%</b>.</div>
+      </div>
+      <div class="themebar">
+        <span class="muted" style="font-size:12px;">Tema:</span>
+        <button class="pill" data-theme="light">Chiaro</button>
+        <button class="pill" data-theme="dark">Scuro</button>
+        <button class="pill" data-theme="mint">Mint</button>
+        <button class="pill" data-theme="amber">Ambra</button>
+      </div>
+    </div>
+
+    <div class="row" style="margin-top:12px;">
+      <input type="file" id="fileInput" accept=".xlsx,.XLSX,.csv,.CSV,.numbers" class="grow">
+      <button id="calcBtn">Calcola</button>
+      <input type="text" id="search" class="search" placeholder="Cerca modello, sede, indirizzo…">
+      <button id="exportBtn" class="secondary">Esporta CSV</button>
+    </div>
+
+    <div class="toolbar">
+      <div class="stat" id="statCount">Macchine: 0</div>
+      <div class="stat" id="statGood">Top (residuo OUT &gt; residuo IN): 0</div>
+      <div class="stat" id="statWarn">Equilibrate (±10%): 0</div>
+    </div>
+
+    <table id="resultTable">
+      <thead>
+        <tr>
+          <th data-k="perc_cycle">Percentuale Ciclo</th>
+          <th data-k="cycle_idx">Ciclo Corrente</th>
+          <th data-k="resid_in">Residuo IN</th>
+          <th data-k="resid_out">Residuo OUT</th>
+          <th data-k="MODELLO">MODELLO</th>
+          <th data-k="DENOMIN">DENOMIN.</th>
+          <th data-k="SEDE">SEDE</th>
+          <th data-k="INDIRIZZO">INDIRIZZO</th>
+          <th data-k="PROVINCIA">PROVINCIA</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <div class="footer">Nota: se il residuo OUT risulta negativo (overpay oltre il 65% a fine ciclo), viene riportato a <b>€0</b> come da regola.</div>
+  </div>
+</div>
+
+<script>
+// === Embedded cicloslot mapping (code -> cycle, model) ===
+const CICLOSLOT = [{"code": "776723002965168", "model": "MARIM CHAMPIONS SLOT", "cycle": 32000.0}, {"code": "776732934865181", "model": "GIGASET SOLAR OGS MX G", "cycle": 28000.0}, {"code": "776732935065174", "model": "MARIM LUXURY", "cycle": 28000.0}, {"code": "776732938965186", "model": "MPM 7 ASSI", "cycle": 28000.0}, {"code": "776732939765185", "model": "MPM CHAMPION BET", "cycle": 28000.0}, {"code": "776732940765177", "model": "CHERRY VEGAS", "cycle": 30000.0}, {"code": "776732942765179", "model": "LUCKY LEGENDS", "cycle": 30000.0}, {"code": "776732942965181", "model": "PRAGMATIC TOPGAMES", "cycle": 28000.0}, {"code": "776732943365176", "model": "MARIM PH HERO", "cycle": 30000.0}, {"code": "776732950865179", "model": "DIAMANTE ULTRALINK", "cycle": 32000.0}, {"code": "776732952765180", "model": "NOVOMATIC GAME CLUB", "cycle": 28000.0}, {"code": "776732962965183", "model": "LA SFINGE", "cycle": 30000.0}, {"code": "776732967365182", "model": "BET MAX TIGER OGS MX G", "cycle": 28000.0}, {"code": "776732968765187", "model": "MASTER CLUB MIRAGE OGS MX G", "cycle": 28000.0}, {"code": "776732970865181", "model": "MARIM FORTUNE", "cycle": 32000.0}, {"code": "776732974765184", "model": "NOVOMATIC TOP 7 LONDON", "cycle": 28000.0}, {"code": "776732976865187", "model": "TENNESSEE", "cycle": 30000.0}, {"code": "776732978965190", "model": "NOVOMATIC TOP 7 VIENNA", "cycle": 28000.0}, {"code": "776732984765185", "model": "MARIM CRAZY GAME", "cycle": 28000.0}, {"code": "776732987165182", "model": "MARIM CRAZY FUN", "cycle": 28000.0}, {"code": "776732987265183", "model": "MARIM CRAZY BET", "cycle": 28000.0}, {"code": "776732992865185", "model": "MARIM CRAZY CLUB", "cycle": 28000.0}, {"code": "776742864965185", "model": "SUPERSTRIKE OGS MX G", "cycle": 28000.0}, {"code": "776742866965187", "model": "PH NITRO", "cycle": 30000.0}, {"code": "776742868765187", "model": "SEVEN WONDERS", "cycle": 30000.0}, {"code": "776742868865188", "model": "NOVOMATIC TOP 7 TEXAS", "cycle": 28000.0}, {"code": "776742870765180", "model": "PH EMPIRE", "cycle": 30000.0}, {"code": "776742886865188", "model": "TECNOMAR MYTHIC GAMING", "cycle": 28000.0}, {"code": "776742886965189", "model": "GIGASET ARMAGEDDON OGS MX G", "cycle": 28000.0}, {"code": "776742893065178", "model": "GIGASET VERTIGO OGS MX G", "cycle": 28000.0}, {"code": "776742900865175", "model": "ROXI FLASH GORDON", "cycle": 30000.0}, {"code": "776742904865179", "model": "CASH PARTY", "cycle": 28000.0}, {"code": "776742905565177", "model": "GIGAMIX FUSION OGS MX G", "cycle": 28000.0}, {"code": "776742907065174", "model": "ROXI MANDRAKE THE LEGEND", "cycle": 30000.0}, {"code": "776742907765181", "model": "SEVEN ADVENTURES", "cycle": 30000.0}, {"code": "776742907965183", "model": "X-ROCKS", "cycle": 28000.0}, {"code": "776742908665181", "model": "TECNOMAR CASINO ROYALE", "cycle": 32000.0}, {"code": "776742920765176", "model": "MARIM BIG ADVENTURE", "cycle": 28000.0}, {"code": "776742922765178", "model": "MARIM PIGGY GOLD MULTIGAME", "cycle": 30000.0}, {"code": "776742930765177", "model": "TERRY WHITE GOLD", "cycle": 28000.0}, {"code": "776742930865178", "model": "MARIM CASH BACK", "cycle": 27000.0}, {"code": "776752793065178", "model": "SPECIAL NIGHT", "cycle": 28000.0}, {"code": "776752794965188", "model": "ROXI GOLDEN POT", "cycle": 30000.0}, {"code": "776752796865189", "model": "PH PARADISE", "cycle": 30000.0}, {"code": "776752803165171", "model": "COFFEE TIME", "cycle": 30000.0}, {"code": "776752805365175", "model": "PH WANTED", "cycle": 30000.0}, {"code": "776752808765182", "model": "PLAYNET SUPER FIRE", "cycle": 28000.0}, {"code": "776752812765177", "model": "NOVOMATIC TOKYO FEVER", "cycle": 28000.0}, {"code": "776752816865182", "model": "SEVEN SUN", "cycle": 28000.0}, {"code": "776752818765183", "model": "POWER SHOW", "cycle": 30000.0}, {"code": "776752828965186", "model": "CASINO' PARADISE ORO", "cycle": 30000.0}, {"code": "776752830765177", "model": "MARIM MAGIC CARD REVOLUTION", "cycle": 28000.0}, {"code": "776752831065171", "model": "ACME DIABOLIK 022", "cycle": 28000.0}, {"code": "776752832965181", "model": "SEVEN MOON", "cycle": 28000.0}, {"code": "776752833065173", "model": "DREAMSET REVENGE OGS MX G", "cycle": 28000.0}, {"code": "776752835065175", "model": "NOVOMATIC GAME COLLECTION BLU", "cycle": 28000.0}, {"code": "776752842865181", "model": "BALDAZZI TOP 7 SMERALDO", "cycle": 28000.0}, {"code": "776752844865183", "model": "DREAMSET DIABLO OGS MX G", "cycle": 28000.0}, {"code": "776752846765184", "model": "MARIM DRAGON REVOLUTION", "cycle": 28000.0}, {"code": "776752850765179", "model": "IMA 7 FORTUNES DELPHINUS", "cycle": 30000.0}, {"code": "776762756665184", "model": "DREAMSET SCORPIO OGS MX M", "cycle": 28000.0}, {"code": "776762758765187", "model": "MPM DIAMOND DELUXE", "cycle": 28000.0}, {"code": "776762760665179", "model": "MARIM ROYAL DELUXE", "cycle": 28000.0}, {"code": "776762768265183", "model": "ROXI MYSTIC FORTUNE", "cycle": 30000.0}, {"code": "776762772765183", "model": "MARIM MAGIC GIRL", "cycle": 28000.0}, {"code": "776762776165181", "model": "ROXI REELS OF FORTUNE", "cycle": 30000.0}, {"code": "776762784965188", "model": "DREAMSET ARENA OGS MX G", "cycle": 28000.0}, {"code": "776762785165181", "model": "MPM MAGIC SLOT", "cycle": 28000.0}, {"code": "776772678165183", "model": "MARIM DIAMANTE", "cycle": 30000.0}, {"code": "776772724265176", "model": "DREAMSET INFINITY OGS MX G", "cycle": 28000.0}, {"code": "776772732365176", "model": "DREAMSET CASINO OGS MX G", "cycle": 28000.0}, {"code": "776772738165180", "model": "MARIM GOLD DELUXE", "cycle": 28000.0}, {"code": "776772738265181", "model": "MARIM FIRE", "cycle": 28000.0}, {"code": "776772738365182", "model": "MARIM CIRCUS MULTIGAME", "cycle": 30000.0}, {"code": "776772742265176", "model": "DREAMSET OLYMPUS OGS MX I", "cycle": 28000.0}];
+
+// Helpers
+const norm = s => (s??"").toString().trim();
+const toLowerKeys = obj => { const o={}; for (const k in obj) o[norm(k).toLowerCase()] = obj[k]; return o; };
+
+// PIN
+const splash = document.getElementById('splash');
+const app = document.getElementById('app');
+const pinInput = document.getElementById('pin');
+const pinMsg = document.getElementById('pinMsg');
+document.getElementById('enterBtn').addEventListener('click', checkPin);
+pinInput.addEventListener('keydown', e=>{ if(e.key==='Enter') checkPin(); });
+function checkPin(){
+  if (pinInput.value === '2025') { splash.classList.add('hidden'); app.classList.remove('hidden'); }
+  else { pinMsg.style.display='block'; setTimeout(()=> pinMsg.style.display='none', 1200); }
+}
+
+// Theme switcher
+document.querySelectorAll('.pill[data-theme]').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.documentElement.setAttribute('data-theme', btn.dataset.theme);
+    localStorage.setItem('awp_theme', btn.dataset.theme);
+  });
+});
+const savedTheme = localStorage.getItem('awp_theme');
+if(savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+
+// Build lookup maps
+const cicloByCode = (()=>{
+  const m = new Map(); CICLOSLOT.forEach(x=> m.set(norm(x.code).toUpperCase(), +x.cycle)); return m;
+})();
+const modelByCode = (()=>{
+  const m = new Map(); CICLOSLOT.forEach(x=> m.set(norm(x.code).toUpperCase(), norm(x.model))); return m;
+})();
+
+// Readers
+function parseCSV(text){
+  const firstLine = text.split('\n')[0] || '';
+  const delim = (firstLine.split(';').length > firstLine.split(',').length) ? ';' : ',';
+  const rows = []; let i=0, cur='', inq=false, row=[];
+  while(i<text.length){
+    const ch=text[i];
+    if(ch === '"'){ if(inq && text[i+1] === '"'){ cur+='"'; i++; } else { inq=!inq; } }
+    else if(ch === delim && !inq){ row.push(cur); cur=''; }
+    else if((ch === '\n' || ch === '\r') && !inq){ if(cur.length || row.length){ row.push(cur); rows.push(row); } cur=''; row=[]; if(ch==='\r' && text[i+1]==='\n') i++; }
+    else cur += ch;
+    i++;
+  }
+  if(cur.length || row.length){ row.push(cur); rows.push(row); }
+  const headers = rows.shift().map(h=>norm(h).toLowerCase());
+  return rows.map(r=>{ const o={}; headers.forEach((h,idx)=>o[h]=r[idx]); return o; });
+}
+
+async function readFile(file){
+  const name = file.name.toLowerCase();
+  const buf = await file.arrayBuffer();
+  if (name.endsWith('.xlsx')){
+    const wb = XLSX.read(new Uint8Array(buf), {type:'array'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const json = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false});
+    return json.map(toLowerKeys);
+  } else if (name.endsWith('.csv')){
+    const text = new TextDecoder('utf-8').decode(buf);
+    return parseCSV(text);
+  } else {
+    alert('Formato non supportato. Usa XLSX o CSV.');
+    return null;
+  }
+}
+
+// Use your exact headers (lowercased here): "codice modello", "cnttotin", "cnttotot"
+function pickExactOrAlias(map){
+  const keys = Object.keys(map);
+  const res = {};
+  res.codeKey = keys.includes('codice modello') ? 'codice modello' : null;
+  res.inKey   = keys.includes('cnttotin') ? 'cnttotin' : null;
+  res.outKey  = keys.includes('cnttotot') ? 'cnttotot' : null;
+  res.modelloKey = ['modello','descrizione modello','nome modello','desc modello'].find(k=> keys.includes(k));
+  res.denomKey   = ['denomin.','denominazione','denom.','denomin'].find(k=> keys.includes(k));
+  res.sedeKey    = ['sede','località','comune','città','city'].find(k=> keys.includes(k));
+  res.indirKey   = ['indirizzo','via','indir.','address'].find(k=> keys.includes(k));
+  res.provKey    = ['provincia','prov.','prov'].find(k=> keys.includes(k));
+  return res;
+}
+
+// Parse euro or numeric
+const parseEuro = v => {
+  if (typeof v === 'number') return v;
+  let s = (v||'').toString().trim();
+  if (!s) return 0;
+  s = s.replace(/\s+/g,'');
+  if (s.includes('.') && s.includes(',')){
+    s = s.replace(/\./g,'').replace(',', '.');
+  } else if (s.includes(',')){
+    s = s.replace('.', '').replace(',', '.');
+  }
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+};
+
+let fullRows = [];
+
+document.getElementById('calcBtn').addEventListener('click', async ()=>{
+  const f = document.getElementById('fileInput').files[0];
+  if(!f) return alert('Seleziona un file Sinottico (XLSX o CSV).');
+  const rows = await readFile(f);
+  if(!rows || !rows.length) return;
+
+  const headerMap = rows[0];
+  const cols = pickExactOrAlias(headerMap);
+
+  if(!cols.codeKey || !cols.inKey || !cols.outKey){
+    alert('Colonne fondamentali mancanti: CODICE MODELLO, CNTTOTIN, CNTTOTOT.');
+    return;
+  }
+
+  const payout = 0.65;
+
+  fullRows = rows.map(r=>{
+    const code = norm(r[cols.codeKey]).toUpperCase();
+    const C = cicloByCode.get(code);
+    if(!C) return null;
+
+    const I = parseEuro(r[cols.inKey]);
+    const V = parseEuro(r[cols.outKey]);
+
+    const cycles_done = Math.floor(I / C);
+    const in_cycle = I - cycles_done*C; // introdotto nel ciclo corrente
+    const target_prev = cycles_done * (payout * C); // vincite teoriche già maturate
+    let paid_cycle = V - target_prev;
+    if (paid_cycle < 0) paid_cycle = 0;
+
+    const cycle_idx = cycles_done + 1;
+    const resid_in = in_cycle > 0 ? (C - in_cycle) : C; // se ciclo chiuso, riparte
+    let resid_out = (payout * C) - paid_cycle;
+    if (resid_out < 0) resid_out = 0; // clamp
+
+    const perc_cycle = in_cycle > 0 ? (paid_cycle / in_cycle) * 100 : 0;
+    const delta = resid_out - resid_in;
+
+    return {
+      perc_cycle, cycle_idx, resid_in, resid_out,
+      MODELLO: norm(r[cols.modelloKey]) || (modelByCode.get(code) || ''),
+      DENOMIN: norm(r[cols.denomKey]),
+      SEDE: norm(r[cols.sedeKey]),
+      INDIRIZZO: norm(r[cols.indirKey]),
+      PROVINCIA: norm(r[cols.provKey]),
+      _delta: delta
+    };
+  }).filter(Boolean);
+
+  fullRows.sort((a,b)=> (b._delta - a._delta) || (b.resid_out - a.resid_out));
+  renderTable(fullRows);
+  updateStats(fullRows);
+});
+
+function euro(n){ return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n||0); }
+
+function renderTable(rows){
+  const tb = document.querySelector('#resultTable tbody');
+  tb.innerHTML = '';
+  for (const r of rows){
+    const tagClass = r.resid_out > r.resid_in ? 'good' : (Math.abs(r.resid_out - r.resid_in) <= 0.1*(r.resid_in||1) ? 'mid' : 'bad');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><span class="tag ${tagClass}">${r.perc_cycle ? r.perc_cycle.toFixed(2) : '0.00'}%</span></td>
+      <td>${r.cycle_idx}</td>
+      <td>${euro(r.resid_in)}</td>
+      <td>${euro(r.resid_out)}</td>
+      <td>${escapeHTML(r.MODELLO)}</td>
+      <td>${escapeHTML(r.DENOMIN)}</td>
+      <td>${escapeHTML(r.SEDE)}</td>
+      <td>${escapeHTML(r.INDIRIZZO)}</td>
+      <td>${escapeHTML(r.PROVINCIA)}</td>
+    `;
+    tb.appendChild(tr);
+  }
+}
+
+function updateStats(rows){
+  document.getElementById('statCount').textContent = 'Macchine: ' + rows.length;
+  const good = rows.filter(r=> r.resid_out > r.resid_in).length;
+  const warn = rows.filter(r=> Math.abs(r.resid_out - r.resid_in) <= 0.1*(r.resid_in||1)).length;
+  document.getElementById('statGood').textContent = 'Top (residuo OUT > residuo IN): ' + good;
+  document.getElementById('statWarn').textContent = 'Equilibrate (±10%): ' + warn;
+}
+
+document.getElementById('search').addEventListener('input', e=>{
+  const q = e.target.value.toLowerCase();
+  const filtered = fullRows.filter(r=> [r.MODELLO, r.DENOMIN, r.SEDE, r.INDIRIZZO, r.PROVINCIA].some(x=> (x||'').toLowerCase().includes(q)));
+  renderTable(filtered);
+  updateStats(filtered);
+});
+
+document.querySelectorAll('th[data-k]').forEach(th=>{
+  th.addEventListener('click', ()=>{
+    const k = th.getAttribute('data-k');
+    const isNum = ['perc_cycle','cycle_idx','resid_in','resid_out','_delta'].includes(k);
+    const dir = th.dataset.dir === 'asc' ? 'desc' : 'asc';
+    th.dataset.dir = dir;
+    const arr = [...fullRows];
+    arr.sort((a,b)=>{
+      const A = a[k] ?? '';
+      const B = b[k] ?? '';
+      if (isNum) return dir==='asc' ? (A - B) : (B - A);
+      return dir==='asc' ? String(A).localeCompare(String(B)) : String(B).localeCompare(String(A));
+    });
+    renderTable(arr);
+  });
+});
+
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const rows = [['Percentuale Ciclo','Ciclo Corrente','Residuo IN','Residuo OUT','MODELLO','DENOMIN.','SEDE','INDIRIZZO','PROVINCIA']];
+  document.querySelectorAll('#resultTable tbody tr').forEach(tr=>{
+    const tds = tr.querySelectorAll('td');
+    rows.push([
+      tds[0].innerText.replace('%',''),
+      tds[1].innerText,
+      tds[2].innerText.replace(/[€\s]/g,'').replace(/\./g,'').replace(',', '.'),
+      tds[3].innerText.replace(/[€\s]/g,'').replace(/\./g,'').replace(',', '.'),
+      tds[4].innerText, tds[5].innerText, tds[6].innerText, tds[7].innerText, tds[8].innerText
+    ]);
+  });
+  const csv = rows.map(r=> r.map(c=> '"' + String(c).replace(/"/g,'""') + '"').join(';')).join('\r\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'awp_fine_ciclo.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+});
+
+function escapeHTML(s){ return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
+</script>
+</body>
+</html>
