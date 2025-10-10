@@ -50,11 +50,16 @@
   .tag.mid{ background:color-mix(in oklab, var(--warn) 15%, transparent); color:var(--warn); border:1px solid color-mix(in oklab, var(--warn) 40%, transparent); }
   .tag.bad{ background:color-mix(in oklab, var(--bad) 15%, transparent); color:var(--bad); border:1px solid color-mix(in oklab, var(--bad) 40%, transparent); }
 
-  /* Splash (PIN) */
+  .badge{ padding:4px 10px; border-radius:999px; font-weight:800; font-size:12px; border:1px solid var(--border); }
+  .badge.base{ background:#fff0; color:#6b7280; }
+  .badge.sub{ background:#e7f6ed; color:#0b7a42; border-color:#bfe8d2; }
+  .badge.admin{ background:#eef2ff; color:#3730a3; border-color:#c7d2fe; }
+
+  /* Splash (Login) */
   .splash{ position:fixed; inset:0; display:grid; place-items:center; background:radial-gradient(1200px 700px at 50% 0%, var(--thead) 0, var(--bg) 60%, var(--bg) 100%); z-index:5; overflow:hidden;}
   .brand{ font-weight:900; font-size: clamp(28px, 5vw, 48px); letter-spacing:.3px; color:var(--ink); text-align:center; }
-  .pinbox{ margin-top:16px; display:flex; gap:10px; justify-content:center; }
-  .pinbox input{ width:200px; text-align:center; letter-spacing:6px; font-size:20px; }
+  .pinbox{ margin-top:16px; display:grid; gap:10px; justify-items:center; }
+  .pinbox input{ width:240px; text-align:center; letter-spacing:2px; font-size:18px; }
   .error{ color:var(--bad); font-weight:700; margin-top:6px; text-align:center; }
   .icon{ position:absolute; font-size:50px; opacity:.15; animation: floaty 12s ease-in-out infinite; filter:drop-shadow(0 2px 6px rgba(0,0,0,.2));}
   .icon:nth-child(1){ top:8%; left:10%; animation-delay:0s; }
@@ -64,43 +69,59 @@
   @keyframes floaty{ 0%,100%{ transform:translateY(0) rotate(0deg);} 50%{ transform:translateY(-18px) rotate(6deg);} }
 
   .themebar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .pill{ border:1px solid var(--border); background:var(--card); color:var(--ink); padding:8px 12px; border-radius:999px; cursor:pointer; }
+
+  /* Admin overlay */
+  .overlay{ position:fixed; inset:0; background:var(--overlay); display:none; align-items:center; justify-content:center; z-index:10; }
+  .overlay.in{ display:flex; }
+  .panel{ width:min(900px, 95vw); background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px; }
+  .close{ background:#fff0; color:var(--ink); border:1px solid var(--border); padding:6px 10px; border-radius:8px; cursor:pointer; float:right;}
 </style>
 </head>
 <body>
-<!-- CICLOSLOT integrato (metti il tuo array; se lasci [], legge /Dati/cicloslot.xlsx) -->
+<!-- CICLOSLOT integrato (metti qui il tuo array; se [] userà /Dati/cicloslot.xlsx) -->
 <script type="application/json" id="cicloslot-json">[]</script>
 
+<!-- Splash / Login -->
 <div class="splash" id="splash">
   <div class="icon">🎰</div><div class="icon">💸</div><div class="icon">🧮</div><div class="icon">📊</div>
   <div class="card" style="text-align:center; max-width:640px;">
     <div class="brand">AWP Fine Ciclo · Analyzer Pro</div>
     <div class="muted" style="margin-top:4px;">Accesso riservato</div>
     <div class="pinbox">
-      <input type="password" id="pin" maxlength="4" placeholder="PIN" autocomplete="off" />
+      <input type="text" id="user" placeholder="User" autocomplete="off" />
+      <input type="password" id="pin" maxlength="8" placeholder="PIN" autocomplete="off" />
       <button class="secondary" id="enterBtn" type="button">Entra</button>
     </div>
-    <div id="pinMsg" class="error" style="display:none;">PIN errato</div>
+    <div id="pinMsg" class="error" style="display:none;">Credenziali errate o non abilitate</div>
   </div>
 </div>
 
+<!-- App -->
 <div class="app hidden" id="app">
   <div class="card">
     <div class="row" style="justify-content:space-between; align-items:flex-start;">
       <div>
         <h1>Analisi Fine Ciclo</h1>
         <div class="muted">Caricamento automatico da <b>/Dati/</b>. Payout: <b>65%</b>.</div>
+        <div id="lastRead" class="muted" style="margin-top:4px;"></div>
       </div>
-      <div class="themebar">
-        <span class="muted" style="font-size:12px;">Tema:</span>
-        <button class="pill" data-theme="light">Chiaro</button>
-        <button class="pill" data-theme="dark">Scuro</button>
-        <button class="pill" data-theme="mint">Mint</button>
-        <button class="pill" data-theme="amber">Ambra</button>
+      <div style="text-align:right;">
+        <div class="themebar">
+          <span class="muted" style="font-size:12px;">Tema:</span>
+          <button class="pill" data-theme="light">Chiaro</button>
+          <button class="pill" data-theme="dark">Scuro</button>
+          <button class="pill" data-theme="mint">Mint</button>
+          <button class="pill" data-theme="amber">Ambra</button>
+        </div>
+        <div id="who" style="margin-top:8px; font-size:13px;"></div>
+        <div id="expireWarn" class="error" style="display:none;">Abbonamento scaduto: accesso in modalità Base. Contatta l’amministratore per il rinnovo.</div>
+        <div id="adminBar" class="row" style="justify-content:flex-end; margin-top:8px; display:none;">
+          <button class="secondary" id="btnUsers" type="button">Gestione utenti</button>
+        </div>
       </div>
     </div>
 
-    <div class="toolbar">
+    <div class="toolbar" id="statsBar">
       <div class="stat" id="statStatus">Stato: in attesa dati…</div>
       <div class="stat" id="statCount">Macchine: 0</div>
       <div class="stat" id="statGood">Top (residuo OUT &gt; residuo IN): 0</div>
@@ -109,12 +130,12 @@
 
     <table id="resultTable">
       <thead>
-        <tr>
-          <th data-k="perc_cycle">Percentuale Ciclo</th>
-          <th data-k="cycle_idx">Ciclo Corrente</th>
-          <th data-k="resid_in">Residuo IN</th>
-          <th data-k="resid_out">Residuo OUT</th>
-          <th data-k="forecast_date">Fine Ciclo Stimata</th>
+        <tr id="theadRow">
+          <th data-k="perc_cycle" class="col-calc">Percentuale Ciclo</th>
+          <th data-k="cycle_idx" class="col-calc">Ciclo Corrente</th>
+          <th data-k="resid_in" class="col-calc">Residuo IN</th>
+          <th data-k="resid_out" class="col-calc">Residuo OUT</th>
+          <th data-k="forecast_date" class="col-calc">Fine Ciclo Stimata</th>
           <th data-k="MODELLO">MODELLO</th>
           <th data-k="DENOMIN_SEDE">DENOMIN. SEDE</th>
           <th data-k="SEDE">SEDE</th>
@@ -125,14 +146,23 @@
       <tbody></tbody>
     </table>
 
-    <div class="muted" style="margin-top:8px;">Residuo OUT negativo → <b>€0</b>. IN/OUT divisi per <b>100</b>.</div>
+    <div class="muted" id="footNote" style="margin-top:8px;">Residuo OUT negativo → <b>€0</b>. IN/OUT divisi per <b>100</b>.</div>
+  </div>
+</div>
+
+<!-- Overlay Admin: lista utenti -->
+<div class="overlay" id="ovUsers">
+  <div class="panel">
+    <button class="close" id="closeUsers">Chiudi</button>
+    <h3 style="margin:0 0 10px;">Utenti (solo Admin)</h3>
+    <div id="usersList" style="max-height:60vh; overflow:auto;"></div>
   </div>
 </div>
 
 <!-- Modal scheda macchina -->
-<div class="modal" id="modal" style="display:none;position:fixed;inset:0;background:var(--overlay);align-items:center;justify-content:center;z-index:10;">
-  <div class="panel" style="width:min(900px,95vw);background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;">
-    <button class="close" id="closeModal" type="button" style="float:right;background:#fff0;color:var(--ink);border:1px solid var(--border);padding:6px 10px;border-radius:8px;cursor:pointer;">Chiudi</button>
+<div class="overlay" id="modal">
+  <div class="panel">
+    <button class="close" id="closeModal">Chiudi</button>
     <h3 id="m_title" style="margin:0 0 8px;">Scheda macchina</h3>
     <div class="grid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;">
       <div><b>Modello</b><div id="m_model"></div></div>
@@ -154,16 +184,80 @@
 const norm = s => (s??"").toString().trim();
 const lowerKeys = obj => { const o={}; for(const k in obj){ o[norm(k).toLowerCase()] = obj[k]; } return o; };
 const normalize = (s) => (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+const todayISO = ()=> new Date().toISOString().slice(0,10);
 function toast(msg){ const d=document.createElement('div'); d.textContent=msg; d.style.cssText='position:fixed;bottom:12px;left:12px;right:12px;padding:10px 14px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;z-index:9999;font-weight:700'; document.body.appendChild(d); setTimeout(()=>d.remove(),4500); }
 window.addEventListener('error', e=> toast('Errore: ' + (e.message||'sconosciuto')));
 
-/* ===== PIN + Temi ===== */
-const splash=document.getElementById('splash'), app=document.getElementById('app');
-document.getElementById('enterBtn').addEventListener('click', checkPin);
-document.getElementById('pin').addEventListener('keydown', e=>{ if(e.key==='Enter') checkPin(); });
-function checkPin(){ if(document.getElementById('pin').value==='2025'){ splash.style.display='none'; app.classList.remove('hidden'); initAuto(); } else { const m=document.getElementById('pinMsg'); m.style.display='block'; setTimeout(()=> m.style.display='none',1200);} }
+/* ===== Tema ===== */
 document.querySelectorAll('.pill[data-theme]').forEach(b=> b.addEventListener('click',()=>{document.documentElement.setAttribute('data-theme', b.dataset.theme); localStorage.setItem('awp_theme', b.dataset.theme);})); 
 const savedTheme=localStorage.getItem('awp_theme'); if(savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+
+/* ===== Login (users.json) ===== */
+let CURRENT_USER = null; // {user, level, expires}
+document.getElementById('enterBtn').addEventListener('click', auth);
+document.getElementById('pin').addEventListener('keydown', e=>{ if(e.key==='Enter') auth(); });
+
+async function auth(){
+  const u = norm(document.getElementById('user').value).toLowerCase();
+  const p = norm(document.getElementById('pin').value);
+  let list = [];
+  try{
+    const res = await fetch('Dati/users.json', {cache:'no-store'});
+    if(!res.ok) throw new Error('users.json non trovato');
+    list = await res.json();
+  }catch(e){
+    toast('Errore lettura Dati/users.json'); return;
+  }
+  const found = list.find(x => (x.user||'').toLowerCase()===u && String(x.pin)===p);
+  if(!found){ showLoginError(); return; }
+
+  let level = (found.level||'Base').trim();
+  const exp = found.expires ? String(found.expires) : null;
+  const now = todayISO();
+
+  let expired = false;
+  if(exp && exp < now){
+    // downgrade a Base
+    level = 'Base';
+    expired = true;
+  }
+
+  CURRENT_USER = { user: found.user, level, expires: exp, expiredFlag: expired, _raw: found };
+  document.getElementById('splash').style.display='none';
+  document.getElementById('app').classList.remove('hidden');
+  setupRoleUI();
+  initAuto(); // avvia caricamento dati
+}
+
+function showLoginError(){
+  const m=document.getElementById('pinMsg'); m.style.display='block'; setTimeout(()=> m.style.display='none',1500);
+}
+
+function setupRoleUI(){
+  const who = document.getElementById('who');
+  const eb = document.getElementById('expireWarn');
+  const adminBar = document.getElementById('adminBar');
+
+  const lvl = (CURRENT_USER.level||'Base').toLowerCase();
+  const badge = lvl==='admin' ? '<span class="badge admin">Admin</span>' :
+                 lvl==='abbonato' ? '<span class="badge sub">Abbonato</span>' :
+                 '<span class="badge base">Base</span>';
+
+  who.innerHTML = `Utente: <b>${CURRENT_USER.user}</b> · ${badge} · Scadenza: <b>${CURRENT_USER.expires ? CURRENT_USER.expires : '—'}</b>`;
+  eb.style.display = CURRENT_USER.expiredFlag ? 'block' : 'none';
+  adminBar.style.display = (lvl==='admin') ? 'flex' : 'none';
+
+  // Vista Base: nascondi colonne calcoli + barre statistiche + modale dettagli
+  const showCalcs = (lvl==='abbonato' || lvl==='admin');
+  document.querySelectorAll('.col-calc').forEach(el => el.style.display = showCalcs ? '' : 'none');
+  document.getElementById('statsBar').style.display = showCalcs ? 'flex' : 'none';
+  document.getElementById('footNote').style.display = showCalcs ? 'block' : 'none';
+
+  // Apri overlay Admin utenti
+  if (lvl==='admin'){
+    document.getElementById('btnUsers').onclick = openUsersOverlay;
+  }
+}
 
 /* ===== CICLOSLOT: inline JSON o fallback /Dati/cicloslot.xlsx ===== */
 let CICLOSLOT=[]; try{ const el=document.getElementById('cicloslot-json'); if(el && el.textContent.trim()) CICLOSLOT=JSON.parse(el.textContent);}catch(e){}
@@ -210,6 +304,7 @@ function forecastDate(code,resid_in){ const h=history[code]||[]; if(h.length<2) 
 function euro(n){ return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n||0); }
 
 /* ===== Build righe (con fallback per MODELLO) + stats ===== */
+let latestSnapshot = '—';
 function buildRows(records, snapshotDate){
   const out=[]; let total=0,mapped=0,skipped=0;
   for(const r of records){
@@ -219,86 +314,132 @@ function buildRows(records, snapshotDate){
     const modelKey=normalize(modelNameRaw);
     let C = CICLO.byCode.get(code);
     if(!C) C = CICLO_BY_MODEL.get(modelKey);
+    // Se utente è Base, i calcoli non servono -> comunque teniamo C per sapere se mostrare scheda
     if(!C){ skipped++; continue; }
     mapped++;
+
     const I=r.IN, V=r.OUT;
-    if(snapshotDate) pushHistory(code, snapshotDate, I, V);
+    if(snapshotDate) { pushHistory(code, snapshotDate, I, V); latestSnapshot = snapshotDate; }
 
-    const cycles_done=Math.floor(I/C);
-    const in_cycle=I - cycles_done*C;
-    const target_prev=cycles_done*(payout*C);
-    let paid_cycle=V - target_prev; if(paid_cycle<0) paid_cycle=0;
-
-    const resid_in = in_cycle>0? (C-in_cycle):C;
-    let resid_out = (payout*C) - paid_cycle; if(resid_out<0) resid_out=0;
-    const perc_cycle = in_cycle>0? (paid_cycle/in_cycle)*100 : 0;
-    const cycle_idx = cycles_done+1;
-    const fDate = forecastDate(code,resid_in);
-
-    out.push({
+    // Se utente Base, non calcoliamo nulla (evitiamo di esporre numeri di strategia)
+    let row = {
       code,
       MODELLO: modelNameRaw || (CICLO.model.get(code)||''),
       DENOMIN_SEDE: r.DENOMIN_SEDE||'',
       SEDE: r.SEDE||'',
       INDIRIZZO: r.INDIRIZZO||'',
       PROVINCIA: r.PROVINCIA||'',
-      perc_cycle, cycle_idx, resid_in, resid_out, forecast_date:fDate,
-      _delta: resid_out-resid_in, _cycle:C, _I:I, _V:V
-    });
+      _cycle: C, _I: I, _V: V
+    };
+
+    const lvl = (CURRENT_USER?.level||'Base').toLowerCase();
+    if(lvl==='abbonato' || lvl==='admin'){
+      const cycles_done=Math.floor(I/C);
+      const in_cycle=I - cycles_done*C;
+      const target_prev=cycles_done*(payout*C);
+      let paid_cycle=V - target_prev; if(paid_cycle<0) paid_cycle=0;
+      const resid_in = in_cycle>0? (C-in_cycle):C;
+      let resid_out = (payout*C) - paid_cycle; if(resid_out<0) resid_out=0;
+      const perc_cycle = in_cycle>0? (paid_cycle/in_cycle)*100 : 0;
+      const cycle_idx = cycles_done+1;
+      const fDate = forecastDate(code,resid_in);
+      Object.assign(row, {
+        perc_cycle, cycle_idx, resid_in, resid_out, forecast_date:fDate,
+        _delta: resid_out-resid_in
+      });
+    }
+
+    out.push(row);
   }
   const stat=document.getElementById('statStatus');
   if(stat) stat.innerHTML = `Stato: pronto ✅ · Lette: ${total} · Mappate: ${mapped} · Scartate: ${skipped}`;
+  if(latestSnapshot && latestSnapshot !== '—'){
+    document.getElementById('lastRead').innerHTML = `Ultima lettura: <b>${latestSnapshot}</b>`;
+  }
   return out;
 }
 
 /* ===== UI ===== */
 let fullRows=[];
 function render(rows){
-  rows.sort((a,b)=> (b._delta - a._delta) || (b.resid_out - a.resid_out));
+  const lvl = (CURRENT_USER?.level||'Base').toLowerCase();
+
+  if(lvl==='abbonato' || lvl==='admin'){
+    rows.sort((a,b)=> (b._delta - a._delta) || (b.resid_out - a.resid_out));
+  }else{
+    // Base: ordina alfabetico per sede o modello
+    rows.sort((a,b)=> String(a.DENOMIN_SEDE||a.SEDE||a.MODELLO).localeCompare(String(b.DENOMIN_SEDE||b.SEDE||b.MODELLO)));
+  }
+
   const tb=document.querySelector('#resultTable tbody'); tb.innerHTML='';
   for(const r of rows){
-    const tagClass = r.resid_out>r.resid_in ? 'good' : (Math.abs(r.resid_out-r.resid_in) <= 0.1*(r.resid_in||1) ? 'mid' : 'bad');
     const tr=document.createElement('tr'); tr.dataset.code=r.code;
-    tr.innerHTML=`
-      <td><span class="tag ${tagClass}">${r.perc_cycle ? r.perc_cycle.toFixed(2) : '0.00'}%</span></td>
-      <td>${r.cycle_idx}</td>
-      <td>${euro(r.resid_in)}</td>
-      <td>${euro(r.resid_out)}</td>
-      <td>${r.forecast_date}</td>
-      <td>${escapeHTML(r.MODELLO)}</td>
-      <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
-      <td>${escapeHTML(r.SEDE||'')}</td>
-      <td>${escapeHTML(r.INDIRIZZO||'')}</td>
-      <td>${escapeHTML(r.PROVINCIA||'')}</td>
-    `;
-    tr.addEventListener('click', ()=> openModal(r.code,r));
+    if(lvl==='abbonato' || lvl==='admin'){
+      const tagClass = (r.resid_out>r.resid_in) ? 'good' : (Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*((r.resid_in||1)) ? 'mid' : 'bad');
+      tr.innerHTML=`
+        <td class="col-calc"><span class="tag ${tagClass}">${r.perc_cycle!=null ? r.perc_cycle.toFixed(2) : '0.00'}%</span></td>
+        <td class="col-calc">${r.cycle_idx ?? ''}</td>
+        <td class="col-calc">${r.resid_in!=null ? euro(r.resid_in) : ''}</td>
+        <td class="col-calc">${r.resid_out!=null ? euro(r.resid_out) : ''}</td>
+        <td class="col-calc">${r.forecast_date ?? ''}</td>
+        <td>${escapeHTML(r.MODELLO||'')}</td>
+        <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
+        <td>${escapeHTML(r.SEDE||'')}</td>
+        <td>${escapeHTML(r.INDIRIZZO||'')}</td>
+        <td>${escapeHTML(r.PROVINCIA||'')}</td>
+      `;
+      tr.addEventListener('click', ()=> openModal(r.code,r));
+    } else {
+      // Base: solo lista, niente click su scheda
+      tr.innerHTML=`
+        <td class="col-calc" style="display:none"></td>
+        <td class="col-calc" style="display:none"></td>
+        <td class="col-calc" style="display:none"></td>
+        <td class="col-calc" style="display:none"></td>
+        <td class="col-calc" style="display:none"></td>
+        <td>${escapeHTML(r.MODELLO||'')}</td>
+        <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
+        <td>${escapeHTML(r.SEDE||'')}</td>
+        <td>${escapeHTML(r.INDIRIZZO||'')}</td>
+        <td>${escapeHTML(r.PROVINCIA||'')}</td>
+      `;
+    }
     tb.appendChild(tr);
   }
   document.getElementById('statCount').textContent='Macchine: '+rows.length;
-  const good=rows.filter(r=> r.resid_out>r.resid_in).length;
-  const warn=rows.filter(r=> Math.abs(r.resid_out-r.resid_in) <= 0.1*(r.resid_in||1)).length;
-  document.getElementById('statGood').textContent='Top (residuo OUT > residuo IN): '+good;
-  document.getElementById('statWarn').textContent='Equilibrate (±10%): '+warn;
+  if(!(lvl==='abbonato' || lvl==='admin')){
+    document.getElementById('statGood').textContent='Top: —';
+    document.getElementById('statWarn').textContent='Equilibrate: —';
+  }else{
+    const good=rows.filter(r=> (r.resid_out>r.resid_in)).length;
+    const warn=rows.filter(r=> Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*(r.resid_in||1)).length;
+    document.getElementById('statGood').textContent='Top (residuo OUT > residuo IN): '+good;
+    document.getElementById('statWarn').textContent='Equilibrate (±10%): '+warn;
+  }
 }
 document.querySelectorAll('th[data-k]').forEach(th=>{
   th.addEventListener('click', ()=>{
     const k=th.getAttribute('data-k');
+    const lvl=(CURRENT_USER?.level||'Base').toLowerCase();
     const isNum=['perc_cycle','cycle_idx','resid_in','resid_out','_delta'].includes(k);
     const dir=th.dataset.dir==='asc'?'desc':'asc'; th.dataset.dir=dir;
     const arr=[...fullRows];
     arr.sort((a,b)=>{ const A=a[k]??'', B=b[k]??''; if(isNum) return dir==='asc'?(A-B):(B-A); return dir==='asc'?String(A).localeCompare(String(B)):String(B).localeCompare(String(A)); });
+    // Base: se sort su colonne nascoste, non cambia granché, ma non fa danni
     render(arr);
   });
 });
-const modal=document.getElementById('modal'); document.getElementById('closeModal').addEventListener('click',()=> modal.style.display='none');
+const modal=document.getElementById('modal'); document.getElementById('closeModal').addEventListener('click',()=> modal.classList.remove('in'));
 function openModal(code,row){
+  const lvl=(CURRENT_USER?.level||'Base').toLowerCase();
+  if(!(lvl==='abbonato'||lvl==='admin')) return; // Base non apre
   document.getElementById('m_title').textContent='Scheda macchina – '+code;
   document.getElementById('m_model').textContent=row.MODELLO||'';
   document.getElementById('m_code').textContent=code;
   document.getElementById('m_cycle').textContent=(row._cycle||'')+' (partite)';
-  document.getElementById('m_resid_in').textContent=euro(row.resid_in);
-  document.getElementById('m_resid_out').textContent=euro(row.resid_out);
-  document.getElementById('m_perc').textContent=(row.perc_cycle?row.perc_cycle.toFixed(2):'0.00')+'%';
+  document.getElementById('m_resid_in').textContent=row.resid_in!=null?euro(row.resid_in):'—';
+  document.getElementById('m_resid_out').textContent=row.resid_out!=null?euro(row.resid_out):'—';
+  document.getElementById('m_perc').textContent=(row.perc_cycle!=null?row.perc_cycle.toFixed(2):'—')+'%';
   document.getElementById('m_forecast').textContent=row.forecast_date||'—';
   const h=history[code]||[];
   let html='<table style="width:100%;border-collapse:collapse;"><thead><tr>'
@@ -314,9 +455,45 @@ function openModal(code,row){
   }
   html+='</tbody></table>';
   document.getElementById('m_history').innerHTML=html;
-  modal.style.display='flex';
+  modal.classList.add('in');
 }
-function escapeHTML(s){ return (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ===== Admin: Overlay utenti ===== */
+const ovUsers=document.getElementById('ovUsers');
+document.getElementById('closeUsers').addEventListener('click', ()=> ovUsers.classList.remove('in'));
+async function openUsersOverlay(){
+  if((CURRENT_USER?.level||'').toLowerCase()!=='admin') return;
+  try{
+    const res = await fetch('Dati/users.json', {cache:'no-store'});
+    if(!res.ok) throw new Error('users.json non trovato');
+    const users = await res.json();
+    const today = todayISO();
+    let html = '<table style="width:100%;border-collapse:collapse;"><thead><tr>'
+      +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">User</th>'
+      +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Livello</th>'
+      +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Scadenza</th>'
+      +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Stato</th>'
+      +'</tr></thead><tbody>';
+    for(const u of users){
+      const exp = u.expires || '—';
+      const expired = (u.expires && u.expires < today);
+      const lvl = u.level || 'Base';
+      const effLvl = expired ? 'Base (scaduto)' : lvl;
+      const stato = expired ? 'Scaduto' : 'Attivo';
+      html += `<tr>
+        <td style="padding:6px;">${u.user}</td>
+        <td style="padding:6px;">${effLvl}</td>
+        <td style="padding:6px;">${exp}</td>
+        <td style="padding:6px;">${stato}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    document.getElementById('usersList').innerHTML = html;
+    ovUsers.classList.add('in');
+  }catch(e){
+    toast('Impossibile leggere users.json');
+  }
+}
 
 /* ===== INIT AUTO: carica CICLOSLOT (se serve) + manifest + sinottici ===== */
 async function initAuto(){
@@ -348,6 +525,7 @@ async function initAuto(){
     }catch(e){}
     if(!lista.length){ status('Stato: manifest mancante (crea /Dati/manifest.json)'); return; }
 
+    latestSnapshot = '—';
     for(const name of lista){
       try{
         status('Stato: leggo '+name+'…');
@@ -376,6 +554,9 @@ async function initAuto(){
     status('Stato: pronto ✅');
   }catch(err){ console.error(err); document.getElementById('statStatus').textContent='Stato: errore'; toast('Errore di inizializzazione'); }
 }
+
+/* Utils */
+function escapeHTML(s){ return (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 </script>
 </body>
 </html>
