@@ -31,13 +31,18 @@
   *{box-sizing:border-box}
   body{ margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
     background:var(--bg); color:var(--ink); min-height:100vh; display:flex; align-items:center; justify-content:center; }
-  .app{ width:min(1300px,96vw); }
+  .app{ width:min(1350px,96vw); }
   .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:22px; box-shadow:0 6px 20px rgba(15,23,42,.06); }
   h1{ font-size:24px; margin:0 0 6px; letter-spacing:.2px; }
   .muted{ color:var(--muted); }
   .row{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .hidden{ display:none !important; }
   .toolbar{ display:flex; gap:10px; flex-wrap:wrap; justify-content:space-between; margin-top:12px; }
   .stat{ background:var(--card); border:1px dashed var(--border); border-radius:12px; padding:10px 12px; font-size:13px; }
+
+  .tabs{ display:flex; gap:8px; margin:10px 0 0; }
+  .tab{ padding:8px 12px; border:1px solid var(--border); border-radius:999px; cursor:pointer; background:var(--card); }
+  .tab.active{ outline:2px solid var(--accent); }
 
   table{ width:100%; border-collapse:separate; border-spacing:0; margin-top:14px; font-size:14px; }
   thead th{ position:sticky; top:0; z-index:2; background:var(--thead); text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); border-bottom:1px solid var(--border); padding:10px 8px; cursor:pointer; }
@@ -55,7 +60,6 @@
   .badge.sub{ background:#e7f6ed; color:#0b7a42; border-color:#bfe8d2; }
   .badge.admin{ background:#eef2ff; color:#3730a3; border-color:#c7d2fe; }
 
-  /* Splash (Login) */
   .splash{ position:fixed; inset:0; display:grid; place-items:center; background:radial-gradient(1200px 700px at 50% 0%, var(--thead) 0, var(--bg) 60%, var(--bg) 100%); z-index:5; overflow:hidden;}
   .brand{ font-weight:900; font-size: clamp(28px, 5vw, 48px); letter-spacing:.3px; color:var(--ink); text-align:center; }
   .pinbox{ margin-top:16px; display:grid; gap:10px; justify-items:center; }
@@ -69,16 +73,20 @@
   @keyframes floaty{ 0%,100%{ transform:translateY(0) rotate(0deg);} 50%{ transform:translateY(-18px) rotate(6deg);} }
 
   .themebar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .search{ border:1px solid var(--border); border-radius:999px; padding:8px 12px; width:320px; }
 
-  /* Admin overlay */
   .overlay{ position:fixed; inset:0; background:var(--overlay); display:none; align-items:center; justify-content:center; z-index:10; }
   .overlay.in{ display:flex; }
   .panel{ width:min(900px, 95vw); background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px; }
   .close{ background:#fff0; color:var(--ink); border:1px solid var(--border); padding:6px 10px; border-radius:8px; cursor:pointer; float:right;}
+
+  .settings{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+  .pill{ border:1px solid var(--border); background:var(--card); color:var(--ink); padding:8px 12px; border-radius:999px; cursor:pointer; }
+  .warnbox{ background:color-mix(in oklab, var(--warn) 15%, transparent); border:1px solid color-mix(in oklab, var(--warn) 35%, transparent); padding:8px 12px; border-radius:10px; }
 </style>
 </head>
 <body>
-<!-- CICLOSLOT integrato (metti qui il tuo array; se [] userà /Dati/cicloslot.xlsx) -->
+<!-- CICLOSLOT integrato (se [] userà /Dati/cicloslot.xlsx) -->
 <script type="application/json" id="cicloslot-json">[]</script>
 
 <!-- Splash / Login -->
@@ -89,7 +97,7 @@
     <div class="muted" style="margin-top:4px;">Accesso riservato</div>
     <div class="pinbox">
       <input type="text" id="user" placeholder="User" autocomplete="off" />
-      <input type="password" id="pin" maxlength="8" placeholder="PIN" autocomplete="off" />
+      <input type="password" id="pin" maxlength="16" placeholder="PIN" autocomplete="off" />
       <button class="secondary" id="enterBtn" type="button">Entra</button>
     </div>
     <div id="pinMsg" class="error" style="display:none;">Credenziali errate o non abilitate</div>
@@ -102,8 +110,14 @@
     <div class="row" style="justify-content:space-between; align-items:flex-start;">
       <div>
         <h1>Analisi Fine Ciclo</h1>
-        <div class="muted">Caricamento automatico da <b>/Dati/</b>. Payout: <b>65%</b>.</div>
+        <div class="muted">Caricamento automatico da <b>/Dati/</b>. Payout default: <b>65%</b>.</div>
         <div id="lastRead" class="muted" style="margin-top:4px;"></div>
+        <div id="staleWarn" class="warnbox hidden" style="margin-top:8px;">Dati non aggiornati: l’ultima lettura è vecchia.</div>
+        <div class="tabs" id="tabs" style="margin-top:10px;">
+          <button class="tab active" data-tab="dashboard">Dashboard</button>
+          <button class="tab" data-tab="aggregati">Aggregati</button>
+          <button class="tab" data-tab="impostazioni">Impostazioni</button>
+        </div>
       </div>
       <div style="text-align:right;">
         <div class="themebar">
@@ -113,40 +127,96 @@
           <button class="pill" data-theme="mint">Mint</button>
           <button class="pill" data-theme="amber">Ambra</button>
         </div>
+        <div class="row" style="justify-content:flex-end; margin-top:8px;">
+          <input id="search" class="search" placeholder="Cerca (es: provincia:VE modello:novomatic)..." />
+        </div>
         <div id="who" style="margin-top:8px; font-size:13px;"></div>
-        <div id="expireWarn" class="error" style="display:none;">Abbonamento scaduto: accesso in modalità Base. Contatta l’amministratore per il rinnovo.</div>
+        <div id="expireWarn" class="error hidden">Abbonamento scaduto: accesso in modalità Base. Contatta l’amministratore per il rinnovo.</div>
         <div id="adminBar" class="row" style="justify-content:flex-end; margin-top:8px; display:none;">
-          <button class="secondary" id="btnUsers" type="button">Gestione utenti</button>
+          <button class="secondary" id="btnUsers" type="button">Utenti</button>
+          <button class="secondary" id="btnExportCSV" type="button">Esporta CSV</button>
+          <button class="secondary" id="btnExportXLSX" type="button">Esporta XLSX</button>
+          <button class="secondary" id="btnUnmapped" type="button">Codici non mappati (CSV)</button>
         </div>
       </div>
     </div>
 
-    <div class="toolbar" id="statsBar">
-      <div class="stat" id="statStatus">Stato: in attesa dati…</div>
-      <div class="stat" id="statCount">Macchine: 0</div>
-      <div class="stat" id="statGood">Top (residuo OUT &gt; residuo IN): 0</div>
-      <div class="stat" id="statWarn">Equilibrate (±10%): 0</div>
+    <!-- DASHBOARD -->
+    <div id="view-dashboard">
+      <div class="toolbar" id="statsBar">
+        <div class="stat" id="statStatus">Stato: in attesa dati…</div>
+        <div class="stat" id="statCount">Macchine: 0</div>
+        <div class="stat" id="statGood">Top (OUT&gt;IN): 0</div>
+        <div class="stat" id="statWarn">Equilibrate (±10%): 0</div>
+        <div class="stat" id="statMap">Mappate/scartate: 0/0</div>
+      </div>
+
+      <table id="resultTable">
+        <thead>
+          <tr id="theadRow">
+            <th data-k="flag" class="col-calc">⚑</th>
+            <th data-k="perc_cycle" class="col-calc">Percentuale Ciclo</th>
+            <th data-k="cycle_idx" class="col-calc">Ciclo Corrente</th>
+            <th data-k="resid_in" class="col-calc">Residuo IN</th>
+            <th data-k="resid_out" class="col-calc">Residuo OUT</th>
+            <th data-k="forecast_date" class="col-calc">Fine Ciclo Stimata</th>
+            <th data-k="MODELLO">MODELLO</th>
+            <th data-k="DENOMIN_SEDE">DENOMIN. SEDE</th>
+            <th data-k="SEDE">SEDE</th>
+            <th data-k="INDIRIZZO">INDIRIZZO</th>
+            <th data-k="PROVINCIA">PROVINCIA</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+
+      <div class="muted" id="footNote" style="margin-top:8px;">Residuo OUT negativo → <b>€0</b>. IN/OUT divisi per <b>100</b>. Payout per modello dalla colonna <b>PAYOUT</b> (se presente) altrimenti 65%.</div>
     </div>
 
-    <table id="resultTable">
-      <thead>
-        <tr id="theadRow">
-          <th data-k="perc_cycle" class="col-calc">Percentuale Ciclo</th>
-          <th data-k="cycle_idx" class="col-calc">Ciclo Corrente</th>
-          <th data-k="resid_in" class="col-calc">Residuo IN</th>
-          <th data-k="resid_out" class="col-calc">Residuo OUT</th>
-          <th data-k="forecast_date" class="col-calc">Fine Ciclo Stimata</th>
-          <th data-k="MODELLO">MODELLO</th>
-          <th data-k="DENOMIN_SEDE">DENOMIN. SEDE</th>
-          <th data-k="SEDE">SEDE</th>
-          <th data-k="INDIRIZZO">INDIRIZZO</th>
-          <th data-k="PROVINCIA">PROVINCIA</th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
+    <!-- AGGREGATI -->
+    <div id="view-aggregati" class="hidden" style="margin-top:14px;">
+      <div class="settings" style="margin-bottom:10px;">
+        <label>Raggruppa per:</label>
+        <select id="aggField" class="pill">
+          <option value="DENOMIN_SEDE">DENOMIN. SEDE</option>
+          <option value="SEDE">SEDE (Comune)</option>
+          <option value="PROVINCIA">PROVINCIA</option>
+          <option value="MODELLO">MODELLO</option>
+        </select>
+        <button class="pill" id="btnAggExport">Esporta aggregati (CSV)</button>
+      </div>
+      <table id="aggTable">
+        <thead>
+          <tr>
+            <th>Gruppo</th>
+            <th>Macchine</th>
+            <th>IN tot</th>
+            <th>OUT tot</th>
+            <th>Payout medio</th>
+            <th>Residuo IN medio</th>
+            <th>Residuo OUT medio</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
 
-    <div class="muted" id="footNote" style="margin-top:8px;">Residuo OUT negativo → <b>€0</b>. IN/OUT divisi per <b>100</b>.</div>
+    <!-- IMPOSTAZIONI -->
+    <div id="view-impostazioni" class="hidden" style="margin-top:14px;">
+      <div class="settings">
+        <label>Soglia “buone” (OUT - IN):</label>
+        <input id="thrAbs" type="number" step="10" class="pill" style="width:120px" />
+        <label>oppure % su residuo IN:</label>
+        <input id="thrPct" type="number" step="1" class="pill" style="width:100px" />
+        <label>Giorni per avviso dati vecchi:</label>
+        <input id="staleDays" type="number" step="1" class="pill" style="width:90px" />
+        <label>Colonne:</label>
+        <label><input type="checkbox" class="colToggle" data-col="INDIRIZZO" checked/> Indirizzo</label>
+        <label><input type="checkbox" class="colToggle" data-col="PROVINCIA" checked/> Provincia</label>
+        <button class="pill" id="btnSaveSettings">Salva</button>
+        <button class="pill" id="btnResetSettings">Reset</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -168,7 +238,7 @@
       <div><b>Modello</b><div id="m_model"></div></div>
       <div><b>Codice Modello</b><div id="m_code" style="font-family:ui-monospace,Menlo,Consolas,monospace;"></div></div>
       <div><b>Ciclo</b><div id="m_cycle"></div></div>
-      <div><b>Payout (%)</b><div>65%</div></div>
+      <div><b>Payout (%)</b><div id="m_payout">65%</div></div>
       <div><b>Residuo IN</b><div id="m_resid_in"></div></div>
       <div><b>Residuo OUT</b><div id="m_resid_out"></div></div>
       <div><b>Percentuale Ciclo</b><div id="m_perc"></div></div>
@@ -185,17 +255,38 @@ const norm = s => (s??"").toString().trim();
 const lowerKeys = obj => { const o={}; for(const k in obj){ o[norm(k).toLowerCase()] = obj[k]; } return o; };
 const normalize = (s) => (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
 const todayISO = ()=> new Date().toISOString().slice(0,10);
+const euro = n => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n||0);
 function toast(msg){ const d=document.createElement('div'); d.textContent=msg; d.style.cssText='position:fixed;bottom:12px;left:12px;right:12px;padding:10px 14px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;z-index:9999;font-weight:700'; document.body.appendChild(d); setTimeout(()=>d.remove(),4500); }
 window.addEventListener('error', e=> toast('Errore: ' + (e.message||'sconosciuto')));
+function escapeHTML(s){ return (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+/* ===== Persistenza impostazioni ===== */
+const STORE='awp_cfg_v2';
+const defCfg = {thrAbs:200, thrPct:0, staleDays:7, showCols:{INDIRIZZO:true, PROVINCIA:true}};
+let CFG = defCfg;
+try{ CFG = Object.assign({}, defCfg, JSON.parse(localStorage.getItem(STORE)||'{}')); }catch(e){}
 
 /* ===== Tema ===== */
 document.querySelectorAll('.pill[data-theme]').forEach(b=> b.addEventListener('click',()=>{document.documentElement.setAttribute('data-theme', b.dataset.theme); localStorage.setItem('awp_theme', b.dataset.theme);})); 
 const savedTheme=localStorage.getItem('awp_theme'); if(savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
 
-/* ===== Login (users.json) ===== */
-let CURRENT_USER = null; // {user, level, expires}
+/* ===== Login (users.json) con SHA-256 ===== */
+let CURRENT_USER = null; // {user, level, expires, expiredFlag}
 document.getElementById('enterBtn').addEventListener('click', auth);
 document.getElementById('pin').addEventListener('keydown', e=>{ if(e.key==='Enter') auth(); });
+
+function badgeHTML(level){
+  const l = (level||'Base').toLowerCase();
+  if(l==='admin') return '<span class="badge admin">Admin</span>';
+  if(l==='abbonato') return '<span class="badge sub">Abbonato</span>';
+  return '<span class="badge base">Base</span>';
+}
+
+async function sha256Hex(s){
+  const enc = new TextEncoder().encode(s);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
 
 async function auth(){
   const u = norm(document.getElementById('user').value).toLowerCase();
@@ -205,70 +296,86 @@ async function auth(){
     const res = await fetch('Dati/users.json', {cache:'no-store'});
     if(!res.ok) throw new Error('users.json non trovato');
     list = await res.json();
-  }catch(e){
-    toast('Errore lettura Dati/users.json'); return;
-  }
-  const found = list.find(x => (x.user||'').toLowerCase()===u && String(x.pin)===p);
-  if(!found){ showLoginError(); return; }
+    if(!Array.isArray(list)) throw new Error('Formato users.json non valido');
+  }catch(e){ toast('Errore lettura Dati/users.json'); return; }
 
-  let level = (found.level||'Base').trim();
-  const exp = found.expires ? String(found.expires) : null;
+  const rec = list.find(x => (String(x.user||'').toLowerCase()===u));
+  if(!rec){ showLoginError(); return; }
+
+  let ok=false;
+  if(rec.pin_hash){
+    const got = await sha256Hex(p);
+    ok = (got.toLowerCase() === String(rec.pin_hash).toLowerCase());
+  } else if (rec.pin){
+    ok = (String(rec.pin)===p);
+  }
+  if(!ok){ showLoginError(); return; }
+
+  let level = (rec.level||'Base').trim();
+  const exp = rec.expires ? String(rec.expires) : null;
   const now = todayISO();
-
   let expired = false;
-  if(exp && exp < now){
-    // downgrade a Base
-    level = 'Base';
-    expired = true;
-  }
+  if(exp && exp < now){ level='Base'; expired=true; }
 
-  CURRENT_USER = { user: found.user, level, expires: exp, expiredFlag: expired, _raw: found };
+  CURRENT_USER = { user: rec.user, level, expires: exp, expiredFlag: expired };
   document.getElementById('splash').style.display='none';
   document.getElementById('app').classList.remove('hidden');
-  setupRoleUI();
-  initAuto(); // avvia caricamento dati
-}
 
-function showLoginError(){
-  const m=document.getElementById('pinMsg'); m.style.display='block'; setTimeout(()=> m.style.display='none',1500);
-}
-
-function setupRoleUI(){
-  const who = document.getElementById('who');
-  const eb = document.getElementById('expireWarn');
-  const adminBar = document.getElementById('adminBar');
-
-  const lvl = (CURRENT_USER.level||'Base').toLowerCase();
-  const badge = lvl==='admin' ? '<span class="badge admin">Admin</span>' :
-                 lvl==='abbonato' ? '<span class="badge sub">Abbonato</span>' :
-                 '<span class="badge base">Base</span>';
-
-  who.innerHTML = `Utente: <b>${CURRENT_USER.user}</b> · ${badge} · Scadenza: <b>${CURRENT_USER.expires ? CURRENT_USER.expires : '—'}</b>`;
-  eb.style.display = CURRENT_USER.expiredFlag ? 'block' : 'none';
-  adminBar.style.display = (lvl==='admin') ? 'flex' : 'none';
+  document.getElementById('who').innerHTML = `Utente: <b>${CURRENT_USER.user}</b> · ${badgeHTML(CURRENT_USER.level)} · Scadenza: <b>${CURRENT_USER.expires || '—'}</b>`;
+  document.getElementById('expireWarn').classList.toggle('hidden', !expired);
 
   // Vista Base: nascondi colonne calcoli + barre statistiche + modale dettagli
-  const showCalcs = (lvl==='abbonato' || lvl==='admin');
+  const showCalcs = (level.toLowerCase()==='abbonato' || level.toLowerCase()==='admin');
   document.querySelectorAll('.col-calc').forEach(el => el.style.display = showCalcs ? '' : 'none');
   document.getElementById('statsBar').style.display = showCalcs ? 'flex' : 'none';
   document.getElementById('footNote').style.display = showCalcs ? 'block' : 'none';
+  document.getElementById('adminBar').style.display = (level.toLowerCase()==='admin') ? 'flex' : 'none';
 
-  // Apri overlay Admin utenti
-  if (lvl==='admin'){
-    document.getElementById('btnUsers').onclick = openUsersOverlay;
-  }
+  initAuto(); // carica dati
 }
+function showLoginError(){ const m=document.getElementById('pinMsg'); m.style.display='block'; setTimeout(()=> m.style.display='none',1500); }
+
+/* ===== Tabs ===== */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    const tv = t.dataset.tab;
+    document.getElementById('view-dashboard').classList.toggle('hidden', tv!=='dashboard');
+    document.getElementById('view-aggregati').classList.toggle('hidden', tv!=='aggregati');
+    document.getElementById('view-impostazioni').classList.toggle('hidden', tv!=='impostazioni');
+    if(tv==='aggregati') renderAggregati();
+  };
+});
 
 /* ===== CICLOSLOT: inline JSON o fallback /Dati/cicloslot.xlsx ===== */
 let CICLOSLOT=[]; try{ const el=document.getElementById('cicloslot-json'); if(el && el.textContent.trim()) CICLOSLOT=JSON.parse(el.textContent);}catch(e){}
-function buildCicloMaps(arr){ const byCode=new Map(), model=new Map(); arr.forEach(x=>{ const code=norm(x.code||x['codice modello']).toUpperCase(); const cyc=+x.cycle||+x.ciclo||+x['ciclo partite']||+x['partite per ciclo']; if(code&&cyc){ byCode.set(code,cyc); model.set(code, norm(x.model||x.modello||'')); }}); return {byCode, model}; }
-function buildCicloByModel(arr){ const m=new Map(); arr.forEach(x=>{ const mk=normalize(x.model||x.modello||''); const cyc=+x.cycle||+x.ciclo||+x['ciclo partite']||+x['partite per ciclo']; if(mk&&cyc>0) m.set(mk,cyc);}); return m; }
+function buildCicloMaps(arr){
+  const byCode=new Map(), model=new Map(), payoutByCode=new Map(), payoutByModel=new Map();
+  arr.forEach(x=>{
+    const code=norm(x.code||x['codice modello']||x['CODICE MODELLO']).toUpperCase();
+    const cyc=+x.cycle||+x.ciclo||+x['ciclo partite']||+x['partite per ciclo']||+x['CICLO'];
+    const mdl=norm(x.model||x.modello||x['MODELLO']||'');
+    const py= parsePayout(x['PAYOUT %'] ?? x['PAYOUT'] ?? x['payout'] ?? x['payout %']);
+    if(code && cyc){ byCode.set(code,cyc); model.set(code, mdl); if(py!=null) payoutByCode.set(code, py); }
+    const mkey=normalize(mdl); if(mkey){ if(!payoutByModel.has(mkey) && py!=null) payoutByModel.set(mkey, py); }
+  });
+  return {byCode, model, payoutByCode, payoutByModel};
+}
+function buildCicloByModel(arr){
+  const m=new Map(); arr.forEach(x=>{
+    const mk=normalize(x.model||x.modello||x['MODELLO']||'');
+    const cyc=+x.cycle||+x.ciclo||+x['ciclo partite']||+x['partite per ciclo']||+x['CICLO'];
+    if(mk&&cyc>0) m.set(mk,cyc);
+  }); return m;
+}
 let CICLO = buildCicloMaps(CICLOSLOT);
 let CICLO_BY_MODEL = buildCicloByModel(CICLOSLOT);
 
 /* ===== Lettori XLSX ===== */
 async function fetchXLSX(url){
-  const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('Fetch fallito: '+url);
+  const res=await fetch(url,{cache:'no-store'});
+  if(!res.ok) throw new Error('Fetch fallito: '+url);
   const buf=await res.arrayBuffer();
   const wb=XLSX.read(new Uint8Array(buf),{type:'array'});
   const ws=wb.Sheets[wb.SheetNames[0]];
@@ -276,7 +383,7 @@ async function fetchXLSX(url){
   return json.map(lowerKeys);
 }
 
-/* ===== Colonne Sinottico (alias + typo robusti) ===== */
+/* ===== Colonne Sinottico ===== */
 function pickCols(map){
   const keys=Object.keys(map);
   const pickOne = arr => arr.find(k=> keys.includes(k));
@@ -286,97 +393,132 @@ function pickCols(map){
     outKey:  keys.includes('cnttotot') ? 'cnttotot' : null,
     modelloKey: pickOne(['modello','descrizione modello','model','desc modello','descr. modello']),
     denomSedeKey: pickOne(['denomin. sede','denominazione sede','denom. sede','denominazione','denonim. sede','denonimazione sede']),
-    sedeKey: pickOne(['sede','località','localita','comune','città','citta','city']),
+    sedeKey: pickOne(['sede','comune','località','localita','città','citta','city']),
     indirKey: pickOne(['indirizzo','indirizzo sede','via','via/piazza','indir.','address','indirizzo completo']),
     provKey: pickOne(['provincia','prov.','prov','sigla provincia'])
   };
 }
 
-/* ===== Parse contatori ÷100 ===== */
+/* ===== Parse contatori ÷100 & payout ===== */
 const parseCnt = v => { if(typeof v==='number') return v/100; let s=(v||'').toString().trim(); if(!s) return 0; s=s.replace(/\s+/g,''); if (s.includes('.') && s.includes(',')) s=s.replace(/\./g,'').replace(',', '.'); else if (s.includes(',')) s=s.replace('.', '').replace(',', '.'); const n=parseFloat(s); return isNaN(n)?0:n/100; };
+function parsePayout(v){ if(v==null||v==='') return null; let s=String(v).replace('%','').trim(); let n=parseFloat(s); if(isNaN(n)) return null; if(n>1) n/=100; return Math.max(0, Math.min(1, n)); }
 
 /* ===== Storico & previsioni ===== */
-const payout=0.65;
-const HIST_KEY='awp_history_v1';
+let latestSnapshot = '—', lastRowsRaw = [], lastCols=null, lastUnmapped=[];
+const payoutDefault=0.65;
+const HIST_KEY='awp_history_v2';
 let history={}; try{ history=JSON.parse(localStorage.getItem(HIST_KEY)||'{}'); }catch(e){ history={}; }
 function pushHistory(code,dateISO,IN,OUT){ code=(code||'').toUpperCase(); if(!history[code]) history[code]=[]; history[code].push({date:dateISO, IN, OUT}); const seen=new Set(); history[code]=history[code].filter(r=>{const k=r.date; if(seen.has(k)) return false; seen.add(k); return true;}); history[code].sort((a,b)=> new Date(a.date)-new Date(b.date)); }
 function forecastDate(code,resid_in){ const h=history[code]||[]; if(h.length<2) return '—'; const last=h.slice(-4); let sumIn=0,sumDays=0; for(let i=1;i<last.length;i++){ const d1=new Date(last[i-1].date), d2=new Date(last[i].date); const dt=Math.max(1,(d2-d1)/(1000*3600*24)); const dIn=Math.max(0,last[i].IN-last[i-1].IN); sumIn+=dIn; sumDays+=dt; } const avg=sumDays>0?(sumIn/sumDays):0; if(avg<=0||resid_in<=0) return '—'; const days=Math.ceil(resid_in/avg); const est=new Date(); est.setDate(est.getDate()+days); return est.toISOString().slice(0,10); }
-function euro(n){ return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n||0); }
 
-/* ===== Build righe (con fallback per MODELLO) + stats ===== */
-let latestSnapshot = '—';
+/* ===== Build righe ===== */
+let fullRows=[]; // righe pronte per la tabella
+function getPayoutFor(code, modelName){
+  const mkey=normalize(modelName||'');
+  return CICLO.payoutByCode.get(code) ?? CICLO.payoutByModel.get(mkey) ?? payoutDefault;
+}
 function buildRows(records, snapshotDate){
-  const out=[]; let total=0,mapped=0,skipped=0;
+  const out=[]; let total=0,mapped=0,skipped=0; lastUnmapped=[];
+  const lvl=(CURRENT_USER?.level||'Base').toLowerCase(); const showCalcs=(lvl==='abbonato'||lvl==='admin');
+
   for(const r of records){
     total++;
     const code=norm(r.code).toUpperCase();
     const modelNameRaw=r.MODELLO||'';
     const modelKey=normalize(modelNameRaw);
-    let C = CICLO.byCode.get(code);
-    if(!C) C = CICLO_BY_MODEL.get(modelKey);
-    // Se utente è Base, i calcoli non servono -> comunque teniamo C per sapere se mostrare scheda
-    if(!C){ skipped++; continue; }
+    let C = CICLO.byCode.get(code) || CICLO_BY_MODEL.get(modelKey);
+    if(!C){ skipped++; lastUnmapped.push({code, modello:modelNameRaw}); continue; }
     mapped++;
 
     const I=r.IN, V=r.OUT;
-    if(snapshotDate) { pushHistory(code, snapshotDate, I, V); latestSnapshot = snapshotDate; }
+    if(snapshotDate){ pushHistory(code, snapshotDate, I, V); latestSnapshot = snapshotDate; }
 
-    // Se utente Base, non calcoliamo nulla (evitiamo di esporre numeri di strategia)
-    let row = {
+    const row = {
       code,
       MODELLO: modelNameRaw || (CICLO.model.get(code)||''),
       DENOMIN_SEDE: r.DENOMIN_SEDE||'',
       SEDE: r.SEDE||'',
       INDIRIZZO: r.INDIRIZZO||'',
       PROVINCIA: r.PROVINCIA||'',
-      _cycle: C, _I: I, _V: V
+      _cycle:C, _I:I, _V:V, _payout:getPayoutFor(code, modelNameRaw)
     };
 
-    const lvl = (CURRENT_USER?.level||'Base').toLowerCase();
-    if(lvl==='abbonato' || lvl==='admin'){
+    if(showCalcs){
+      const P = row._payout;
       const cycles_done=Math.floor(I/C);
       const in_cycle=I - cycles_done*C;
-      const target_prev=cycles_done*(payout*C);
+      const target_prev=cycles_done*(P*C);
       let paid_cycle=V - target_prev; if(paid_cycle<0) paid_cycle=0;
       const resid_in = in_cycle>0? (C-in_cycle):C;
-      let resid_out = (payout*C) - paid_cycle; if(resid_out<0) resid_out=0;
+      let resid_out = (P*C) - paid_cycle; if(resid_out<0) resid_out=0;
       const perc_cycle = in_cycle>0? (paid_cycle/in_cycle)*100 : 0;
       const cycle_idx = cycles_done+1;
       const fDate = forecastDate(code,resid_in);
-      Object.assign(row, {
-        perc_cycle, cycle_idx, resid_in, resid_out, forecast_date:fDate,
-        _delta: resid_out-resid_in
-      });
+      const delta = resid_out-resid_in;
+      const flag = rowFlag(delta, resid_in); // '⭐' se supera soglia
+      Object.assign(row, {perc_cycle, cycle_idx, resid_in, resid_out, forecast_date:fDate, _delta:delta, flag});
     }
-
     out.push(row);
   }
-  const stat=document.getElementById('statStatus');
-  if(stat) stat.innerHTML = `Stato: pronto ✅ · Lette: ${total} · Mappate: ${mapped} · Scartate: ${skipped}`;
+
+  document.getElementById('statStatus').textContent = `Stato: pronto ✅ · Lette: ${total} · Mappate: ${mapped} · Scartate: ${skipped}`;
+  document.getElementById('statMap').textContent = `Mappate/scartate: ${mapped}/${skipped}`;
   if(latestSnapshot && latestSnapshot !== '—'){
     document.getElementById('lastRead').innerHTML = `Ultima lettura: <b>${latestSnapshot}</b>`;
   }
   return out;
 }
 
-/* ===== UI ===== */
-let fullRows=[];
-function render(rows){
-  const lvl = (CURRENT_USER?.level||'Base').toLowerCase();
+/* ===== Soglie / flag ===== */
+function rowFlag(delta, resid_in){
+  const abs = Number(CFG.thrAbs)||0, pct = Number(CFG.thrPct)||0;
+  const passAbs = abs>0 && delta>=abs;
+  const passPct = pct>0 && resid_in>0 && delta>= (pct/100)*resid_in;
+  return (passAbs || passPct) ? '⭐' : '';
+}
 
-  if(lvl==='abbonato' || lvl==='admin'){
-    rows.sort((a,b)=> (b._delta - a._delta) || (b.resid_out - a.resid_out));
-  }else{
-    // Base: ordina alfabetico per sede o modello
-    rows.sort((a,b)=> String(a.DENOMIN_SEDE||a.SEDE||a.MODELLO).localeCompare(String(b.DENOMIN_SEDE||b.SEDE||b.MODELLO)));
+/* ===== UI: Tabella, filtro, export ===== */
+function filterByQuery(rows){
+  const q = norm(document.getElementById('search').value).toLowerCase();
+  if(!q) return rows;
+  const parts = q.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
+  let free=[], keyed=[];
+  parts.forEach(p=>{
+    if(p.includes(':')){
+      const [k,...rest]=p.split(':'); const v=rest.join(':').replaceAll('"','');
+      keyed.push({k:k.toLowerCase(), v:v.toLowerCase()});
+    } else free.push(p.replaceAll('"',''));
+  });
+  return rows.filter(r=>{
+    const blob = `${r.MODELLO} ${r.DENOMIN_SEDE} ${r.SEDE} ${r.INDIRIZZO} ${r.PROVINCIA}`.toLowerCase();
+    if(free.some(t=> !blob.includes(t))) return false;
+    for(const kv of keyed){
+      const val = String(r[kv.k?.toUpperCase()] || r[kv.k] || '').toLowerCase();
+      if(!val.includes(kv.v)) return false;
+    }
+    return true;
+  });
+}
+
+function render(rows){
+  const lvl=(CURRENT_USER?.level||'Base').toLowerCase();
+  const showCalcs = (lvl==='abbonato'||lvl==='admin');
+
+  let view = filterByQuery(rows);
+
+  if(showCalcs){
+    view.sort((a,b)=> (b._delta - a._delta) || (b.resid_out - a.resid_out));
+  } else {
+    view.sort((a,b)=> String(a.DENOMIN_SEDE||a.SEDE||a.MODELLO).localeCompare(String(b.DENOMIN_SEDE||b.SEDE||b.MODELLO)));
   }
 
   const tb=document.querySelector('#resultTable tbody'); tb.innerHTML='';
-  for(const r of rows){
+  for(const r of view){
     const tr=document.createElement('tr'); tr.dataset.code=r.code;
-    if(lvl==='abbonato' || lvl==='admin'){
+    if(showCalcs){
       const tagClass = (r.resid_out>r.resid_in) ? 'good' : (Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*((r.resid_in||1)) ? 'mid' : 'bad');
       tr.innerHTML=`
+        <td class="col-calc">${r.flag||''}</td>
         <td class="col-calc"><span class="tag ${tagClass}">${r.perc_cycle!=null ? r.perc_cycle.toFixed(2) : '0.00'}%</span></td>
         <td class="col-calc">${r.cycle_idx ?? ''}</td>
         <td class="col-calc">${r.resid_in!=null ? euro(r.resid_in) : ''}</td>
@@ -385,12 +527,11 @@ function render(rows){
         <td>${escapeHTML(r.MODELLO||'')}</td>
         <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
         <td>${escapeHTML(r.SEDE||'')}</td>
-        <td>${escapeHTML(r.INDIRIZZO||'')}</td>
-        <td>${escapeHTML(r.PROVINCIA||'')}</td>
+        <td class="col-INDIRIZZO">${escapeHTML(r.INDIRIZZO||'')}</td>
+        <td class="col-PROVINCIA">${escapeHTML(r.PROVINCIA||'')}</td>
       `;
       tr.addEventListener('click', ()=> openModal(r.code,r));
     } else {
-      // Base: solo lista, niente click su scheda
       tr.innerHTML=`
         <td class="col-calc" style="display:none"></td>
         <td class="col-calc" style="display:none"></td>
@@ -400,36 +541,320 @@ function render(rows){
         <td>${escapeHTML(r.MODELLO||'')}</td>
         <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
         <td>${escapeHTML(r.SEDE||'')}</td>
-        <td>${escapeHTML(r.INDIRIZZO||'')}</td>
-        <td>${escapeHTML(r.PROVINCIA||'')}</td>
+        <td class="col-INDIRIZZO">${escapeHTML(r.INDIRIZZO||'')}</td>
+        <td class="col-PROVINCIA">${escapeHTML(r.PROVINCIA||'')}</td>
       `;
     }
     tb.appendChild(tr);
   }
-  document.getElementById('statCount').textContent='Macchine: '+rows.length;
-  if(!(lvl==='abbonato' || lvl==='admin')){
+  document.getElementById('statCount').textContent='Macchine: '+view.length;
+  if(!showCalcs){
     document.getElementById('statGood').textContent='Top: —';
     document.getElementById('statWarn').textContent='Equilibrate: —';
   }else{
-    const good=rows.filter(r=> (r.resid_out>r.resid_in)).length;
-    const warn=rows.filter(r=> Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*(r.resid_in||1)).length;
-    document.getElementById('statGood').textContent='Top (residuo OUT > residuo IN): '+good;
+    const good=view.filter(r=> (r.resid_out>r.resid_in)).length;
+    const warn=view.filter(r=> Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*(r.resid_in||1)).length;
+    document.getElementById('statGood').textContent='Top (OUT>IN): '+good;
     document.getElementById('statWarn').textContent='Equilibrate (±10%): '+warn;
   }
+
+  // applica toggle colonne
+  document.querySelectorAll('.col-INDIRIZZO').forEach(td=> td.style.display = CFG.showCols.INDIRIZZO ? '' : 'none');
+  document.querySelectorAll('.col-PROVINCIA').forEach(td=> td.style.display = CFG.showCols.PROVINCIA ? '' : 'none');
 }
+document.getElementById('search').addEventListener('input', ()=> render(fullRows));
 document.querySelectorAll('th[data-k]').forEach(th=>{
   th.addEventListener('click', ()=>{
     const k=th.getAttribute('data-k');
-    const lvl=(CURRENT_USER?.level||'Base').toLowerCase();
     const isNum=['perc_cycle','cycle_idx','resid_in','resid_out','_delta'].includes(k);
     const dir=th.dataset.dir==='asc'?'desc':'asc'; th.dataset.dir=dir;
     const arr=[...fullRows];
     arr.sort((a,b)=>{ const A=a[k]??'', B=b[k]??''; if(isNum) return dir==='asc'?(A-B):(B-A); return dir==='asc'?String(A).localeCompare(String(B)):String(B).localeCompare(String(A)); });
-    // Base: se sort su colonne nascoste, non cambia granché, ma non fa danni
-    render(arr);
+    fullRows = arr; render(fullRows);
   });
 });
-const modal=document.getElementById('modal'); document.getElementById('closeModal').addEventListener('click',()=> modal.classList.remove('in'));
+
+/* ===== Export ===== */
+function exportCSV(rows, filename){
+  const cols = visCols();
+  const lines = [cols.map(c=>`"${c}"`).join(',')];
+  for(const r of rows){
+    const obj = rowToExport(r);
+    lines.push(cols.map(c=> `"${(obj[c]??'').toString().replaceAll('"','""')}"`).join(','));
+  }
+  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click();
+}
+function exportXLSX(rows, filename){
+  const cols = visCols();
+  const data = rows.map(r=>rowToExport(r));
+  const ws = XLSX.utils.json_to_sheet(data, {header: cols});
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'dati');
+  XLSX.writeFile(wb, filename);
+}
+function visCols(){
+  const lvl=(CURRENT_USER?.level||'Base').toLowerCase();
+  const baseCols=['MODELLO','DENOMIN_SEDE','SEDE','INDIRIZZO','PROVINCIA'];
+  const proCols=['flag','perc_cycle','cycle_idx','resid_in','resid_out','forecast_date',...baseCols];
+  const cols = (lvl==='abbonato'||lvl==='admin') ? proCols : baseCols;
+  return cols.filter(c=> !(c==='INDIRIZZO' && !CFG.showCols.INDIRIZZO) && !(c==='PROVINCIA' && !CFG.showCols.PROVINCIA));
+}
+function rowToExport(r){
+  return {
+    flag: r.flag||'',
+    perc_cycle: r.perc_cycle!=null? r.perc_cycle.toFixed(2)+'%':'',
+    cycle_idx: r.cycle_idx??'',
+    resid_in: r.resid_in!=null? r.resid_in.toFixed(2):'',
+    resid_out: r.resid_out!=null? r.resid_out.toFixed(2):'',
+    forecast_date: r.forecast_date||'',
+    MODELLO: r.MODELLO||'',
+    DENOMIN_SEDE: r.DENOMIN_SEDE||'',
+    SEDE: r.SEDE||'',
+    INDIRIZZO: r.INDIRIZZO||'',
+    PROVINCIA: r.PROVINCIA||''
+  };
+}
+document.getElementById('btnExportCSV').addEventListener('click', ()=> {
+  const rows = filterByQuery(fullRows);
+  exportCSV(rows, `awp_${latestSnapshot||'export'}.csv`);
+});
+document.getElementById('btnExportXLSX').addEventListener('click', ()=> {
+  const rows = filterByQuery(fullRows);
+  exportXLSX(rows, `awp_${latestSnapshot||'export'}.xlsx`);
+});
+document.getElementById('btnUnmapped').addEventListener('click', ()=> {
+  const lines = ['CODICE MODELLO,MODELLO']; lastUnmapped.forEach(x=>{
+    lines.push(`"${(x.code||'').replaceAll('"','""')}","${(x.modello||'').replaceAll('"','""')}"`);
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`non_mappati_${latestSnapshot||todayISO()}.csv`; a.click();
+});
+
+/* ===== Aggregati ===== */
+function renderAggregati(){
+  const lvl=(CURRENT_USER?.level||'Base').toLowerCase();
+  const showCalcs = (lvl==='abbonato'||lvl==='admin');
+  const field = document.getElementById('aggField').value;
+  const src = filterByQuery(fullRows);
+  const map = new Map();
+  for(const r of src){
+    const key = r[field] || '—';
+    let o = map.get(key);
+    if(!o) o = {k:key, n:0, in:0, out:0, rin:0, rout:0};
+    o.n++;
+    o.in += (r._I||0);
+    o.out += (r._V||0);
+    if(showCalcs){ o.rin += (r.resid_in||0); o.rout += (r.resid_out||0); }
+    map.set(key,o);
+  }
+  const arr=[...map.values()];
+  arr.sort((a,b)=> (b.rout-b.rin) - (a.rout-a.rin) || (b.out-b.in)-(a.out-a.in) || b.n-a.n );
+  const tb=document.querySelector('#aggTable tbody'); tb.innerHTML='';
+  for(const g of arr){
+    const payout = g.in>0 ? (g.out/g.in)*100 : 0;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${escapeHTML(g.k)}</td>
+      <td>${g.n}</td>
+      <td>${euro(g.in)}</td>
+      <td>${euro(g.out)}</td>
+      <td>${payout.toFixed(2)}%</td>
+      <td>${euro(g.rin/g.n || 0)}</td>
+      <td>${euro(g.rout/g.n || 0)}</td>
+    `;
+    tb.appendChild(tr);
+  }
+}
+document.getElementById('aggField').addEventListener('change', renderAggregati);
+document.getElementById('btnAggExport').addEventListener('click', ()=>{
+  const field = document.getElementById('aggField').value;
+  const tb = document.querySelector('#aggTable tbody');
+  const rows = [...tb.querySelectorAll('tr')].map(tr=> {
+    const tds = tr.querySelectorAll('td');
+    return {
+      gruppo: tds[0].innerText, macchine: tds[1].innerText, in_tot: tds[2].innerText,
+      out_tot: tds[3].innerText, payout_medio: tds[4].innerText,
+      residuo_in_medio: tds[5].innerText, residuo_out_medio: tds[6].innerText
+    };
+  });
+  exportXLSX(rows, `aggregati_${field}_${latestSnapshot||todayISO()}.xlsx`);
+});
+
+/* ===== Impostazioni ===== */
+function loadSettingsUI(){
+  document.getElementById('thrAbs').value = CFG.thrAbs;
+  document.getElementById('thrPct').value = CFG.thrPct;
+  document.getElementById('staleDays').value = CFG.staleDays;
+  document.querySelectorAll('.colToggle').forEach(ch=>{
+    ch.checked = !!CFG.showCols[ch.dataset.col];
+  });
+}
+document.getElementById('btnSaveSettings').addEventListener('click', ()=>{
+  CFG.thrAbs = Number(document.getElementById('thrAbs').value)||0;
+  CFG.thrPct = Number(document.getElementById('thrPct').value)||0;
+  CFG.staleDays = Math.max(0, Number(document.getElementById('staleDays').value)||7);
+  document.querySelectorAll('.colToggle').forEach(ch=>{
+    CFG.showCols[ch.dataset.col] = !!ch.checked;
+  });
+  localStorage.setItem(STORE, JSON.stringify(CFG));
+  render(fullRows);
+  renderAggregati();
+  applyStaleBanner();
+  toast('Impostazioni salvate');
+});
+document.getElementById('btnResetSettings').addEventListener('click', ()=>{
+  CFG = JSON.parse(JSON.stringify(defCfg));
+  localStorage.setItem(STORE, JSON.stringify(CFG));
+  loadSettingsUI(); render(fullRows); renderAggregati(); applyStaleBanner();
+});
+
+/* ===== Admin overlay ===== */
+const ovUsers=document.getElementById('ovUsers');
+document.getElementById('closeUsers').addEventListener('click', ()=> ovUsers.classList.remove('in'));
+document.getElementById('btnUsers')?.addEventListener('click', openUsersOverlay);
+async function openUsersOverlay(){
+  if((CURRENT_USER?.level||'').toLowerCase()!=='admin') return;
+  try{
+    const res = await fetch('Dati/users.json', {cache:'no-store'});
+    if(!res.ok) throw new Error('users.json non trovato');
+    const users = await res.json();
+    const today = todayISO();
+    let html = '<table style="width:100%;border-collapse:collapse;"><thead><tr>'
+      +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">User</th>'
+      +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Livello</th>'
+      +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Scadenza</th>'
+      +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Stato</th>'
+      +'</tr></thead><tbody>';
+    for(const u of users){
+      const exp = u.expires || '—';
+      const expired = (u.expires && u.expires < today);
+      const lvl = u.level || 'Base';
+      const effLvl = expired ? 'Base (scaduto)' : lvl;
+      const stato = expired ? 'Scaduto' : 'Attivo';
+      html += `<tr>
+        <td style="padding:6px;">${escapeHTML(u.user)}</td>
+        <td style="padding:6px;">${escapeHTML(effLvl)}</td>
+        <td style="padding:6px;">${escapeHTML(exp)}</td>
+        <td style="padding:6px;">${escapeHTML(stato)}</td>
+      </tr>`;
+    }
+    html += '</tbody></table>';
+    document.getElementById('usersList').innerHTML = html;
+    ovUsers.classList.add('in');
+  }catch(e){ toast('Impossibile leggere users.json'); }
+}
+
+/* ===== INIT AUTO ===== */
+async function initAuto(){
+  try{
+    const status = (m)=> document.getElementById('statStatus').textContent = m;
+
+    // carica impostazioni UI
+    loadSettingsUI();
+
+    status('Stato: caricamento CICLOSLOT…');
+    if(CICLOSLOT.length===0){
+      try{
+        const cicloRows = await fetchXLSX('Dati/cicloslot.xlsx');
+        const mapped = cicloRows.map(r=>({code:r['codice modello']||r.code||r['CODICE MODELLO'], model:r.modello||r.model||r['MODELLO']||'', ciclo:r.ciclo||r.cycle||r['ciclo']||r['CICLO'], payout:r['payout %']||r['payout']||r['PAYOUT %']||r['PAYOUT']})).filter(x=> x.code && +x.ciclo>0);
+        CICLO = buildCicloMaps(mapped);
+        CICLO_BY_MODEL = buildCicloByModel(mapped);
+      }catch(e){
+        toast('Impossibile leggere /Dati/cicloslot.xlsx e nessun CICLOSLOT integrato.');
+        status('Stato: errore CICLOSLOT'); return;
+      }
+    } else {
+      CICLO = buildCicloMaps(CICLOSLOT);
+      CICLO_BY_MODEL = buildCicloByModel(CICLOSLOT);
+    }
+
+    status('Stato: caricamento manifest…');
+    let lista = [];
+    try{
+      const res = await fetch('Dati/manifest.json', {cache:'no-store'});
+      if(res.ok){ const j = await res.json(); lista = Array.isArray(j.sinottici) ? j.sinottici : []; }
+    }catch(e){}
+    if(!lista.length){ status('Stato: manifest mancante (crea /Dati/manifest.json)'); return; }
+
+    // 1) aggiorna STORICO da tutti i sinottici
+    latestSnapshot = '—'; lastUnmapped=[];
+    for(const name of lista){
+      try{
+        status('Stato: leggo '+name+'…');
+        const data = await fetchXLSX('Dati/'+name);
+        if(!data.length) continue;
+        const cols = pickCols(data[0]); if(!cols.codeKey||!cols.inKey||!cols.outKey) continue;
+        const m = name.match(/\d{4}-\d{2}-\d{2}/); const snapshotDate = m ? m[0] : new Date().toISOString().slice(0,10);
+        const recs = data.map(r=>({
+          code: norm(r[cols.codeKey]),
+          IN: parseCnt(r[cols.inKey]),
+          OUT: parseCnt(r[cols.outKey]),
+          MODELLO: cols.modelloKey ? norm(r[cols.modelloKey]) : '',
+          DENOMIN_SEDE: cols.denomSedeKey ? norm(r[cols.denomSedeKey]) : '',
+          SEDE: cols.sedeKey ? norm(r[cols.sedeKey]) : (norm(r['comune'])||''),
+          INDIRIZZO: cols.indirKey ? norm(r[cols.indirKey]) : '',
+          PROVINCIA: cols.provKey ? norm(r[cols.provKey]) : ''
+        }));
+        buildRows(recs, snapshotDate); // aggiorna storico & latestSnapshot
+      }catch(e){ console.warn(e); }
+    }
+
+    // 2) Mostra SOLO l'ULTIMO sinottico integralmente in tabella
+    let lastName = null;
+    if (lista && lista.length) {
+      const dated = lista.map(n => {
+        const m = n.match(/\d{4}-\d{2}-\d{2}/);
+        return { name: n, date: m ? m[0] : null };
+      });
+      dated.sort((a,b) => String(a.date||a.name).localeCompare(String(b.date||b.name)));
+      lastName = dated[dated.length-1].name;
+    }
+    if (!lastName) { status('Stato: nessun file ultimo riconosciuto'); return; }
+
+    status('Stato: preparo vista ultimo sinottico: ' + lastName + ' …');
+    const lastData = await fetchXLSX('Dati/' + lastName);
+    if(!lastData.length){ status('Stato: ultimo sinottico vuoto'); return; }
+    const cols2 = pickCols(lastData[0] || {});
+    if(!cols2.codeKey || !cols2.inKey || !cols2.outKey){ status('Stato: colonne obbligatorie mancanti'); return; }
+    const snapDate = (lastName.match(/\d{4}-\d{2}-\d{2}/) || [new Date().toISOString().slice(0,10)])[0];
+
+    lastRowsRaw = lastData.map(r=>({
+      code: norm(r[cols2.codeKey]),
+      IN: parseCnt(r[cols2.inKey]),
+      OUT: parseCnt(r[cols2.outKey]),
+      MODELLO: cols2.modelloKey ? norm(r[cols2.modelloKey]) : '',
+      DENOMIN_SEDE: cols2.denomSedeKey ? norm(r[cols2.denomSedeKey]) : '',
+      SEDE: cols2.sedeKey ? norm(r[cols2.sedeKey]) : (norm(r['comune'])||''),
+      INDIRIZZO: cols2.indirKey ? norm(r[cols2.indirKey]) : '',
+      PROVINCIA: cols2.provKey ? norm(r[cols2.provKey]) : ''
+    }));
+    lastCols = cols2;
+
+    // aggiorna storico (con data dell’ultimo file) ma NON collassare tabella
+    buildRows(lastRowsRaw, snapDate);
+
+    // calcola le righe per la vista corrente (rispetta livello utente)
+    fullRows = buildRows(lastRowsRaw, null);
+    document.getElementById('lastRead').innerHTML = `Ultima lettura: <b>${snapDate}</b>`;
+    applyStaleBanner();
+    localStorage.setItem(HIST_KEY, JSON.stringify(history));
+    render(fullRows);
+    document.getElementById('statStatus').textContent = `Stato: pronto ✅ (${fullRows.length} righe)`;
+  }catch(err){ console.error(err); document.getElementById('statStatus').textContent='Stato: errore'; toast('Errore di inizializzazione'); }
+}
+
+/* ===== Staleness banner ===== */
+function applyStaleBanner(){
+  const el = document.getElementById('staleWarn');
+  const N = Number(CFG.staleDays)||0;
+  if(!N || !latestSnapshot || latestSnapshot==='—'){ el.classList.add('hidden'); return; }
+  const d0 = new Date(latestSnapshot), d1=new Date(); const diff = (d1-d0)/(1000*3600*24);
+  el.classList.toggle('hidden', diff<=N);
+}
+
+/* ===== Modale ===== */
+const modal=document.getElementById('modal'); 
+document.getElementById('closeModal').addEventListener('click',()=> modal.classList.remove('in'));
 function openModal(code,row){
   const lvl=(CURRENT_USER?.level||'Base').toLowerCase();
   if(!(lvl==='abbonato'||lvl==='admin')) return; // Base non apre
@@ -437,6 +862,7 @@ function openModal(code,row){
   document.getElementById('m_model').textContent=row.MODELLO||'';
   document.getElementById('m_code').textContent=code;
   document.getElementById('m_cycle').textContent=(row._cycle||'')+' (partite)';
+  document.getElementById('m_payout').textContent = ((row._payout||payoutDefault)*100).toFixed(2)+'%';
   document.getElementById('m_resid_in').textContent=row.resid_in!=null?euro(row.resid_in):'—';
   document.getElementById('m_resid_out').textContent=row.resid_out!=null?euro(row.resid_out):'—';
   document.getElementById('m_perc').textContent=(row.perc_cycle!=null?row.perc_cycle.toFixed(2):'—')+'%';
@@ -458,105 +884,18 @@ function openModal(code,row){
   modal.classList.add('in');
 }
 
-/* ===== Admin: Overlay utenti ===== */
-const ovUsers=document.getElementById('ovUsers');
-document.getElementById('closeUsers').addEventListener('click', ()=> ovUsers.classList.remove('in'));
-async function openUsersOverlay(){
-  if((CURRENT_USER?.level||'').toLowerCase()!=='admin') return;
-  try{
-    const res = await fetch('Dati/users.json', {cache:'no-store'});
-    if(!res.ok) throw new Error('users.json non trovato');
-    const users = await res.json();
-    const today = todayISO();
-    let html = '<table style="width:100%;border-collapse:collapse;"><thead><tr>'
-      +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">User</th>'
-      +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Livello</th>'
-      +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Scadenza</th>'
-      +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Stato</th>'
-      +'</tr></thead><tbody>';
-    for(const u of users){
-      const exp = u.expires || '—';
-      const expired = (u.expires && u.expires < today);
-      const lvl = u.level || 'Base';
-      const effLvl = expired ? 'Base (scaduto)' : lvl;
-      const stato = expired ? 'Scaduto' : 'Attivo';
-      html += `<tr>
-        <td style="padding:6px;">${u.user}</td>
-        <td style="padding:6px;">${effLvl}</td>
-        <td style="padding:6px;">${exp}</td>
-        <td style="padding:6px;">${stato}</td>
-      </tr>`;
-    }
-    html += '</tbody></table>';
-    document.getElementById('usersList').innerHTML = html;
-    ovUsers.classList.add('in');
-  }catch(e){
-    toast('Impossibile leggere users.json');
-  }
-}
-
-/* ===== INIT AUTO: carica CICLOSLOT (se serve) + manifest + sinottici ===== */
-async function initAuto(){
-  try{
-    const status = (m)=> document.getElementById('statStatus').textContent = m;
-
-    status('Stato: caricamento CICLOSLOT…');
-    if(CICLOSLOT.length===0){
-      try{
-        const cicloRows = await fetchXLSX('Dati/cicloslot.xlsx');
-        const mapped = cicloRows.map(r=>({code:r['codice modello']||r.code, model:r.modello||r.model||'', cycle:+(r.ciclo||r.cycle||r['ciclo partite']||r['partite per ciclo']||0)})).filter(x=> x.code && x.cycle>0);
-        CICLO = buildCicloMaps(mapped);
-        CICLO_BY_MODEL = buildCicloByModel(mapped);
-      }catch(e){
-        toast('Impossibile leggere /Dati/cicloslot.xlsx e nessun CICLOSLOT integrato.');
-        status('Stato: errore CICLOSLOT');
-        return;
-      }
-    } else {
-      CICLO = buildCicloMaps(CICLOSLOT);
-      CICLO_BY_MODEL = buildCicloByModel(CICLOSLOT);
-    }
-
-    status('Stato: caricamento manifest…');
-    let lista = [];
-    try{
-      const res = await fetch('Dati/manifest.json', {cache:'no-store'});
-      if(res.ok){ const j = await res.json(); lista = Array.isArray(j.sinottici) ? j.sinottici : []; }
-    }catch(e){}
-    if(!lista.length){ status('Stato: manifest mancante (crea /Dati/manifest.json)'); return; }
-
-    latestSnapshot = '—';
-    for(const name of lista){
-      try{
-        status('Stato: leggo '+name+'…');
-        const data = await fetchXLSX('Dati/'+name);
-        if(!data.length) continue;
-        const cols = pickCols(data[0]); if(!cols.codeKey||!cols.inKey||!cols.outKey) continue;
-        const m = name.match(/\d{4}-\d{2}-\d{2}/); const snapshotDate = m ? m[0] : new Date().toISOString().slice(0,10);
-        const recs = data.map(r=>({
-          code: norm(r[cols.codeKey]),
-          IN: parseCnt(r[cols.inKey]),
-          OUT: parseCnt(r[cols.outKey]),
-          MODELLO: cols.modelloKey ? norm(r[cols.modelloKey]) : '',
-          DENOMIN_SEDE: cols.denomSedeKey ? norm(r[cols.denomSedeKey]) : '',
-          SEDE: cols.sedeKey ? norm(r[cols.sedeKey]) : '',
-          INDIRIZZO: cols.indirKey ? norm(r[cols.indirKey]) : '',
-          PROVINCIA: cols.provKey ? norm(r[cols.provKey]) : ''
-        }));
-        buildRows(recs, snapshotDate); // aggiorna solo storico
-      }catch(e){ console.warn(e); }
-    }
-
-    const latest = Object.keys(history).map(code=>{ const h=history[code]; const last=h[h.length-1]; return {code, IN:last.IN, OUT:last.OUT, MODELLO:'', DENOMIN_SEDE:'', SEDE:'', INDIRIZZO:'', PROVINCIA:''}; });
-    fullRows = buildRows(latest, null);
-    localStorage.setItem(HIST_KEY, JSON.stringify(history));
+/* ===== Colonne toggle ===== */
+document.querySelectorAll('.colToggle').forEach(ch=>{
+  ch.addEventListener('change', ()=>{
+    CFG.showCols[ch.dataset.col] = !!ch.checked;
+    localStorage.setItem(STORE, JSON.stringify(CFG));
     render(fullRows);
-    status('Stato: pronto ✅');
-  }catch(err){ console.error(err); document.getElementById('statStatus').textContent='Stato: errore'; toast('Errore di inizializzazione'); }
-}
+  });
+});
 
-/* Utils */
-function escapeHTML(s){ return (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+/* ===== Ricerca persistente ===== */
+const savedQ = localStorage.getItem('awp_q'); if(savedQ) document.getElementById('search').value=savedQ;
+document.getElementById('search').addEventListener('input', ()=> localStorage.setItem('awp_q', document.getElementById('search').value));
 </script>
 </body>
 </html>
