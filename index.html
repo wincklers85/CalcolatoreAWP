@@ -9,44 +9,48 @@
 <style>
   :root{
     --bg:#f6f8fc; --ink:#0b1220; --muted:#5a6885; --card:#ffffff; --border:#e7ecf5;
-    --accent:#2563eb; --accent-2:#3b82f6; --ok:#16a34a; --warn:#f59e0b; --bad:#ef4444;
+    --accent:#2563eb; --ok:#16a34a; --warn:#f59e0b; --bad:#ef4444;
     --thead:#f8fafc; --hover:#f3f7ff; --zebra:#fbfdff; --overlay:rgba(0,0,0,.35);
+    --glow: 0 0 20px rgba(37,99,235,.35), 0 0 40px rgba(37,99,235,.2);
   }
   html[data-theme="dark"]{
     --bg:#0f1220; --ink:#eef1ff; --muted:#9aa3c7; --card:#161a2b; --border:#273057;
-    --accent:#5b8cff; --accent-2:#476cff; --ok:#2bd576; --warn:#ffd24a; --bad:#ff8c8c;
+    --accent:#5b8cff; --ok:#2bd576; --warn:#ffd24a; --bad:#ff8c8c;
     --thead:#1a2040; --hover:#121735; --zebra:#12162e; --overlay:rgba(0,0,0,.55);
+    --glow: 0 0 20px rgba(91,140,255,.35), 0 0 40px rgba(71,108,255,.2);
   }
   html[data-theme="mint"]{
     --bg:#f2fbf7; --ink:#072018; --muted:#4c7a69; --card:#ffffff; --border:#d7efe4;
-    --accent:#10b981; --accent-2:#34d399; --ok:#0ea5a5; --warn:#f59e0b; --bad:#ef4444;
+    --accent:#10b981; --ok:#0ea5a5; --warn:#f59e0b; --bad:#ef4444;
     --thead:#ecfdf5; --hover:#e6fff5; --zebra:#f6fffb; --overlay:rgba(0,0,0,.25);
+    --glow: 0 0 20px rgba(16,185,129,.35), 0 0 40px rgba(16,185,129,.2);
   }
   html[data-theme="amber"]{
     --bg:#fffaf2; --ink:#201508; --muted:#8b6a3a; --card:#ffffff; --border:#f1e3c8;
-    --accent:#f59e0b; --accent-2:#fbbf24; --ok:#22c55e; --warn:#d97706; --bad:#ef4444;
+    --accent:#f59e0b; --ok:#22c55e; --warn:#d97706; --bad:#ef4444;
     --thead:#fff4e0; --hover:#fff0d4; --zebra:#fff8ea; --overlay:rgba(0,0,0,.25);
+    --glow: 0 0 20px rgba(245,158,11,.35), 0 0 40px rgba(245,158,11,.2);
   }
 
   *{box-sizing:border-box}
   body{ margin:0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-    background:var(--bg); color:var(--ink); min-height:100vh; display:flex; align-items:center; justify-content:center; }
-  .app{ width:min(1350px,96vw); }
-  .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:22px; box-shadow:0 6px 20px rgba(15,23,42,.06); }
-  h1{ font-size:24px; margin:0 0 6px; letter-spacing:.2px; }
+    background:var(--bg); color:var(--ink); }
+  .app{max-width:1350px; margin:auto; padding:16px;}
+  .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:20px; }
+  h1{ margin:0 0 6px; }
   .muted{ color:var(--muted); }
-  .row{ display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .row{ display:flex; gap:12px; flex-wrap:wrap; align-items:center; }
   .hidden{ display:none !important; }
   .toolbar{ display:flex; gap:10px; flex-wrap:wrap; justify-content:space-between; margin-top:12px; }
-  .stat{ background:var(--card); border:1px dashed var(--border); border-radius:12px; padding:10px 12px; font-size:13px; }
+  .stat{ border:1px dashed var(--border); border-radius:12px; padding:8px 12px; font-size:13px; }
 
   .tabs{ display:flex; gap:8px; margin:10px 0 0; }
   .tab{ padding:8px 12px; border:1px solid var(--border); border-radius:999px; cursor:pointer; background:var(--card); }
-  .tab.active{ outline:2px solid var(--accent); }
+  .tab.active{ outline:2px solid var(--accent); box-shadow: var(--glow); }
 
-  table{ width:100%; border-collapse:separate; border-spacing:0; margin-top:14px; font-size:14px; }
-  thead th{ position:sticky; top:0; z-index:2; background:var(--thead); text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); border-bottom:1px solid var(--border); padding:10px 8px; cursor:pointer; }
-  tbody td{ padding:10px 8px; border-bottom:1px solid var(--border); }
+  table{ width:100%; border-collapse:separate; border-spacing:0; margin-top:12px; font-size:14px; }
+  thead th{ position:sticky; top:0; z-index:2; background:var(--thead); text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.6px; color:var(--muted); border-bottom:1px solid var(--border); padding:8px; cursor:pointer; }
+  tbody td{ padding:8px; border-bottom:1px solid var(--border); }
   tbody tr:nth-child(odd) td{ background:var(--zebra); }
   tbody tr:hover td{ background:var(--hover); }
 
@@ -60,47 +64,65 @@
   .badge.sub{ background:#e7f6ed; color:#0b7a42; border-color:#bfe8d2; }
   .badge.admin{ background:#eef2ff; color:#3730a3; border-color:#c7d2fe; }
 
-  .splash{ position:fixed; inset:0; display:grid; place-items:center; background:radial-gradient(1200px 700px at 50% 0%, var(--thead) 0, var(--bg) 60%, var(--bg) 100%); z-index:5; overflow:hidden;}
-  .brand{ font-weight:900; font-size: clamp(28px, 5vw, 48px); letter-spacing:.3px; color:var(--ink); text-align:center; }
+  /* Splash/Login animato */
+  .splash{ position:fixed; inset:0; display:grid; place-items:center; overflow:hidden;
+    background: radial-gradient(1200px 700px at 50% 0%, var(--thead) 0, var(--bg) 60%, var(--bg) 100%); z-index:5; }
+  .login-card{ position:relative; text-align:center; max-width:680px; width:min(94vw,680px); padding:26px 22px 18px; border-radius:20px;
+    background: linear-gradient(180deg, rgba(255,255,255,.9), rgba(255,255,255,.75));
+    box-shadow: 0 10px 40px rgba(0,0,0,.12), var(--glow); border:1px solid var(--border); }
+  html[data-theme="dark"] .login-card{ background: linear-gradient(180deg, rgba(22,26,43,.9), rgba(22,26,43,.75)); }
+  .brand{ font-weight:900; font-size: clamp(30px, 6vw, 52px); letter-spacing:.3px; color:var(--ink); text-shadow: var(--glow); }
+  .subtitle{ color:var(--muted); margin-top:4px; }
   .pinbox{ margin-top:16px; display:grid; gap:10px; justify-items:center; }
-  .pinbox input{ width:240px; text-align:center; letter-spacing:2px; font-size:18px; }
+  .pinbox input{ width:280px; text-align:center; letter-spacing:2px; font-size:18px; padding:10px 12px; border-radius:12px; border:1px solid var(--border); background:var(--card); }
+  .btn{ border:0; padding:10px 14px; border-radius:12px; background:var(--accent); color:white; cursor:pointer; font-weight:800; letter-spacing:.3px; }
+  .btn:hover{ filter:brightness(1.05); box-shadow: var(--glow); }
   .error{ color:var(--bad); font-weight:700; margin-top:6px; text-align:center; }
-  .icon{ position:absolute; font-size:50px; opacity:.15; animation: floaty 12s ease-in-out infinite; filter:drop-shadow(0 2px 6px rgba(0,0,0,.2));}
-  .icon:nth-child(1){ top:8%; left:10%; animation-delay:0s; }
-  .icon:nth-child(2){ top:20%; right:12%; animation-delay:1.5s; }
-  .icon:nth-child(3){ bottom:12%; left:16%; animation-delay:3s; }
-  .icon:nth-child(4){ bottom:15%; right:22%; animation-delay:4.5s; }
+
+  /* particelle/icone */
+  .float{ position:absolute; font-size:42px; opacity:.13; filter:drop-shadow(0 2px 6px rgba(0,0,0,.2)); animation: floaty 12s ease-in-out infinite; }
+  .f1{ top:6%; left:8%; animation-delay:0s; } .f2{ top:22%; right:8%; animation-delay:1.5s; }
+  .f3{ bottom:12%; left:12%; animation-delay:3s; } .f4{ bottom:18%; right:18%; animation-delay:4.5s; }
   @keyframes floaty{ 0%,100%{ transform:translateY(0) rotate(0deg);} 50%{ transform:translateY(-18px) rotate(6deg);} }
 
-  .themebar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .search{ border:1px solid var(--border); border-radius:999px; padding:8px 12px; width:320px; }
+  /* scintille */
+  .spark{ position:absolute; width:6px; height:6px; border-radius:50%; background:var(--accent); opacity:.55; animation: spark 3s linear infinite; }
+  @keyframes spark{ 0%{ transform:translate(0,0) scale(1); opacity:.7;} 100%{ transform:translate(180px,-140px) scale(0.2); opacity:0;} }
 
+  .themebar{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .pill{ border:1px solid var(--border); background:var(--card); color:var(--ink); padding:8px 12px; border-radius:999px; cursor:pointer; }
+
+  .search{ border:1px solid var(--border); border-radius:999px; padding:8px 12px; width:320px; }
   .overlay{ position:fixed; inset:0; background:var(--overlay); display:none; align-items:center; justify-content:center; z-index:10; }
   .overlay.in{ display:flex; }
   .panel{ width:min(900px, 95vw); background:var(--card); border:1px solid var(--border); border-radius:14px; padding:18px; }
   .close{ background:#fff0; color:var(--ink); border:1px solid var(--border); padding:6px 10px; border-radius:8px; cursor:pointer; float:right;}
+  canvas{max-width:100%; height:240px;}
 
-  .settings{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-  .pill{ border:1px solid var(--border); background:var(--card); color:var(--ink); padding:8px 12px; border-radius:999px; cursor:pointer; }
-  .warnbox{ background:color-mix(in oklab, var(--warn) 15%, transparent); border:1px solid color-mix(in oklab, var(--warn) 35%, transparent); padding:8px 12px; border-radius:10px; }
+  .login-footer{ margin-top:12px; font-size:12px; color:var(--muted); }
+  .version{ font-weight:800; }
 </style>
 </head>
 <body>
-<!-- CICLOSLOT integrato (se [] userà /Dati/cicloslot.xlsx) -->
+<!-- Inserisci qui, se vuoi, CICLOSLOT inline; se [] userà /Dati/cicloslot.xlsx -->
 <script type="application/json" id="cicloslot-json">[]</script>
 
 <!-- Splash / Login -->
 <div class="splash" id="splash">
-  <div class="icon">🎰</div><div class="icon">💸</div><div class="icon">🧮</div><div class="icon">📊</div>
-  <div class="card" style="text-align:center; max-width:640px;">
-    <div class="brand">AWP Fine Ciclo · Analyzer Pro</div>
-    <div class="muted" style="margin-top:4px;">Accesso riservato</div>
+  <div class="float f1">🎰</div><div class="float f2">📊</div><div class="float f3">💸</div><div class="float f4">🧮</div>
+  <!-- scintille -->
+  <div id="sparks"></div>
+
+  <div class="login-card">
+    <div class="brand">AWP Fine Ciclo</div>
+    <div class="subtitle">Analyzer Pro · Accesso riservato</div>
     <div class="pinbox">
       <input type="text" id="user" placeholder="User" autocomplete="off" />
       <input type="password" id="pin" maxlength="16" placeholder="PIN" autocomplete="off" />
-      <button class="secondary" id="enterBtn" type="button">Entra</button>
+      <button class="btn" id="enterBtn" type="button">Entra</button>
     </div>
     <div id="pinMsg" class="error" style="display:none;">Credenziali errate o non abilitate</div>
+    <div class="login-footer">Versione: <span class="version" id="version"></span></div>
   </div>
 </div>
 
@@ -110,11 +132,12 @@
     <div class="row" style="justify-content:space-between; align-items:flex-start;">
       <div>
         <h1>Analisi Fine Ciclo</h1>
-        <div class="muted">Caricamento automatico da <b>/Dati/</b>. Payout default: <b>65%</b>.</div>
+        <div class="muted">Payout default: <b>65%</b> · Formato date: <b>DD-MM-YYYY</b></div>
         <div id="lastRead" class="muted" style="margin-top:4px;"></div>
-        <div id="staleWarn" class="warnbox hidden" style="margin-top:8px;">Dati non aggiornati: l’ultima lettura è vecchia.</div>
+        <div id="staleWarn" class="error hidden" style="margin-top:6px;">Attenzione: alcune macchine non sono aggiornate a oggi.</div>
         <div class="tabs" id="tabs" style="margin-top:10px;">
           <button class="tab active" data-tab="dashboard">Dashboard</button>
+          <button class="tab" data-tab="nonaggiornate">Non aggiornate oggi</button>
           <button class="tab" data-tab="aggregati">Aggregati</button>
           <button class="tab" data-tab="impostazioni">Impostazioni</button>
         </div>
@@ -128,32 +151,31 @@
           <button class="pill" data-theme="amber">Ambra</button>
         </div>
         <div class="row" style="justify-content:flex-end; margin-top:8px;">
-          <input id="search" class="search" placeholder="Cerca (es: provincia:VE modello:novomatic)..." />
+          <input id="search" class="search" placeholder='Cerca (es: provincia:VE modello:"novo matic")...' />
         </div>
         <div id="who" style="margin-top:8px; font-size:13px;"></div>
-        <div id="expireWarn" class="error hidden">Abbonamento scaduto: accesso in modalità Base. Contatta l’amministratore per il rinnovo.</div>
+        <div id="expireWarn" class="error hidden">Abbonamento scaduto: accesso in modalità Base.</div>
         <div id="adminBar" class="row" style="justify-content:flex-end; margin-top:8px; display:none;">
-          <button class="secondary" id="btnUsers" type="button">Utenti</button>
-          <button class="secondary" id="btnExportCSV" type="button">Esporta CSV</button>
-          <button class="secondary" id="btnExportXLSX" type="button">Esporta XLSX</button>
-          <button class="secondary" id="btnUnmapped" type="button">Codici non mappati (CSV)</button>
+          <button class="pill" id="btnExportCSV" type="button">Esporta CSV</button>
+          <button class="pill" id="btnExportXLSX" type="button">Esporta XLSX</button>
+          <button class="pill" id="btnUnmapped" type="button">Codici non mappati</button>
         </div>
       </div>
     </div>
 
+    <div class="toolbar" id="statsBar">
+      <div class="stat" id="statStatus">Stato: in attesa dati…</div>
+      <div class="stat" id="statCount">Macchine: 0</div>
+      <div class="stat" id="statGood">Top (OUT&gt;IN): 0</div>
+      <div class="stat" id="statWarn">Equilibrate (±10%): 0</div>
+      <div class="stat" id="statMap">Mappate/scartate: 0/0</div>
+    </div>
+
     <!-- DASHBOARD -->
     <div id="view-dashboard">
-      <div class="toolbar" id="statsBar">
-        <div class="stat" id="statStatus">Stato: in attesa dati…</div>
-        <div class="stat" id="statCount">Macchine: 0</div>
-        <div class="stat" id="statGood">Top (OUT&gt;IN): 0</div>
-        <div class="stat" id="statWarn">Equilibrate (±10%): 0</div>
-        <div class="stat" id="statMap">Mappate/scartate: 0/0</div>
-      </div>
-
       <table id="resultTable">
         <thead>
-          <tr id="theadRow">
+          <tr>
             <th data-k="flag" class="col-calc">⚑</th>
             <th data-k="perc_cycle" class="col-calc">Percentuale Ciclo</th>
             <th data-k="cycle_idx" class="col-calc">Ciclo Corrente</th>
@@ -165,17 +187,31 @@
             <th data-k="SEDE">SEDE</th>
             <th data-k="INDIRIZZO">INDIRIZZO</th>
             <th data-k="PROVINCIA">PROVINCIA</th>
+            <th data-k="_stato">Stato</th>
+            <th data-k="_ts_str">Ultima Lettura</th>
           </tr>
         </thead>
         <tbody></tbody>
       </table>
+      <div class="muted" id="footNote" style="margin-top:8px;">Residuo OUT negativo → <b>€0</b>. IN/OUT divisi per <b>100</b>.</div>
+    </div>
 
-      <div class="muted" id="footNote" style="margin-top:8px;">Residuo OUT negativo → <b>€0</b>. IN/OUT divisi per <b>100</b>. Payout per modello dalla colonna <b>PAYOUT</b> (se presente) altrimenti 65%.</div>
+    <!-- NON AGGIORNATE OGGI -->
+    <div id="view-nonaggiornate" class="hidden" style="margin-top:10px;">
+      <table id="staleTable">
+        <thead>
+          <tr>
+            <th>MODELLO</th><th>DENOMIN. SEDE</th><th>SEDE</th><th>INDIRIZZO</th><th>PROVINCIA</th><th>Ultima Lettura</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="muted" style="margin-top:6px;">Mostra le AWP senza letture di oggi (potrebbero essere spente o non trasmesse).</div>
     </div>
 
     <!-- AGGREGATI -->
-    <div id="view-aggregati" class="hidden" style="margin-top:14px;">
-      <div class="settings" style="margin-bottom:10px;">
+    <div id="view-aggregati" class="hidden" style="margin-top:10px;">
+      <div class="row" style="gap:10px;">
         <label>Raggruppa per:</label>
         <select id="aggField" class="pill">
           <option value="DENOMIN_SEDE">DENOMIN. SEDE</option>
@@ -187,30 +223,18 @@
       </div>
       <table id="aggTable">
         <thead>
-          <tr>
-            <th>Gruppo</th>
-            <th>Macchine</th>
-            <th>IN tot</th>
-            <th>OUT tot</th>
-            <th>Payout medio</th>
-            <th>Residuo IN medio</th>
-            <th>Residuo OUT medio</th>
-          </tr>
+          <tr><th>Gruppo</th><th>Macchine</th><th>IN tot</th><th>OUT tot</th><th>Payout medio</th><th>Residuo IN medio</th><th>Residuo OUT medio</th></tr>
         </thead>
         <tbody></tbody>
       </table>
     </div>
 
     <!-- IMPOSTAZIONI -->
-    <div id="view-impostazioni" class="hidden" style="margin-top:14px;">
-      <div class="settings">
-        <label>Soglia “buone” (OUT - IN):</label>
-        <input id="thrAbs" type="number" step="10" class="pill" style="width:120px" />
-        <label>oppure % su residuo IN:</label>
-        <input id="thrPct" type="number" step="1" class="pill" style="width:100px" />
-        <label>Giorni per avviso dati vecchi:</label>
-        <input id="staleDays" type="number" step="1" class="pill" style="width:90px" />
-        <label>Colonne:</label>
+    <div id="view-impostazioni" class="hidden" style="margin-top:10px;">
+      <div class="row" style="gap:10px; align-items:center;">
+        <label>Soglia “buone” (Δ OUT-IN) €:</label><input id="thrAbs" type="number" step="10" class="pill" style="width:120px" />
+        <label>oppure % su residuo IN:</label><input id="thrPct" type="number" step="1" class="pill" style="width:100px" />
+        <label>Giorni per avviso dati vecchi:</label><input id="staleDays" type="number" step="1" class="pill" style="width:90px" />
         <label><input type="checkbox" class="colToggle" data-col="INDIRIZZO" checked/> Indirizzo</label>
         <label><input type="checkbox" class="colToggle" data-col="PROVINCIA" checked/> Provincia</label>
         <button class="pill" id="btnSaveSettings">Salva</button>
@@ -220,173 +244,132 @@
   </div>
 </div>
 
-<!-- Overlay Admin: lista utenti -->
-<div class="overlay" id="ovUsers">
-  <div class="panel">
-    <button class="close" id="closeUsers">Chiudi</button>
-    <h3 style="margin:0 0 10px;">Utenti (solo Admin)</h3>
-    <div id="usersList" style="max-height:60vh; overflow:auto;"></div>
-  </div>
-</div>
-
 <!-- Modal scheda macchina -->
 <div class="overlay" id="modal">
   <div class="panel">
     <button class="close" id="closeModal">Chiudi</button>
     <h3 id="m_title" style="margin:0 0 8px;">Scheda macchina</h3>
-    <div class="grid" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 16px;">
-      <div><b>Modello</b><div id="m_model"></div></div>
-      <div><b>Codice Modello</b><div id="m_code" style="font-family:ui-monospace,Menlo,Consolas,monospace;"></div></div>
-      <div><b>Ciclo</b><div id="m_cycle"></div></div>
-      <div><b>Payout (%)</b><div id="m_payout">65%</div></div>
-      <div><b>Residuo IN</b><div id="m_resid_in"></div></div>
-      <div><b>Residuo OUT</b><div id="m_resid_out"></div></div>
-      <div><b>Percentuale Ciclo</b><div id="m_perc"></div></div>
-      <div><b>Fine Ciclo Stimata</b><div id="m_forecast"></div></div>
+    <div class="row" style="gap:20px; align-items:flex-start; flex-wrap:wrap;">
+      <div style="flex:1; min-width:260px;">
+        <div><b>Modello</b>: <span id="m_model"></span></div>
+        <div><b>Codice Modello</b>: <span id="m_code" style="font-family:ui-monospace,Menlo,Consolas,monospace;"></span></div>
+        <div><b>Locale</b>: <span id="m_locale"></span></div>
+        <div><b>Indirizzo</b>: <span id="m_addr"></span></div>
+        <div><b>Comune/Prov.</b>: <span id="m_city"></span></div>
+        <div><b>Ciclo</b>: <span id="m_cycle"></span> · <b>Payout</b>: <span id="m_payout">65%</span></div>
+        <div><b>Residuo IN</b>: <span id="m_resid_in"></span> · <b>Residuo OUT</b>: <span id="m_resid_out"></span></div>
+        <div><b>Percentuale Ciclo</b>: <span id="m_perc"></span> · <b>Fine Ciclo Stimata</b>: <span id="m_forecast"></span></div>
+      </div>
+      <div style="flex:1; min-width:320px;">
+        <canvas id="m_chart" width="640" height="240"></canvas>
+      </div>
     </div>
-    <h4 style="margin-top:14px;">Storico letture</h4>
+    <h4 style="margin-top:12px;">Storico letture</h4>
     <div id="m_history" style="max-height:220px; overflow:auto; border:1px solid var(--border); border-radius:8px; padding:8px;"></div>
   </div>
 </div>
 
 <script>
-/* ===== Helpers ===== */
+/* ====== CONFIG / VERSIONE ====== */
+const APP_VERSION = "v1.8.0 — 10-10-2025"; // mostrata nel login
+document.getElementById('version').textContent = APP_VERSION;
+
+/* ====== UTILITY ====== */
 const norm = s => (s??"").toString().trim();
 const lowerKeys = obj => { const o={}; for(const k in obj){ o[norm(k).toLowerCase()] = obj[k]; } return o; };
 const normalize = (s) => (s||'').toString().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
-const todayISO = ()=> new Date().toISOString().slice(0,10);
 const euro = n => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n||0);
+const fmtDMY = iso => { if(!iso) return '—'; const d=new Date(iso); if(isNaN(d)) return '—'; const dd=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); const yy=d.getFullYear(); return `${dd}-${mm}-${yy}`; };
+const todayIso = ()=> new Date().toISOString().slice(0,10);
 function toast(msg){ const d=document.createElement('div'); d.textContent=msg; d.style.cssText='position:fixed;bottom:12px;left:12px;right:12px;padding:10px 14px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;z-index:9999;font-weight:700'; document.body.appendChild(d); setTimeout(()=>d.remove(),4500); }
-window.addEventListener('error', e=> toast('Errore: ' + (e.message||'sconosciuto')));
-function escapeHTML(s){ return (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function escapeHTML(s){ return (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&gt;','>':'&gt;','"':'&quot;'}[c])); }
 
-/* ===== Persistenza impostazioni ===== */
-const STORE='awp_cfg_v2';
-const defCfg = {thrAbs:200, thrPct:0, staleDays:7, showCols:{INDIRIZZO:true, PROVINCIA:true}};
-let CFG = defCfg;
-try{ CFG = Object.assign({}, defCfg, JSON.parse(localStorage.getItem(STORE)||'{}')); }catch(e){}
-
-/* ===== Tema ===== */
+/* ====== LOGIN THEME ====== */
 document.querySelectorAll('.pill[data-theme]').forEach(b=> b.addEventListener('click',()=>{document.documentElement.setAttribute('data-theme', b.dataset.theme); localStorage.setItem('awp_theme', b.dataset.theme);})); 
 const savedTheme=localStorage.getItem('awp_theme'); if(savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
 
-/* ===== Login (users.json) con SHA-256 ===== */
-let CURRENT_USER = null; // {user, level, expires, expiredFlag}
+/* ====== LOGIN (hash opzionale) ====== */
+let CURRENT_USER = null;
 document.getElementById('enterBtn').addEventListener('click', auth);
 document.getElementById('pin').addEventListener('keydown', e=>{ if(e.key==='Enter') auth(); });
-
-function badgeHTML(level){
-  const l = (level||'Base').toLowerCase();
-  if(l==='admin') return '<span class="badge admin">Admin</span>';
-  if(l==='abbonato') return '<span class="badge sub">Abbonato</span>';
-  return '<span class="badge base">Base</span>';
-}
-
-async function sha256Hex(s){
-  const enc = new TextEncoder().encode(s);
-  const buf = await crypto.subtle.digest('SHA-256', enc);
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-
-async function auth(){
-  const u = norm(document.getElementById('user').value).toLowerCase();
-  const p = norm(document.getElementById('pin').value);
-  let list = [];
-  try{
-    const res = await fetch('Dati/users.json', {cache:'no-store'});
-    if(!res.ok) throw new Error('users.json non trovato');
-    list = await res.json();
-    if(!Array.isArray(list)) throw new Error('Formato users.json non valido');
-  }catch(e){ toast('Errore lettura Dati/users.json'); return; }
-
-  const rec = list.find(x => (String(x.user||'').toLowerCase()===u));
-  if(!rec){ showLoginError(); return; }
-
-  let ok=false;
-  if(rec.pin_hash){
-    const got = await sha256Hex(p);
-    ok = (got.toLowerCase() === String(rec.pin_hash).toLowerCase());
-  } else if (rec.pin){
-    ok = (String(rec.pin)===p);
-  }
-  if(!ok){ showLoginError(); return; }
-
-  let level = (rec.level||'Base').trim();
-  const exp = rec.expires ? String(rec.expires) : null;
-  const now = todayISO();
-  let expired = false;
-  if(exp && exp < now){ level='Base'; expired=true; }
-
-  CURRENT_USER = { user: rec.user, level, expires: exp, expiredFlag: expired };
-  document.getElementById('splash').style.display='none';
-  document.getElementById('app').classList.remove('hidden');
-
-  document.getElementById('who').innerHTML = `Utente: <b>${CURRENT_USER.user}</b> · ${badgeHTML(CURRENT_USER.level)} · Scadenza: <b>${CURRENT_USER.expires || '—'}</b>`;
-  document.getElementById('expireWarn').classList.toggle('hidden', !expired);
-
-  // Vista Base: nascondi colonne calcoli + barre statistiche + modale dettagli
-  const showCalcs = (level.toLowerCase()==='abbonato' || level.toLowerCase()==='admin');
-  document.querySelectorAll('.col-calc').forEach(el => el.style.display = showCalcs ? '' : 'none');
-  document.getElementById('statsBar').style.display = showCalcs ? 'flex' : 'none';
-  document.getElementById('footNote').style.display = showCalcs ? 'block' : 'none';
-  document.getElementById('adminBar').style.display = (level.toLowerCase()==='admin') ? 'flex' : 'none';
-
-  initAuto(); // carica dati
-}
+function badgeHTML(level){ const l=(level||'Base').toLowerCase(); if(l==='admin') return '<span class="badge admin">Admin</span>'; if(l==='abbonato') return '<span class="badge sub">Abbonato</span>'; return '<span class="badge base">Base</span>'; }
+async function sha256Hex(s){ const enc=new TextEncoder().encode(s); const buf=await crypto.subtle.digest('SHA-256', enc); return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join(''); }
 function showLoginError(){ const m=document.getElementById('pinMsg'); m.style.display='block'; setTimeout(()=> m.style.display='none',1500); }
+async function auth(){
+  const u=norm(document.getElementById('user').value).toLowerCase();
+  const p=norm(document.getElementById('pin').value);
+  let list=[]; try{ const res=await fetch('Dati/users.json',{cache:'no-store'}); if(!res.ok) throw 0; list=await res.json(); if(!Array.isArray(list)) throw 0; }catch{ toast('Errore lettura Dati/users.json'); return; }
+  const rec=list.find(x=> String(x.user||'').toLowerCase()===u); if(!rec) return showLoginError();
+  let ok=false; if(rec.pin_hash){ ok=(await sha256Hex(p)).toLowerCase()===String(rec.pin_hash).toLowerCase(); } else if(rec.pin){ ok=String(rec.pin)===p; }
+  if(!ok) return showLoginError();
+  let level=(rec.level||'Base').trim(); const exp=rec.expires?String(rec.expires):null; const now=todayIso(); let expired=false; if(exp && exp<now){ level='Base'; expired=true; }
+  CURRENT_USER={user:rec.user, level, expires:exp, expiredFlag:expired};
+  document.getElementById('splash').style.display='none'; document.getElementById('app').classList.remove('hidden');
+  document.getElementById('who').innerHTML=`Utente: <b>${CURRENT_USER.user}</b> · ${badgeHTML(level)} · Scadenza: <b>${CURRENT_USER.expires||'—'}</b>`;
+  document.getElementById('expireWarn').classList.toggle('hidden', !expired);
+  const pro=(level.toLowerCase()==='abbonato'||level.toLowerCase()==='admin');
+  document.querySelectorAll('.col-calc').forEach(el=> el.style.display= pro ? '' : 'none');
+  document.getElementById('statsBar').style.display= pro ? 'flex' : 'none';
+  document.getElementById('footNote').style.display= pro ? 'block' : 'none';
+  document.getElementById('adminBar').style.display= (level.toLowerCase()==='admin') ? 'flex' : 'none';
+  initAuto();
+}
 
-/* ===== Tabs ===== */
+/* ====== Tabs ====== */
 document.querySelectorAll('.tab').forEach(t=>{
   t.onclick=()=>{
     document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
     t.classList.add('active');
-    const tv = t.dataset.tab;
+    const tv=t.dataset.tab;
     document.getElementById('view-dashboard').classList.toggle('hidden', tv!=='dashboard');
+    document.getElementById('view-nonaggiornate').classList.toggle('hidden', tv!=='nonaggiornate');
     document.getElementById('view-aggregati').classList.toggle('hidden', tv!=='aggregati');
     document.getElementById('view-impostazioni').classList.toggle('hidden', tv!=='impostazioni');
     if(tv==='aggregati') renderAggregati();
+    if(tv==='nonaggiornate') renderStale();
   };
 });
 
-/* ===== CICLOSLOT: inline JSON o fallback /Dati/cicloslot.xlsx ===== */
+/* ====== Login: scintille casuali ====== */
+(function sparks(){
+  const wrap=document.getElementById('sparks');
+  for(let i=0;i<28;i++){
+    const s=document.createElement('div');
+    s.className='spark';
+    s.style.left=(Math.random()*window.innerWidth*0.6+40)+'px';
+    s.style.top=(Math.random()*window.innerHeight*0.6+80)+'px';
+    s.style.animationDelay=(Math.random()*3)+'s';
+    s.style.opacity=.3+.5*Math.random();
+    wrap.appendChild(s);
+  }
+})();
+
+/* ====== CICLOSLOT ====== */
 let CICLOSLOT=[]; try{ const el=document.getElementById('cicloslot-json'); if(el && el.textContent.trim()) CICLOSLOT=JSON.parse(el.textContent);}catch(e){}
+function parsePayout(v){ if(v==null||v==='') return null; let s=String(v).replace('%','').trim(); let n=parseFloat(s); if(isNaN(n)) return null; if(n>1) n/=100; return Math.max(0, Math.min(1, n)); }
 function buildCicloMaps(arr){
   const byCode=new Map(), model=new Map(), payoutByCode=new Map(), payoutByModel=new Map();
   arr.forEach(x=>{
     const code=norm(x.code||x['codice modello']||x['CODICE MODELLO']).toUpperCase();
     const cyc=+x.cycle||+x.ciclo||+x['ciclo partite']||+x['partite per ciclo']||+x['CICLO'];
     const mdl=norm(x.model||x.modello||x['MODELLO']||'');
-    const py= parsePayout(x['PAYOUT %'] ?? x['PAYOUT'] ?? x['payout'] ?? x['payout %']);
-    if(code && cyc){ byCode.set(code,cyc); model.set(code, mdl); if(py!=null) payoutByCode.set(code, py); }
-    const mkey=normalize(mdl); if(mkey){ if(!payoutByModel.has(mkey) && py!=null) payoutByModel.set(mkey, py); }
+    const py=parsePayout(x['PAYOUT %']??x['PAYOUT']??x['payout']);
+    if(code&&cyc){ byCode.set(code,cyc); model.set(code,mdl); if(py!=null) payoutByCode.set(code,py); }
+    const mkey=normalize(mdl); if(mkey && py!=null && !payoutByModel.has(mkey)) payoutByModel.set(mkey,py);
   });
   return {byCode, model, payoutByCode, payoutByModel};
 }
-function buildCicloByModel(arr){
-  const m=new Map(); arr.forEach(x=>{
-    const mk=normalize(x.model||x.modello||x['MODELLO']||'');
-    const cyc=+x.cycle||+x.ciclo||+x['ciclo partite']||+x['partite per ciclo']||+x['CICLO'];
-    if(mk&&cyc>0) m.set(mk,cyc);
-  }); return m;
-}
-let CICLO = buildCicloMaps(CICLOSLOT);
-let CICLO_BY_MODEL = buildCicloByModel(CICLOSLOT);
+function buildCicloByModel(arr){ const m=new Map(); arr.forEach(x=>{ const mk=normalize(x.model||x.modello||x['MODELLO']||''); const cyc=+x.cycle||+x.ciclo||+x['ciclo partite']||+x['partite per ciclo']||+x['CICLO']; if(mk&&cyc>0) m.set(mk,cyc); }); return m; }
+let CICLO=buildCicloMaps(CICLOSLOT), CICLO_BY_MODEL=buildCicloByModel(CICLOSLOT);
 
-/* ===== Lettori XLSX ===== */
+/* ====== XLSX, colonne, numeri ====== */
 async function fetchXLSX(url){
-  const res=await fetch(url,{cache:'no-store'});
-  if(!res.ok) throw new Error('Fetch fallito: '+url);
-  const buf=await res.arrayBuffer();
-  const wb=XLSX.read(new Uint8Array(buf),{type:'array'});
-  const ws=wb.Sheets[wb.SheetNames[0]];
-  const json=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});
-  return json.map(lowerKeys);
+  const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('Fetch fallito: '+url);
+  const buf=await res.arrayBuffer(); const wb=XLSX.read(new Uint8Array(buf),{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]];
+  const json=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false}); return json.map(lowerKeys);
 }
-
-/* ===== Colonne Sinottico ===== */
 function pickCols(map){
-  const keys=Object.keys(map);
-  const pickOne = arr => arr.find(k=> keys.includes(k));
+  const keys=Object.keys(map); const pickOne=arr=>arr.find(k=> keys.includes(k));
   return {
     codeKey: keys.includes('codice modello') ? 'codice modello' : null,
     inKey:   keys.includes('cnttotin') ? 'cnttotin' : null,
@@ -395,127 +378,156 @@ function pickCols(map){
     denomSedeKey: pickOne(['denomin. sede','denominazione sede','denom. sede','denominazione','denonim. sede','denonimazione sede']),
     sedeKey: pickOne(['sede','comune','località','localita','città','citta','city']),
     indirKey: pickOne(['indirizzo','indirizzo sede','via','via/piazza','indir.','address','indirizzo completo']),
-    provKey: pickOne(['provincia','prov.','prov','sigla provincia'])
+    provKey: pickOne(['provincia','prov.','prov','sigla provincia']),
+    // OPZ: data/ora interne
+    dateKey: pickOne(['data lettura','data rilevazione','data','timestamp','ts']),
+    timeKey: pickOne(['ora lettura','ora','time','orario'])
   };
 }
-
-/* ===== Parse contatori ÷100 & payout ===== */
 const parseCnt = v => { if(typeof v==='number') return v/100; let s=(v||'').toString().trim(); if(!s) return 0; s=s.replace(/\s+/g,''); if (s.includes('.') && s.includes(',')) s=s.replace(/\./g,'').replace(',', '.'); else if (s.includes(',')) s=s.replace('.', '').replace(',', '.'); const n=parseFloat(s); return isNaN(n)?0:n/100; };
-function parsePayout(v){ if(v==null||v==='') return null; let s=String(v).replace('%','').trim(); let n=parseFloat(s); if(isNaN(n)) return null; if(n>1) n/=100; return Math.max(0, Math.min(1, n)); }
 
-/* ===== Storico & previsioni ===== */
-let latestSnapshot = '—', lastRowsRaw = [], lastCols=null, lastUnmapped=[];
+/* ====== Timestamp: da nome file (YYYY-MM-DD[_HH[-:]MM]) o da colonne ====== */
+function parseStampFromName(name){
+  const d = name.match(/(\d{4})-(\d{2})-(\d{2})(?:[_\s\-T]?(\d{2})[:\-]?(\d{2}))?/);
+  if(!d) return new Date().toISOString();
+  const [ ,Y,M,D,h,m ] = d; const HH=h??'00', MM=m??'00';
+  return `${Y}-${M}-${D}T${HH}:${MM}:00`;
+}
+function buildTsFromRow(r, cols, fallback){
+  if(!cols.dateKey) return fallback;
+  const rawD = norm(r[cols.dateKey]);
+  const rawT = cols.timeKey ? norm(r[cols.timeKey]) : '00:00';
+  const m = rawD.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if(!m) return fallback;
+  const dd=m[1].padStart(2,'0'), mm=m[2].padStart(2,'0'), yy=(m[3].length===2?('20'+m[3]):m[3]);
+  const hhmm = (rawT.match(/^(\d{1,2}):(\d{1,2})$/) ? rawT : '00:00');
+  return `${yy}-${mm}-${dd}T${hhmm}:00`;
+}
+
+/* ====== Storico e stime ====== */
 const payoutDefault=0.65;
-const HIST_KEY='awp_history_v2';
+const HIST_KEY='awp_history_ts_v2';
 let history={}; try{ history=JSON.parse(localStorage.getItem(HIST_KEY)||'{}'); }catch(e){ history={}; }
-function pushHistory(code,dateISO,IN,OUT){ code=(code||'').toUpperCase(); if(!history[code]) history[code]=[]; history[code].push({date:dateISO, IN, OUT}); const seen=new Set(); history[code]=history[code].filter(r=>{const k=r.date; if(seen.has(k)) return false; seen.add(k); return true;}); history[code].sort((a,b)=> new Date(a.date)-new Date(b.date)); }
-function forecastDate(code,resid_in){ const h=history[code]||[]; if(h.length<2) return '—'; const last=h.slice(-4); let sumIn=0,sumDays=0; for(let i=1;i<last.length;i++){ const d1=new Date(last[i-1].date), d2=new Date(last[i].date); const dt=Math.max(1,(d2-d1)/(1000*3600*24)); const dIn=Math.max(0,last[i].IN-last[i-1].IN); sumIn+=dIn; sumDays+=dt; } const avg=sumDays>0?(sumIn/sumDays):0; if(avg<=0||resid_in<=0) return '—'; const days=Math.ceil(resid_in/avg); const est=new Date(); est.setDate(est.getDate()+days); return est.toISOString().slice(0,10); }
+/* history[code] = [ {ts:"YYYY-MM-DDTHH:MM:SS", IN, OUT, meta:{...}} ] */
+function pushHistory(code, ts, IN, OUT, meta){
+  code=(code||'').toUpperCase();
+  if(!history[code]) history[code]=[];
+  const arr=history[code];
+  if(arr.some(r=> r.ts===ts)) return; // evita duplicato stesso ts
+  arr.push({ts, IN, OUT, meta});
+  arr.sort((a,b)=> new Date(a.ts)-new Date(b.ts));
+}
+function getLatestStateForAll(){
+  const out=[];
+  for(const code in history){
+    const arr=history[code]; if(!arr?.length) continue;
+    const last=arr[arr.length-1], meta=last.meta||{};
+    out.push({ code, IN:last.IN, OUT:last.OUT, MODELLO:meta.MODELLO||'', DENOMIN_SEDE:meta.DENOMIN_SEDE||'', SEDE:meta.SEDE||'',
+               INDIRIZZO:meta.INDIRIZZO||'', PROVINCIA:meta.PROVINCIA||'', _ts:last.ts });
+  }
+  return out;
+}
+function forecastDate(code, resid_in){
+  const h=history[code]||[]; if(h.length<2) return '—';
+  const last=h.slice(-6);
+  let sumIn=0, sumHrs=0;
+  for(let i=1;i<last.length;i++){
+    const t1=new Date(last[i-1].ts), t2=new Date(last[i].ts);
+    const dtHrs=Math.max(1,(t2-t1)/(1000*3600)); const dIn=Math.max(0,last[i].IN - last[i-1].IN);
+    sumIn+=dIn; sumHrs+=dtHrs;
+  }
+  const avgPerHour = sumHrs>0 ? sumIn/sumHrs : 0;
+  if(avgPerHour<=0 || resid_in<=0) return '—';
+  const hrs = Math.ceil(resid_in / avgPerHour);
+  const est=new Date(); est.setHours(est.getHours()+hrs);
+  return fmtDMY(est.toISOString());
+}
 
-/* ===== Build righe ===== */
-let fullRows=[]; // righe pronte per la tabella
+/* ====== Stato (Aggiornata / Invariata / Non aggiornata) ====== */
+function computeStato(code){
+  const arr=(history[code]||[]).slice(-2);
+  const today=todayIso();
+  if(!arr.length) return {label:'—', badge:''};
+  const last=arr[arr.length-1];
+  const isToday = last.ts.slice(0,10)===today;
+  if(!isToday) return {label:'Non aggiornata', badge:'⏸️'};
+  if(arr.length<2) return {label:'Aggiornata', badge:'✅'};
+  const prev=arr[arr.length-2];
+  const inv=(last.IN===prev.IN) && (last.OUT===prev.OUT);
+  return inv? {label:'Invariata', badge:'＝'} : {label:'Aggiornata', badge:'✅'};
+}
+
+/* ====== Calcoli per riga ====== */
 function getPayoutFor(code, modelName){
   const mkey=normalize(modelName||'');
   return CICLO.payoutByCode.get(code) ?? CICLO.payoutByModel.get(mkey) ?? payoutDefault;
 }
-function buildRows(records, snapshotDate){
-  const out=[]; let total=0,mapped=0,skipped=0; lastUnmapped=[];
-  const lvl=(CURRENT_USER?.level||'Base').toLowerCase(); const showCalcs=(lvl==='abbonato'||lvl==='admin');
-
-  for(const r of records){
-    total++;
-    const code=norm(r.code).toUpperCase();
-    const modelNameRaw=r.MODELLO||'';
-    const modelKey=normalize(modelNameRaw);
-    let C = CICLO.byCode.get(code) || CICLO_BY_MODEL.get(modelKey);
-    if(!C){ skipped++; lastUnmapped.push({code, modello:modelNameRaw}); continue; }
-    mapped++;
-
-    const I=r.IN, V=r.OUT;
-    if(snapshotDate){ pushHistory(code, snapshotDate, I, V); latestSnapshot = snapshotDate; }
-
-    const row = {
-      code,
-      MODELLO: modelNameRaw || (CICLO.model.get(code)||''),
-      DENOMIN_SEDE: r.DENOMIN_SEDE||'',
-      SEDE: r.SEDE||'',
-      INDIRIZZO: r.INDIRIZZO||'',
-      PROVINCIA: r.PROVINCIA||'',
-      _cycle:C, _I:I, _V:V, _payout:getPayoutFor(code, modelNameRaw)
-    };
-
-    if(showCalcs){
-      const P = row._payout;
-      const cycles_done=Math.floor(I/C);
-      const in_cycle=I - cycles_done*C;
-      const target_prev=cycles_done*(P*C);
-      let paid_cycle=V - target_prev; if(paid_cycle<0) paid_cycle=0;
-      const resid_in = in_cycle>0? (C-in_cycle):C;
-      let resid_out = (P*C) - paid_cycle; if(resid_out<0) resid_out=0;
-      const perc_cycle = in_cycle>0? (paid_cycle/in_cycle)*100 : 0;
-      const cycle_idx = cycles_done+1;
-      const fDate = forecastDate(code,resid_in);
-      const delta = resid_out-resid_in;
-      const flag = rowFlag(delta, resid_in); // '⭐' se supera soglia
-      Object.assign(row, {perc_cycle, cycle_idx, resid_in, resid_out, forecast_date:fDate, _delta:delta, flag});
-    }
-    out.push(row);
+function computeRow(r){
+  const pro=(CURRENT_USER?.level||'Base').toLowerCase();
+  const show=(pro==='abbonato'||pro==='admin');
+  const modelKey=normalize(r.MODELLO||'');
+  const C = CICLO.byCode.get(r.code) || CICLO_BY_MODEL.get(modelKey);
+  if(!C) return null;
+  const P = getPayoutFor(r.code, r.MODELLO);
+  const I=r.IN, V=r.OUT;
+  const stato = computeStato(r.code);
+  const isToday = (r._ts||'').slice(0,10)===todayIso();
+  if(!show){
+    return {...r, _cycle:C, _payout:P, _delta:0, perc_cycle:null, cycle_idx:null, resid_in:null, resid_out:null,
+            forecast_date:'', _ts_str: fmtDMY(r._ts), _stato: `${stato.badge} ${stato.label}`, _oggi:isToday};
   }
-
-  document.getElementById('statStatus').textContent = `Stato: pronto ✅ · Lette: ${total} · Mappate: ${mapped} · Scartate: ${skipped}`;
-  document.getElementById('statMap').textContent = `Mappate/scartate: ${mapped}/${skipped}`;
-  if(latestSnapshot && latestSnapshot !== '—'){
-    document.getElementById('lastRead').innerHTML = `Ultima lettura: <b>${latestSnapshot}</b>`;
-  }
-  return out;
+  const cycles_done=Math.floor(I/C);
+  const in_cycle=I - cycles_done*C;
+  const target_prev=cycles_done*(P*C);
+  let paid_cycle=V - target_prev; if(paid_cycle<0) paid_cycle=0;
+  const resid_in = in_cycle>0? (C-in_cycle):C;
+  let resid_out = (P*C) - paid_cycle; if(resid_out<0) resid_out=0;
+  const perc_cycle = in_cycle>0? (paid_cycle/in_cycle)*100 : 0;
+  const cycle_idx = cycles_done+1;
+  const fDate = forecastDate(r.code, resid_in);
+  const delta = resid_out-resid_in;
+  const flag = rowFlag(delta, resid_in);
+  return {...r, _cycle:C, _payout:P, perc_cycle, cycle_idx, resid_in, resid_out, forecast_date:fDate,
+          _delta:delta, flag, _ts_str: fmtDMY(r._ts), _stato: `${stato.badge} ${stato.label}`, _oggi:isToday};
 }
 
-/* ===== Soglie / flag ===== */
+/* ====== Stato globale / rendering ====== */
+const STORE='awp_cfg_v3';
+const defCfg = {thrAbs:200, thrPct:0, staleDays:0, showCols:{INDIRIZZO:true, PROVINCIA:true}};
+let CFG = defCfg; try{ CFG=Object.assign({},defCfg, JSON.parse(localStorage.getItem(STORE)||'{}')); }catch(e){}
+let latestSnapshot='—', lastUnmapped=[], fullRows=[], staleRows=[];
+
 function rowFlag(delta, resid_in){
-  const abs = Number(CFG.thrAbs)||0, pct = Number(CFG.thrPct)||0;
+  const abs=Number(CFG.thrAbs)||0, pct=Number(CFG.thrPct)||0;
   const passAbs = abs>0 && delta>=abs;
   const passPct = pct>0 && resid_in>0 && delta>= (pct/100)*resid_in;
   return (passAbs || passPct) ? '⭐' : '';
 }
-
-/* ===== UI: Tabella, filtro, export ===== */
 function filterByQuery(rows){
   const q = norm(document.getElementById('search').value).toLowerCase();
   if(!q) return rows;
   const parts = q.match(/(?:[^\s"]+|"[^"]*")+/g) || [];
   let free=[], keyed=[];
   parts.forEach(p=>{
-    if(p.includes(':')){
-      const [k,...rest]=p.split(':'); const v=rest.join(':').replaceAll('"','');
-      keyed.push({k:k.toLowerCase(), v:v.toLowerCase()});
+    if(p.includes(':')){ const [k,...rest]=p.split(':'); const v=rest.join(':').replaceAll('"',''); keyed.push({k:k.toLowerCase(), v:v.toLowerCase()});
     } else free.push(p.replaceAll('"',''));
   });
   return rows.filter(r=>{
     const blob = `${r.MODELLO} ${r.DENOMIN_SEDE} ${r.SEDE} ${r.INDIRIZZO} ${r.PROVINCIA}`.toLowerCase();
     if(free.some(t=> !blob.includes(t))) return false;
-    for(const kv of keyed){
-      const val = String(r[kv.k?.toUpperCase()] || r[kv.k] || '').toLowerCase();
-      if(!val.includes(kv.v)) return false;
-    }
+    for(const kv of keyed){ const val = String(r[kv.k?.toUpperCase()] || r[kv.k] || '').toLowerCase(); if(!val.includes(kv.v)) return false; }
     return true;
   });
 }
-
 function render(rows){
-  const lvl=(CURRENT_USER?.level||'Base').toLowerCase();
-  const showCalcs = (lvl==='abbonato'||lvl==='admin');
-
-  let view = filterByQuery(rows);
-
-  if(showCalcs){
-    view.sort((a,b)=> (b._delta - a._delta) || (b.resid_out - a.resid_out));
-  } else {
-    view.sort((a,b)=> String(a.DENOMIN_SEDE||a.SEDE||a.MODELLO).localeCompare(String(b.DENOMIN_SEDE||b.SEDE||b.MODELLO)));
-  }
-
+  const pro=(CURRENT_USER?.level||'Base').toLowerCase(); const show=(pro==='abbonato'||pro==='admin');
+  let view=filterByQuery(rows);
+  if(show){ view.sort((a,b)=> (b._delta-a._delta) || (b.resid_out-a.resid_out)); }
+  else{ view.sort((a,b)=> String(a.DENOMIN_SEDE||a.SEDE||a.MODELLO).localeCompare(String(b.DENOMIN_SEDE||b.SEDE||b.MODELLO))); }
   const tb=document.querySelector('#resultTable tbody'); tb.innerHTML='';
   for(const r of view){
-    const tr=document.createElement('tr'); tr.dataset.code=r.code;
-    if(showCalcs){
+    const tr=document.createElement('tr');
+    if(show){
       const tagClass = (r.resid_out>r.resid_in) ? 'good' : (Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*((r.resid_in||1)) ? 'mid' : 'bad');
       tr.innerHTML=`
         <td class="col-calc">${r.flag||''}</td>
@@ -523,14 +535,16 @@ function render(rows){
         <td class="col-calc">${r.cycle_idx ?? ''}</td>
         <td class="col-calc">${r.resid_in!=null ? euro(r.resid_in) : ''}</td>
         <td class="col-calc">${r.resid_out!=null ? euro(r.resid_out) : ''}</td>
-        <td class="col-calc">${r.forecast_date ?? ''}</td>
+        <td class="col-calc">${r.forecast_date || '—'}</td>
         <td>${escapeHTML(r.MODELLO||'')}</td>
         <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
         <td>${escapeHTML(r.SEDE||'')}</td>
         <td class="col-INDIRIZZO">${escapeHTML(r.INDIRIZZO||'')}</td>
         <td class="col-PROVINCIA">${escapeHTML(r.PROVINCIA||'')}</td>
+        <td>${escapeHTML(r._stato||'')}</td>
+        <td>${r._oggi ? '<span class="tag good">Oggi</span>' : escapeHTML(r._ts_str||'')}</td>
       `;
-      tr.addEventListener('click', ()=> openModal(r.code,r));
+      tr.addEventListener('click', ()=> openModal(r.code, r));
     } else {
       tr.innerHTML=`
         <td class="col-calc" style="display:none"></td>
@@ -538,353 +552,255 @@ function render(rows){
         <td class="col-calc" style="display:none"></td>
         <td class="col-calc" style="display:none"></td>
         <td class="col-calc" style="display:none"></td>
+        <td class="col-calc" style="display:none"></td>
         <td>${escapeHTML(r.MODELLO||'')}</td>
         <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
         <td>${escapeHTML(r.SEDE||'')}</td>
         <td class="col-INDIRIZZO">${escapeHTML(r.INDIRIZZO||'')}</td>
         <td class="col-PROVINCIA">${escapeHTML(r.PROVINCIA||'')}</td>
+        <td>${escapeHTML(r._stato||'')}</td>
+        <td>${r._oggi ? '<span class="tag good">Oggi</span>' : escapeHTML(r._ts_str||'')}</td>
       `;
     }
     tb.appendChild(tr);
   }
   document.getElementById('statCount').textContent='Macchine: '+view.length;
-  if(!showCalcs){
-    document.getElementById('statGood').textContent='Top: —';
-    document.getElementById('statWarn').textContent='Equilibrate: —';
-  }else{
+  if(!show){ document.getElementById('statGood').textContent='Top: —'; document.getElementById('statWarn').textContent='Equilibrate: —'; }
+  else {
     const good=view.filter(r=> (r.resid_out>r.resid_in)).length;
     const warn=view.filter(r=> Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*(r.resid_in||1)).length;
     document.getElementById('statGood').textContent='Top (OUT>IN): '+good;
     document.getElementById('statWarn').textContent='Equilibrate (±10%): '+warn;
   }
-
-  // applica toggle colonne
   document.querySelectorAll('.col-INDIRIZZO').forEach(td=> td.style.display = CFG.showCols.INDIRIZZO ? '' : 'none');
   document.querySelectorAll('.col-PROVINCIA').forEach(td=> td.style.display = CFG.showCols.PROVINCIA ? '' : 'none');
 }
-document.getElementById('search').addEventListener('input', ()=> render(fullRows));
-document.querySelectorAll('th[data-k]').forEach(th=>{
-  th.addEventListener('click', ()=>{
-    const k=th.getAttribute('data-k');
-    const isNum=['perc_cycle','cycle_idx','resid_in','resid_out','_delta'].includes(k);
-    const dir=th.dataset.dir==='asc'?'desc':'asc'; th.dataset.dir=dir;
-    const arr=[...fullRows];
-    arr.sort((a,b)=>{ const A=a[k]??'', B=b[k]??''; if(isNum) return dir==='asc'?(A-B):(B-A); return dir==='asc'?String(A).localeCompare(String(B)):String(B).localeCompare(String(A)); });
-    fullRows = arr; render(fullRows);
-  });
-});
 
-/* ===== Export ===== */
-function exportCSV(rows, filename){
-  const cols = visCols();
-  const lines = [cols.map(c=>`"${c}"`).join(',')];
-  for(const r of rows){
-    const obj = rowToExport(r);
-    lines.push(cols.map(c=> `"${(obj[c]??'').toString().replaceAll('"','""')}"`).join(','));
-  }
-  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click();
+/* ====== Non aggiornate oggi ====== */
+function findStale(){
+  const today = todayIso();
+  const all = getLatestStateForAll();
+  staleRows = all.filter(x=> (x._ts||'').slice(0,10) !== today).map(s=> ({...s, _ts_str: fmtDMY(s._ts)}));
+  document.getElementById('staleWarn').classList.toggle('hidden', staleRows.length===0);
 }
-function exportXLSX(rows, filename){
-  const cols = visCols();
-  const data = rows.map(r=>rowToExport(r));
-  const ws = XLSX.utils.json_to_sheet(data, {header: cols});
-  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'dati');
-  XLSX.writeFile(wb, filename);
-}
-function visCols(){
-  const lvl=(CURRENT_USER?.level||'Base').toLowerCase();
-  const baseCols=['MODELLO','DENOMIN_SEDE','SEDE','INDIRIZZO','PROVINCIA'];
-  const proCols=['flag','perc_cycle','cycle_idx','resid_in','resid_out','forecast_date',...baseCols];
-  const cols = (lvl==='abbonato'||lvl==='admin') ? proCols : baseCols;
-  return cols.filter(c=> !(c==='INDIRIZZO' && !CFG.showCols.INDIRIZZO) && !(c==='PROVINCIA' && !CFG.showCols.PROVINCIA));
-}
-function rowToExport(r){
-  return {
-    flag: r.flag||'',
-    perc_cycle: r.perc_cycle!=null? r.perc_cycle.toFixed(2)+'%':'',
-    cycle_idx: r.cycle_idx??'',
-    resid_in: r.resid_in!=null? r.resid_in.toFixed(2):'',
-    resid_out: r.resid_out!=null? r.resid_out.toFixed(2):'',
-    forecast_date: r.forecast_date||'',
-    MODELLO: r.MODELLO||'',
-    DENOMIN_SEDE: r.DENOMIN_SEDE||'',
-    SEDE: r.SEDE||'',
-    INDIRIZZO: r.INDIRIZZO||'',
-    PROVINCIA: r.PROVINCIA||''
-  };
-}
-document.getElementById('btnExportCSV').addEventListener('click', ()=> {
-  const rows = filterByQuery(fullRows);
-  exportCSV(rows, `awp_${latestSnapshot||'export'}.csv`);
-});
-document.getElementById('btnExportXLSX').addEventListener('click', ()=> {
-  const rows = filterByQuery(fullRows);
-  exportXLSX(rows, `awp_${latestSnapshot||'export'}.xlsx`);
-});
-document.getElementById('btnUnmapped').addEventListener('click', ()=> {
-  const lines = ['CODICE MODELLO,MODELLO']; lastUnmapped.forEach(x=>{
-    lines.push(`"${(x.code||'').replaceAll('"','""')}","${(x.modello||'').replaceAll('"','""')}"`);
-  });
-  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
-  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`non_mappati_${latestSnapshot||todayISO()}.csv`; a.click();
-});
-
-/* ===== Aggregati ===== */
-function renderAggregati(){
-  const lvl=(CURRENT_USER?.level||'Base').toLowerCase();
-  const showCalcs = (lvl==='abbonato'||lvl==='admin');
-  const field = document.getElementById('aggField').value;
-  const src = filterByQuery(fullRows);
-  const map = new Map();
-  for(const r of src){
-    const key = r[field] || '—';
-    let o = map.get(key);
-    if(!o) o = {k:key, n:0, in:0, out:0, rin:0, rout:0};
-    o.n++;
-    o.in += (r._I||0);
-    o.out += (r._V||0);
-    if(showCalcs){ o.rin += (r.resid_in||0); o.rout += (r.resid_out||0); }
-    map.set(key,o);
-  }
-  const arr=[...map.values()];
-  arr.sort((a,b)=> (b.rout-b.rin) - (a.rout-a.rin) || (b.out-b.in)-(a.out-a.in) || b.n-a.n );
-  const tb=document.querySelector('#aggTable tbody'); tb.innerHTML='';
-  for(const g of arr){
-    const payout = g.in>0 ? (g.out/g.in)*100 : 0;
-    const tr = document.createElement('tr');
+function renderStale(){
+  const tb=document.querySelector('#staleTable tbody'); tb.innerHTML='';
+  for(const r of staleRows){
+    const tr=document.createElement('tr');
     tr.innerHTML = `
-      <td>${escapeHTML(g.k)}</td>
-      <td>${g.n}</td>
-      <td>${euro(g.in)}</td>
-      <td>${euro(g.out)}</td>
-      <td>${payout.toFixed(2)}%</td>
-      <td>${euro(g.rin/g.n || 0)}</td>
-      <td>${euro(g.rout/g.n || 0)}</td>
+      <td>${escapeHTML(r.MODELLO||'')}</td>
+      <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
+      <td>${escapeHTML(r.SEDE||'')}</td>
+      <td>${escapeHTML(r.INDIRIZZO||'')}</td>
+      <td>${escapeHTML(r.PROVINCIA||'')}</td>
+      <td>${escapeHTML(r._ts_str||'')}</td>
     `;
     tb.appendChild(tr);
   }
 }
-document.getElementById('aggField').addEventListener('change', renderAggregati);
+
+/* ====== Aggregati ====== */
+function renderAggregati(){
+  const pro=(CURRENT_USER?.level||'Base').toLowerCase(); const show=(pro==='abbonato'||pro==='admin');
+  const field=document.getElementById('aggField').value;
+  const src=filterByQuery(fullRows);
+  const map=new Map();
+  for(const r of src){
+    const key = r[field] || '—';
+    let o = map.get(key); if(!o) o={k:key, n:0, in:0, out:0, rin:0, rout:0};
+    o.n++; o.in += (r._I||0); o.out += (r._V||0);
+    if(show){ o.rin += (r.resid_in||0); o.rout += (r.resid_out||0); }
+    map.set(key,o);
+  }
+  const arr=[...map.values()].sort((a,b)=> (b.rout-b.rin)-(a.rout-a.rin) || (b.out-b.in)-(a.out-a.in) || b.n-a.n);
+  const tb=document.querySelector('#aggTable tbody'); tb.innerHTML='';
+  for(const g of arr){
+    const payout = g.in>0 ? (g.out/g.in)*100 : 0;
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${escapeHTML(g.k)}</td><td>${g.n}</td><td>${euro(g.in)}</td><td>${euro(g.out)}</td><td>${payout.toFixed(2)}%</td><td>${euro(g.rin/g.n||0)}</td><td>${euro(g.rout/g.n||0)}</td>`;
+    tb.appendChild(tr);
+  }
+}
+
+/* ====== Export ====== */
+function exportCSV(rows, filename){
+  const cols=['flag','perc_cycle','cycle_idx','resid_in','resid_out','forecast_date','MODELLO','DENOMIN_SEDE','SEDE','INDIRIZZO','PROVINCIA','_stato','_ts_str'];
+  const lines=[cols.join(';')];
+  rows.forEach(r=>{
+    const o={...r}; o.perc_cycle = (o.perc_cycle!=null)? o.perc_cycle.toFixed(2)+'%':''; o.resid_in = (o.resid_in!=null)? o.resid_in.toFixed(2):''; o.resid_out=(o.resid_out!=null)? o.resid_out.toFixed(2):'';
+    lines.push(cols.map(c=> String(o[c]??'').replace(/;/g,',')).join(';'));
+  });
+  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click();
+}
+function exportXLSX(rows, filename){
+  const data = rows.map(r=>({
+    flag:r.flag||'', 'Percentuale Ciclo': r.perc_cycle!=null? r.perc_cycle.toFixed(2)+'%':'',
+    'Ciclo Corrente': r.cycle_idx??'', 'Residuo IN': r.resid_in!=null? r.resid_in.toFixed(2):'',
+    'Residuo OUT': r.resid_out!=null? r.resid_out.toFixed(2):'', 'Fine Ciclo Stimata': r.forecast_date||'',
+    MODELLO:r.MODELLO||'', 'DENOMIN. SEDE':r.DENOMIN_SEDE||'', SEDE:r.SEDE||'', INDIRIZZO:r.INDIRIZZO||'', PROVINCIA:r.PROVINCIA||'',
+    Stato:r._stato||'', 'Ultima Lettura': r._oggi? 'Oggi' : (r._ts_str||'')
+  }));
+  const ws=XLSX.utils.json_to_sheet(data); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'dati'); XLSX.writeFile(wb, filename);
+}
+document.getElementById('btnExportCSV').addEventListener('click', ()=> exportCSV(filterByQuery(fullRows), `awp_${latestSnapshot||'export'}.csv`));
+document.getElementById('btnExportXLSX').addEventListener('click', ()=> exportXLSX(filterByQuery(fullRows), `awp_${latestSnapshot||'export'}.xlsx`));
 document.getElementById('btnAggExport').addEventListener('click', ()=>{
-  const field = document.getElementById('aggField').value;
   const tb = document.querySelector('#aggTable tbody');
   const rows = [...tb.querySelectorAll('tr')].map(tr=> {
     const tds = tr.querySelectorAll('td');
-    return {
-      gruppo: tds[0].innerText, macchine: tds[1].innerText, in_tot: tds[2].innerText,
-      out_tot: tds[3].innerText, payout_medio: tds[4].innerText,
-      residuo_in_medio: tds[5].innerText, residuo_out_medio: tds[6].innerText
-    };
+    return { gruppo: tds[0].innerText, macchine: tds[1].innerText, in_tot: tds[2].innerText,
+      out_tot: tds[3].innerText, payout_medio: tds[4].innerText, residuo_in_medio: tds[5].innerText, residuo_out_medio: tds[6].innerText };
   });
-  exportXLSX(rows, `aggregati_${field}_${latestSnapshot||todayISO()}.xlsx`);
+  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'aggregati'); XLSX.writeFile(wb, `aggregati_${todayIso()}.xlsx`);
+});
+document.getElementById('btnUnmapped').addEventListener('click', ()=> {
+  const lines = ['CODICE MODELLO;MODELLO']; lastUnmapped.forEach(x=> lines.push(`${x.code};${(x.modello||'').replace(/;/g,',')}`));
+  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`non_mappati_${latestSnapshot||todayIso()}.csv`; a.click();
 });
 
-/* ===== Impostazioni ===== */
-function loadSettingsUI(){
-  document.getElementById('thrAbs').value = CFG.thrAbs;
-  document.getElementById('thrPct').value = CFG.thrPct;
-  document.getElementById('staleDays').value = CFG.staleDays;
-  document.querySelectorAll('.colToggle').forEach(ch=>{
-    ch.checked = !!CFG.showCols[ch.dataset.col];
-  });
-}
+/* ====== Impostazioni ====== */
+function loadSettingsUI(){ document.getElementById('thrAbs').value=CFG.thrAbs; document.getElementById('thrPct').value=CFG.thrPct; document.getElementById('staleDays').value=CFG.staleDays;
+  document.querySelectorAll('.colToggle').forEach(ch=> ch.checked=!!CFG.showCols[ch.dataset.col]); }
 document.getElementById('btnSaveSettings').addEventListener('click', ()=>{
-  CFG.thrAbs = Number(document.getElementById('thrAbs').value)||0;
-  CFG.thrPct = Number(document.getElementById('thrPct').value)||0;
-  CFG.staleDays = Math.max(0, Number(document.getElementById('staleDays').value)||7);
-  document.querySelectorAll('.colToggle').forEach(ch=>{
-    CFG.showCols[ch.dataset.col] = !!ch.checked;
-  });
+  CFG.thrAbs=+document.getElementById('thrAbs').value||0; CFG.thrPct=+document.getElementById('thrPct').value||0; CFG.staleDays=+document.getElementById('staleDays').value||0;
+  document.querySelectorAll('.colToggle').forEach(ch=> CFG.showCols[ch.dataset.col]=!!ch.checked);
   localStorage.setItem(STORE, JSON.stringify(CFG));
-  render(fullRows);
-  renderAggregati();
-  applyStaleBanner();
-  toast('Impostazioni salvate');
+  render(fullRows); renderAggregati(); renderStale(); toast('Impostazioni salvate');
 });
 document.getElementById('btnResetSettings').addEventListener('click', ()=>{
-  CFG = JSON.parse(JSON.stringify(defCfg));
-  localStorage.setItem(STORE, JSON.stringify(CFG));
-  loadSettingsUI(); render(fullRows); renderAggregati(); applyStaleBanner();
+  CFG=JSON.parse(JSON.stringify(defCfg)); localStorage.setItem(STORE, JSON.stringify(CFG));
+  loadSettingsUI(); render(fullRows); renderAggregati(); renderStale();
 });
 
-/* ===== Admin overlay ===== */
-const ovUsers=document.getElementById('ovUsers');
-document.getElementById('closeUsers').addEventListener('click', ()=> ovUsers.classList.remove('in'));
-document.getElementById('btnUsers')?.addEventListener('click', openUsersOverlay);
-async function openUsersOverlay(){
-  if((CURRENT_USER?.level||'').toLowerCase()!=='admin') return;
-  try{
-    const res = await fetch('Dati/users.json', {cache:'no-store'});
-    if(!res.ok) throw new Error('users.json non trovato');
-    const users = await res.json();
-    const today = todayISO();
-    let html = '<table style="width:100%;border-collapse:collapse;"><thead><tr>'
-      +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">User</th>'
-      +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Livello</th>'
-      +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Scadenza</th>'
-      +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Stato</th>'
-      +'</tr></thead><tbody>';
-    for(const u of users){
-      const exp = u.expires || '—';
-      const expired = (u.expires && u.expires < today);
-      const lvl = u.level || 'Base';
-      const effLvl = expired ? 'Base (scaduto)' : lvl;
-      const stato = expired ? 'Scaduto' : 'Attivo';
-      html += `<tr>
-        <td style="padding:6px;">${escapeHTML(u.user)}</td>
-        <td style="padding:6px;">${escapeHTML(effLvl)}</td>
-        <td style="padding:6px;">${escapeHTML(exp)}</td>
-        <td style="padding:6px;">${escapeHTML(stato)}</td>
-      </tr>`;
-    }
-    html += '</tbody></table>';
-    document.getElementById('usersList').innerHTML = html;
-    ovUsers.classList.add('in');
-  }catch(e){ toast('Impossibile leggere users.json'); }
+/* ====== Modale scheda con grafico ====== */
+const modal=document.getElementById('modal'); document.getElementById('closeModal').addEventListener('click',()=> modal.classList.remove('in'));
+function drawChart(canvas, series){
+  const ctx=canvas.getContext('2d'); const W=canvas.width, H=canvas.height; ctx.clearRect(0,0,W,H);
+  if(series.length<2){ ctx.fillStyle='var(--muted)'; ctx.font='12px system-ui'; ctx.fillText('Dati insufficienti',10,20); return; }
+  const pad=30, x0=pad, x1=W-pad, y0=H-pad, y1=pad;
+  const minT = +new Date(series[0].ts), maxT = +new Date(series[series.length-1].ts);
+  let minV=Infinity, maxV=-Infinity; series.forEach(p=>{ minV=Math.min(minV,p.IN,p.OUT); maxV=Math.max(maxV,p.IN,p.OUT); });
+  if(minV===maxV){ minV=0; }
+  const x = t => x0 + ( (t-minT)/(maxT-minT||1) )*(x1-x0);
+  const y = v => y0 - ( (v-minV)/(maxV-minV||1) )*(y0-y1);
+  // assi
+  ctx.strokeStyle='rgba(0,0,0,.2)'; ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y0); ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); ctx.stroke();
+  // IN
+  ctx.beginPath(); series.forEach((p,i)=>{ const X=x(+new Date(p.ts)), Y=y(p.IN); if(i===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y); });
+  ctx.strokeStyle='#0b6'; ctx.lineWidth=2; ctx.stroke();
+  // OUT
+  ctx.beginPath(); series.forEach((p,i)=>{ const X=x(+new Date(p.ts)), Y=y(p.OUT); if(i===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y); });
+  ctx.strokeStyle='#666'; ctx.lineWidth=2; ctx.stroke();
+  // min/max labels
+  ctx.fillStyle='rgba(0,0,0,.6)'; ctx.font='12px system-ui'; ctx.fillText(euro(minV), 5, y(minV)); ctx.fillText(euro(maxV), 5, y(maxV));
 }
-
-/* ===== INIT AUTO ===== */
-async function initAuto(){
-  try{
-    const status = (m)=> document.getElementById('statStatus').textContent = m;
-
-    // carica impostazioni UI
-    loadSettingsUI();
-
-    status('Stato: caricamento CICLOSLOT…');
-    if(CICLOSLOT.length===0){
-      try{
-        const cicloRows = await fetchXLSX('Dati/cicloslot.xlsx');
-        const mapped = cicloRows.map(r=>({code:r['codice modello']||r.code||r['CODICE MODELLO'], model:r.modello||r.model||r['MODELLO']||'', ciclo:r.ciclo||r.cycle||r['ciclo']||r['CICLO'], payout:r['payout %']||r['payout']||r['PAYOUT %']||r['PAYOUT']})).filter(x=> x.code && +x.ciclo>0);
-        CICLO = buildCicloMaps(mapped);
-        CICLO_BY_MODEL = buildCicloByModel(mapped);
-      }catch(e){
-        toast('Impossibile leggere /Dati/cicloslot.xlsx e nessun CICLOSLOT integrato.');
-        status('Stato: errore CICLOSLOT'); return;
-      }
-    } else {
-      CICLO = buildCicloMaps(CICLOSLOT);
-      CICLO_BY_MODEL = buildCicloByModel(CICLOSLOT);
-    }
-
-    status('Stato: caricamento manifest…');
-    let lista = [];
-    try{
-      const res = await fetch('Dati/manifest.json', {cache:'no-store'});
-      if(res.ok){ const j = await res.json(); lista = Array.isArray(j.sinottici) ? j.sinottici : []; }
-    }catch(e){}
-    if(!lista.length){ status('Stato: manifest mancante (crea /Dati/manifest.json)'); return; }
-
-    // 1) aggiorna STORICO da tutti i sinottici
-    latestSnapshot = '—'; lastUnmapped=[];
-    for(const name of lista){
-      try{
-        status('Stato: leggo '+name+'…');
-        const data = await fetchXLSX('Dati/'+name);
-        if(!data.length) continue;
-        const cols = pickCols(data[0]); if(!cols.codeKey||!cols.inKey||!cols.outKey) continue;
-        const m = name.match(/\d{4}-\d{2}-\d{2}/); const snapshotDate = m ? m[0] : new Date().toISOString().slice(0,10);
-        const recs = data.map(r=>({
-          code: norm(r[cols.codeKey]),
-          IN: parseCnt(r[cols.inKey]),
-          OUT: parseCnt(r[cols.outKey]),
-          MODELLO: cols.modelloKey ? norm(r[cols.modelloKey]) : '',
-          DENOMIN_SEDE: cols.denomSedeKey ? norm(r[cols.denomSedeKey]) : '',
-          SEDE: cols.sedeKey ? norm(r[cols.sedeKey]) : (norm(r['comune'])||''),
-          INDIRIZZO: cols.indirKey ? norm(r[cols.indirKey]) : '',
-          PROVINCIA: cols.provKey ? norm(r[cols.provKey]) : ''
-        }));
-        buildRows(recs, snapshotDate); // aggiorna storico & latestSnapshot
-      }catch(e){ console.warn(e); }
-    }
-
-    // 2) Mostra SOLO l'ULTIMO sinottico integralmente in tabella
-    let lastName = null;
-    if (lista && lista.length) {
-      const dated = lista.map(n => {
-        const m = n.match(/\d{4}-\d{2}-\d{2}/);
-        return { name: n, date: m ? m[0] : null };
-      });
-      dated.sort((a,b) => String(a.date||a.name).localeCompare(String(b.date||b.name)));
-      lastName = dated[dated.length-1].name;
-    }
-    if (!lastName) { status('Stato: nessun file ultimo riconosciuto'); return; }
-
-    status('Stato: preparo vista ultimo sinottico: ' + lastName + ' …');
-    const lastData = await fetchXLSX('Dati/' + lastName);
-    if(!lastData.length){ status('Stato: ultimo sinottico vuoto'); return; }
-    const cols2 = pickCols(lastData[0] || {});
-    if(!cols2.codeKey || !cols2.inKey || !cols2.outKey){ status('Stato: colonne obbligatorie mancanti'); return; }
-    const snapDate = (lastName.match(/\d{4}-\d{2}-\d{2}/) || [new Date().toISOString().slice(0,10)])[0];
-
-    lastRowsRaw = lastData.map(r=>({
-      code: norm(r[cols2.codeKey]),
-      IN: parseCnt(r[cols2.inKey]),
-      OUT: parseCnt(r[cols2.outKey]),
-      MODELLO: cols2.modelloKey ? norm(r[cols2.modelloKey]) : '',
-      DENOMIN_SEDE: cols2.denomSedeKey ? norm(r[cols2.denomSedeKey]) : '',
-      SEDE: cols2.sedeKey ? norm(r[cols2.sedeKey]) : (norm(r['comune'])||''),
-      INDIRIZZO: cols2.indirKey ? norm(r[cols2.indirKey]) : '',
-      PROVINCIA: cols2.provKey ? norm(r[cols2.provKey]) : ''
-    }));
-    lastCols = cols2;
-
-    // aggiorna storico (con data dell’ultimo file) ma NON collassare tabella
-    buildRows(lastRowsRaw, snapDate);
-
-    // calcola le righe per la vista corrente (rispetta livello utente)
-    fullRows = buildRows(lastRowsRaw, null);
-    document.getElementById('lastRead').innerHTML = `Ultima lettura: <b>${snapDate}</b>`;
-    applyStaleBanner();
-    localStorage.setItem(HIST_KEY, JSON.stringify(history));
-    render(fullRows);
-    document.getElementById('statStatus').textContent = `Stato: pronto ✅ (${fullRows.length} righe)`;
-  }catch(err){ console.error(err); document.getElementById('statStatus').textContent='Stato: errore'; toast('Errore di inizializzazione'); }
-}
-
-/* ===== Staleness banner ===== */
-function applyStaleBanner(){
-  const el = document.getElementById('staleWarn');
-  const N = Number(CFG.staleDays)||0;
-  if(!N || !latestSnapshot || latestSnapshot==='—'){ el.classList.add('hidden'); return; }
-  const d0 = new Date(latestSnapshot), d1=new Date(); const diff = (d1-d0)/(1000*3600*24);
-  el.classList.toggle('hidden', diff<=N);
-}
-
-/* ===== Modale ===== */
-const modal=document.getElementById('modal'); 
-document.getElementById('closeModal').addEventListener('click',()=> modal.classList.remove('in'));
 function openModal(code,row){
-  const lvl=(CURRENT_USER?.level||'Base').toLowerCase();
-  if(!(lvl==='abbonato'||lvl==='admin')) return; // Base non apre
+  const pro=(CURRENT_USER?.level||'Base').toLowerCase(); if(!(pro==='abbonato'||pro==='admin')) return;
   document.getElementById('m_title').textContent='Scheda macchina – '+code;
   document.getElementById('m_model').textContent=row.MODELLO||'';
   document.getElementById('m_code').textContent=code;
-  document.getElementById('m_cycle').textContent=(row._cycle||'')+' (partite)';
-  document.getElementById('m_payout').textContent = ((row._payout||payoutDefault)*100).toFixed(2)+'%';
+  document.getElementById('m_locale').textContent=row.DENOMIN_SEDE||'';
+  document.getElementById('m_addr').textContent=row.INDIRIZZO||'';
+  document.getElementById('m_city').textContent=(row.SEDE||'') + (row.PROVINCIA? ' ('+row.PROVINCIA+')':'');
+  document.getElementById('m_cycle').textContent=(row._cycle||'')+' partite';
+  document.getElementById('m_payout').textContent=((row._payout||payoutDefault)*100).toFixed(2)+'%';
   document.getElementById('m_resid_in').textContent=row.resid_in!=null?euro(row.resid_in):'—';
   document.getElementById('m_resid_out').textContent=row.resid_out!=null?euro(row.resid_out):'—';
   document.getElementById('m_perc').textContent=(row.perc_cycle!=null?row.perc_cycle.toFixed(2):'—')+'%';
-  document.getElementById('m_forecast').textContent=row.forecast_date||'—';
-  const h=history[code]||[];
+  document.getElementById('m_forecast').textContent=row.forecast_date || '—';
+  const h=(history[code]||[]).slice().sort((a,b)=> new Date(a.ts)-new Date(b.ts));
   let html='<table style="width:100%;border-collapse:collapse;"><thead><tr>'
-    +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Data</th>'
+    +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Data/ora</th>'
     +'<th style="text-align:right;border-bottom:1px solid var(--border);padding:6px;">IN</th>'
     +'<th style="text-align:right;border-bottom:1px solid var(--border);padding:6px;">OUT</th>'
     +'<th style="text-align:right;border-bottom:1px solid var(--border);padding:6px;">ΔIN</th>'
     +'<th style="text-align:right;border-bottom:1px solid var(--border);padding:6px;">ΔOUT</th>'
     +'</tr></thead><tbody>';
   for(let i=0;i<h.length;i++){
-    const prev=h[i-1]; const dIn=i? (h[i].IN-prev.IN):0; const dOut=i? (h[i].OUT-prev.OUT):0;
-    html += `<tr><td style="padding:6px;">${h[i].date}</td><td style="padding:6px;text-align:right;">${euro(h[i].IN)}</td><td style="padding:6px;text-align:right;">${euro(h[i].OUT)}</td><td style="padding:6px;text-align:right;">${euro(dIn)}</td><td style="padding:6px;text-align:right;">${euro(dOut)}</td></tr>`;
+    const prev=h[i-1]; const dIn=i? (h[i].IN-(prev?.IN||0)):0; const dOut=i? (h[i].OUT-(prev?.OUT||0)):0;
+    html+=`<tr><td style="padding:6px;">${fmtDMY(h[i].ts)} ${h[i].ts.slice(11,16)}</td><td style="padding:6px;text-align:right;">${euro(h[i].IN)}</td><td style="padding:6px;text-align:right;">${euro(h[i].OUT)}</td><td style="padding:6px;text-align:right;">${euro(dIn)}</td><td style="padding:6px;text-align:right;">${euro(dOut)}</td></tr>`;
   }
   html+='</tbody></table>';
   document.getElementById('m_history').innerHTML=html;
+  const series = h.map(x=>({ts:x.ts, IN:x.IN, OUT:x.OUT}));
+  drawChart(document.getElementById('m_chart'), series);
   modal.classList.add('in');
 }
 
-/* ===== Colonne toggle ===== */
+/* ====== INIT ====== */
+function applyStaleBanner(){
+  // già abbiamo tab "Non aggiornate" + badge; questo banner si accende se esistono non aggiornate
+  document.getElementById('staleWarn').classList.toggle('hidden', staleRows.length===0);
+}
+function loadSettingsUI(){ document.getElementById('thrAbs').value=CFG.thrAbs; document.getElementById('thrPct').value=CFG.thrPct; document.getElementById('staleDays').value=CFG.staleDays;
+  document.querySelectorAll('.colToggle').forEach(ch=> ch.checked=!!CFG.showCols[ch.dataset.col]); }
+
+async function initAuto(){
+  const status = (m)=> document.getElementById('statStatus').textContent = m;
+
+  // CICLOSLOT
+  if(CICLOSLOT.length===0){
+    try{
+      const cicloRows = await fetchXLSX('Dati/cicloslot.xlsx');
+      const mapped = cicloRows.map(r=>({code:r['codice modello']||r.code||r['CODICE MODELLO'], model:r.modello||r.model||r['MODELLO']||'', ciclo:r.ciclo||r.cycle||r['ciclo']||r['CICLO'], payout:r['payout %']||r['payout']||r['PAYOUT %']||r['PAYOUT']})).filter(x=> x.code && +x.ciclo>0);
+      CICLO = buildCicloMaps(mapped); CICLO_BY_MODEL=buildCicloByModel(mapped);
+    }catch(e){ toast('Impossibile leggere /Dati/cicloslot.xlsx e nessun CICLOSLOT integrato.'); return; }
+  } else { CICLO = buildCicloMaps(CICLOSLOT); CICLO_BY_MODEL=buildCicloByModel(CICLOSLOT); }
+
+  // Manifest
+  status('Carico manifest…');
+  let lista=[]; try{ const res=await fetch('Dati/manifest.json',{cache:'no-store'}); if(res.ok){ const j=await res.json(); lista=Array.isArray(j.sinottici)?j.sinottici:[]; }}catch{}
+  if(!lista.length){ status('Manifest mancante (Dati/manifest.json)'); return; }
+
+  // Leggi TUTTI in ordine temporale
+  const files = lista.map(name=>({name, ts: parseStampFromName(name)})).sort((a,b)=> new Date(a.ts)-new Date(b.ts));
+  lastUnmapped=[]; let lastShownTs=null;
+  for(const f of files){
+    status('Leggo '+f.name+' …');
+    const data = await fetchXLSX('Dati/'+f.name);
+    if(!data.length) continue;
+    const cols = pickCols(data[0]); if(!cols.codeKey||!cols.inKey||!cols.outKey) continue;
+    for(const r of data){
+      const rec = {
+        code: norm(r[cols.codeKey]).toUpperCase(),
+        IN: parseCnt(r[cols.inKey]),
+        OUT: parseCnt(r[cols.outKey]),
+        MODELLO: cols.modelloKey ? norm(r[cols.modelloKey]) : '',
+        DENOMIN_SEDE: cols.denomSedeKey ? norm(r[cols.denomSedeKey]) : '',
+        SEDE: cols.sedeKey ? norm(r[cols.sedeKey]) : (norm(r['comune'])||''),
+        INDIRIZZO: cols.indirKey ? norm(r[cols.indirKey]) : '',
+        PROVINCIA: cols.provKey ? norm(r[cols.provKey]) : ''
+      };
+      const tsFile = parseStampFromName(f.name);
+      const ts = buildTsFromRow(r, cols, tsFile);
+      const C = CICLO.byCode.get(rec.code) || CICLO_BY_MODEL.get(normalize(rec.MODELLO));
+      if(!C){ lastUnmapped.push({code:rec.code, modello:rec.MODELLO}); continue; }
+      pushHistory(rec.code, ts, rec.IN, rec.OUT, {
+        MODELLO:rec.MODELLO, DENOMIN_SEDE:rec.DENOMIN_SEDE, SEDE:rec.SEDE, INDIRIZZO:rec.INDIRIZZO, PROVINCIA:rec.PROVINCIA
+      });
+      lastShownTs = ts;
+    }
+  }
+  latestSnapshot = lastShownTs ? fmtDMY(lastShownTs) : '—';
+  document.getElementById('lastRead').innerHTML = `Ultima lettura: <b>${latestSnapshot}</b>`;
+  localStorage.setItem(HIST_KEY, JSON.stringify(history));
+
+  // Vista corrente
+  const latestStates = getLatestStateForAll();
+  fullRows = latestStates.map(s=> computeRow(s)).filter(Boolean);
+  render(fullRows);
+  document.getElementById('statStatus').textContent = `Pronto ✅ (${fullRows.length} righe)`;
+  document.getElementById('statMap').textContent = `Mappate/scartate: ${fullRows.length}/${lastUnmapped.length}`;
+
+  // Non aggiornate oggi
+  findStale(); renderStale(); applyStaleBanner();
+
+  // Ricerca persistente
+  const savedQ = localStorage.getItem('awp_q'); if(savedQ) document.getElementById('search').value=savedQ;
+  document.getElementById('search').addEventListener('input', ()=> { localStorage.setItem('awp_q', document.getElementById('search').value); render(fullRows); });
+}
+
+/* ====== Colonne toggle ====== */
 document.querySelectorAll('.colToggle').forEach(ch=>{
   ch.addEventListener('change', ()=>{
     CFG.showCols[ch.dataset.col] = !!ch.checked;
@@ -892,10 +808,6 @@ document.querySelectorAll('.colToggle').forEach(ch=>{
     render(fullRows);
   });
 });
-
-/* ===== Ricerca persistente ===== */
-const savedQ = localStorage.getItem('awp_q'); if(savedQ) document.getElementById('search').value=savedQ;
-document.getElementById('search').addEventListener('input', ()=> localStorage.setItem('awp_q', document.getElementById('search').value));
 </script>
 </body>
 </html>
