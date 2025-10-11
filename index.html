@@ -40,7 +40,7 @@
   .stat{border:1px dashed var(--border);border-radius:12px;padding:8px 12px;font-size:13px}
   .tabs{display:flex;gap:8px;margin:10px 0 0}.tab{padding:8px 12px;border:1px solid var(--border);border-radius:999px;cursor:pointer;background:var(--card)}.tab.active{outline:2px solid var(--accent);box-shadow:var(--glow)}
   table{width:100%;border-collapse:separate;border-spacing:0;margin-top:12px;font-size:14px}
-  thead th{position:sticky;top:0;z-index:2;background:var(--thead);text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);border-bottom:1px solid var(--border);padding:8px;cursor:pointer}
+  thead th{position:sticky;top:0;z-index:2;background:var(--thead);text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);border-bottom:1px solid var(--border);padding:8px;cursor:pointer;user-select:none}
   tbody td{padding:8px;border-bottom:1px solid var(--border)}tbody tr:nth-child(odd) td{background:var(--zebra)}tbody tr:hover td{background:var(--hover)}
   .tag{padding:4px 9px;border-radius:999px;font-size:12px;font-weight:700;display:inline-block}
   .tag.good{background:color-mix(in oklab, var(--ok) 15%, transparent);color:var(--ok);border:1px solid color-mix(in oklab, var(--ok) 40%, transparent)}
@@ -48,7 +48,7 @@
   .tag.bad{background:color-mix(in oklab, var(--bad) 15%, transparent);color:var(--bad);border:1px solid color-mix(in oklab, var(--bad) 40%, transparent)}
   .badge{padding:4px 10px;border-radius:999px;font-weight:800;font-size:12px;border:1px solid var(--border)}
   .badge.base{background:#fff0;color:#6b7280}.badge.sub{background:#e7f6ed;color:#0b7a42;border-color:#bfe8d2}.badge.admin{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
-  /* Splash/Login animato */
+  /* Splash/Login */
   .splash{position:fixed;inset:0;display:grid;place-items:center;overflow:hidden;background:radial-gradient(1200px 700px at 50% 0%,var(--thead) 0,var(--bg) 60%,var(--bg) 100%);z-index:5}
   .login-card{position:relative;text-align:center;max-width:680px;width:min(94vw,680px);padding:26px 22px 18px;border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.75));box-shadow:0 10px 40px rgba(0,0,0,.12),var(--glow);border:1px solid var(--border)}
   html[data-theme=dark] .login-card{background:linear-gradient(180deg,rgba(22,26,43,.9),rgba(22,26,43,.75))}
@@ -147,6 +147,7 @@
             <th data-k="cycle_idx" class="col-calc">Ciclo Corrente</th>
             <th data-k="resid_in" class="col-calc">Residuo IN</th>
             <th data-k="resid_out" class="col-calc">Residuo OUT</th>
+            <th data-k="need65" class="col-calc">Residuo al 65%</th>
             <th data-k="forecast_date" class="col-calc">Fine Ciclo Stimata</th>
             <th data-k="ID">CODEID</th>
             <th data-k="MODELLO">MODELLO</th>
@@ -160,7 +161,7 @@
         </thead>
         <tbody></tbody>
       </table>
-      <div class="muted" id="footNote" style="margin-top:8px;">Residuo OUT negativo → <b>€0</b>. IN/OUT divisi per <b>100</b>.</div>
+      <div class="muted" id="footNote" style="margin-top:8px;">Residuo OUT negativo → <b>€0</b>. IN/OUT divisi per <b>100</b>. “Residuo al 65%” appare solo se % ciclo &lt; 65%.</div>
     </div>
 
     <!-- NON AGGIORNATE OGGI -->
@@ -239,7 +240,7 @@
 
 <script>
 /* ====== VERSIONE ====== */
-const APP_VERSION = "v1.9.0 — 10-10-2025"; // mostra in login
+const APP_VERSION = "v1.10.0 — 10-10-2025";
 document.getElementById('version').textContent = APP_VERSION;
 
 /* ====== UTILITY ====== */
@@ -249,6 +250,7 @@ const normalize = (s) => (s||'').toString().toLowerCase().normalize('NFD').repla
 const euro = n => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n||0);
 const fmtDMY = iso => { if(!iso) return '—'; const d=new Date(iso); if(isNaN(d)) return '—'; const dd=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); const yy=d.getFullYear(); return `${dd}-${mm}-${yy}`; };
 const todayIso = ()=> new Date().toISOString().slice(0,10);
+const daysDiff = (iso) => { if(!iso) return null; const t=new Date(iso); if(isNaN(t)) return null; const ms = new Date().setHours(0,0,0,0) - new Date(t.getFullYear(),t.getMonth(),t.getDate()).getTime(); return Math.max(0, Math.round(ms/86400000)); };
 function toast(msg){ const d=document.createElement('div'); d.textContent=msg; d.style.cssText='position:fixed;bottom:12px;left:12px;right:12px;padding:10px 14px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;z-index:9999;font-weight:700'; document.body.appendChild(d); setTimeout(()=>d.remove(),4500); }
 function escapeHTML(s){ return (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&gt;','>':'&gt;','"':'&quot;'}[c])); }
 
@@ -283,7 +285,7 @@ async function auth(){
   initAuto();
 }
 
-/* ====== Mini animazioni login ====== */
+/* ====== Login animazioni ====== */
 (function sparks(){
   const wrap=document.getElementById('sparks');
   for(let i=0;i<28;i++){
@@ -297,10 +299,25 @@ async function auth(){
   }
 })();
 
-/* ====== CICLOSLOT (ciclo/payout per MODELLO) ====== */
+/* ====== TAB SWITCH (FIX) ====== */
+function showTab(name){
+  document.querySelectorAll('.tab').forEach(t=> t.classList.toggle('active', t.dataset.tab===name));
+  document.getElementById('view-dashboard').classList.toggle('hidden', name!=='dashboard');
+  document.getElementById('view-nonaggiornate').classList.toggle('hidden', name!=='nonaggiornate');
+  document.getElementById('view-aggregati').classList.toggle('hidden', name!=='aggregati');
+  document.getElementById('view-impostazioni').classList.toggle('hidden', name!=='impostazioni');
+  if(name==='aggregati') renderAggregati();
+  if(name==='nonaggiornate') renderStale();
+}
+document.getElementById('tabs').addEventListener('click', (e)=>{
+  const b=e.target.closest('.tab'); if(!b) return;
+  e.preventDefault(); showTab(b.dataset.tab);
+});
+
+/* ====== CICLOSLOT (per MODELLO) ====== */
 let CICLOSLOT=[]; try{ const el=document.getElementById('cicloslot-json'); if(el && el.textContent.trim()) CICLOSLOT=JSON.parse(el.textContent);}catch(e){}
 const cleanCode  = s => (s||'').toString().toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/^0+/, '');
-const cleanID    = s => (s||'').toString().trim(); // CODEID: non strippiamo, lo vogliamo come nel file
+const cleanID    = s => (s||'').toString().trim();
 function parsePayout(v){ if(v==null||v==='') return null; let s=String(v).replace('%','').trim(); let n=parseFloat(s); if(isNaN(n)) return null; if(n>1) n/=100; return Math.max(0, Math.min(1, n)); }
 function buildCicloMaps(arr){
   const byModelCode=new Map(), payoutByModelCode=new Map(), cicloByModelName=new Map(), payoutByModelName=new Map();
@@ -315,7 +332,6 @@ function buildCicloMaps(arr){
   });
   return {byModelCode, payoutByModelCode, cicloByModelName, payoutByModelName};
 }
-function buildCicloByModel(arr){ const m=new Map(); arr.forEach(x=>{ const mk=normalize(x.model||x.modello||x['MODELLO']||''); const cyc=+x.cycle||+x.ciclo||+x['ciclo partite']||+x['partite per ciclo']||+x['CICLO']; if(mk&&cyc>0) m.set(mk,cyc); }); return m; }
 let CYCLE=buildCicloMaps(CICLOSLOT);
 
 /* ====== XLSX ====== */
@@ -365,7 +381,6 @@ function buildTsFromRow(r, cols, fallback){
 const payoutDefault=0.65;
 const HIST_KEY='awp_history_by_id_v1';
 let history={}; try{ history=JSON.parse(localStorage.getItem(HIST_KEY)||'{}'); }catch(e){ history={}; }
-/* history[ID] = [ {ts, IN, OUT, meta:{modelCode, MODELLO, ...}} ] */
 function pushHistory(ID, ts, IN, OUT, meta){
   ID = cleanID(ID); if(!ID) return;
   if(!history[ID]) history[ID]=[];
@@ -414,7 +429,7 @@ function computeStato(ID){
   return inv? {label:'Invariata', badge:'＝'} : {label:'Aggiornata', badge:'✅'};
 }
 
-/* ====== Calcoli per riga (usa MODEL_CODE per ciclo/payout) ====== */
+/* ====== Calcoli per riga ====== */
 function getCicloPayout(modelCode, modelName){
   const mc = cleanCode(modelCode);
   const byCode = CYCLE.byModelCode.get(mc);
@@ -434,35 +449,42 @@ function computeRow(r){
   const pro=(CURRENT_USER?.level||'Base').toLowerCase(); const show=(pro==='abbonato'||pro==='admin');
   const {ciclo:C, payout:P} = getCicloPayout(r.MODEL_CODE, r.MODELLO);
   if(!C) return null;
-
   const I=r.IN, V=r.OUT;
   const stato = computeStato(r.ID);
   const isToday = (r._ts||'').slice(0,10)===todayIso();
+  const tsDays = daysDiff(r._ts);
 
   if(!show){
-    return {...r, _cycle:C, _payout:P, _delta:0, perc_cycle:null, cycle_idx:null, resid_in:null, resid_out:null,
-            forecast_date:'', _ts_str: fmtDMY(r._ts), _stato: `${stato.badge} ${stato.label}`, _oggi:isToday, _I:I, _V:V};
+    return {...r, _cycle:C, _payout:P, _delta:0, perc_cycle:null, cycle_idx:null, resid_in:null, resid_out:null, need65:null,
+            forecast_date:'', _ts_str: fmtDMY(r._ts) + (isToday? '' : (tsDays!=null? ` (${tsDays} gg)`:'') ), _stato: `${stato.badge} ${stato.label}`, _oggi:isToday, _I:I, _V:V};
   }
+
+  // Stato ciclo
   const cycles_done=Math.floor(I/C);
-  const in_cycle=I - cycles_done*C;
-  const target_prev=cycles_done*(P*C);
-  let paid_cycle=V - target_prev; if(paid_cycle<0) paid_cycle=0;
-  const resid_in = in_cycle>0? (C-in_cycle):C;
+  const in_cycle=I - cycles_done*C;                    // introdotto nel ciclo attuale
+  const target_prev=cycles_done*(P*C);                 // OUT "dovuto" per i cicli completati
+  let paid_cycle=V - target_prev; if(paid_cycle<0) paid_cycle=0; // OUT pagato nel ciclo attuale
+  const resid_in = in_cycle>0? (C-in_cycle):C;         // quanto manca per chiudere il ciclo
   let resid_out = (P*C) - paid_cycle; if(resid_out<0) resid_out=0;
   const perc_cycle = in_cycle>0? (paid_cycle/in_cycle)*100 : 0;
   const cycle_idx = cycles_done+1;
+
+  // Residuo al 65% (STANDARD), solo se % < 65
+  const need65 = (in_cycle>0 && perc_cycle<65) ? Math.max(0, (0.65*in_cycle) - paid_cycle) : null;
+
   const fDate = forecastDate(r.ID, resid_in);
   const delta = resid_out-resid_in;
   const flag = rowFlag(delta, resid_in);
-  return {...r, _cycle:C, _payout:P, perc_cycle, cycle_idx, resid_in, resid_out, forecast_date:fDate,
-          _delta:delta, flag, _ts_str: fmtDMY(r._ts), _stato: `${stato.badge} ${stato.label}`, _oggi:isToday, _I:I, _V:V};
+  return {...r, _cycle:C, _payout:P, perc_cycle, cycle_idx, resid_in, resid_out, need65, forecast_date:fDate,
+          _delta:delta, flag, _ts_str: fmtDMY(r._ts) + (isToday? '' : (tsDays!=null? ` (${tsDays} gg)`:'') ), _stato: `${stato.badge} ${stato.label}`, _oggi:isToday, _I:I, _V:V};
 }
 
-/* ====== Stato globale / rendering ====== */
+/* ====== Stato globale / rendering + ORDINAMENTO ====== */
 const STORE='awp_cfg_v3';
 const defCfg = {thrAbs:200, thrPct:0, staleDays:0, showCols:{INDIRIZZO:true, PROVINCIA:true}};
 let CFG = defCfg; try{ CFG=Object.assign({},defCfg, JSON.parse(localStorage.getItem(STORE)||'{}')); }catch(e){}
 let latestSnapshot='—', lastUnmapped=[], fullRows=[], staleRows=[];
+let SORT_KEY=null, SORT_DIR=1; // 1 asc, -1 desc
 
 function filterByQuery(rows){
   const q = norm(document.getElementById('search').value).toLowerCase();
@@ -480,11 +502,39 @@ function filterByQuery(rows){
     return true;
   });
 }
+function getValForSort(r,k){
+  const v = r[k];
+  if(v==null) return '';
+  if(k==='perc_cycle') return +v;
+  if(k==='resid_in'||k==='resid_out'||k==='need65') return +v;
+  if(k==='cycle_idx') return +v;
+  if(k==='forecast_date'){ // dd-mm-yyyy → sortable
+    if(!v||v==='—') return '';
+    const [d,m,y]=v.split('-'); return `${y}-${m}-${d}`;
+  }
+  if(k==='_ts_str'){ // stringa con (X gg)
+    const base = (r._ts||'') ? r._ts : '';
+    return base;
+  }
+  return String(v).toLowerCase();
+}
 function render(rows){
   const pro=(CURRENT_USER?.level||'Base').toLowerCase(); const show=(pro==='abbonato'||pro==='admin');
   let view=filterByQuery(rows);
-  if(show){ view.sort((a,b)=> (b._delta-a._delta) || (b.resid_out-a.resid_out)); }
-  else{ view.sort((a,b)=> String(a.DENOMIN_SEDE||a.SEDE||a.MODELLO).localeCompare(String(b.DENOMIN_SEDE||b.SEDE||b.MODELLO))); }
+
+  // Ordinamento
+  if(SORT_KEY){
+    view.sort((a,b)=>{
+      const va=getValForSort(a,SORT_KEY), vb=getValForSort(b,SORT_KEY);
+      if(va<vb) return -1*SORT_DIR;
+      if(va>vb) return 1*SORT_DIR;
+      return 0;
+    });
+  } else {
+    if(show){ view.sort((a,b)=> (b._delta-a._delta) || (b.resid_out-a.resid_out)); }
+    else{ view.sort((a,b)=> String(a.DENOMIN_SEDE||a.SEDE||a.MODELLO).localeCompare(String(b.DENOMIN_SEDE||b.SEDE||b.MODELLO))); }
+  }
+
   const tb=document.querySelector('#resultTable tbody'); tb.innerHTML='';
   for(const r of view){
     const tr=document.createElement('tr');
@@ -496,6 +546,7 @@ function render(rows){
         <td class="col-calc">${r.cycle_idx ?? ''}</td>
         <td class="col-calc">${r.resid_in!=null ? euro(r.resid_in) : ''}</td>
         <td class="col-calc">${r.resid_out!=null ? euro(r.resid_out) : ''}</td>
+        <td class="col-calc">${(r.need65!=null) ? euro(r.need65) : '—'}</td>
         <td class="col-calc">${r.forecast_date || '—'}</td>
         <td>${escapeHTML(r.ID||'')}</td>
         <td>${escapeHTML(r.MODELLO||'')}</td>
@@ -509,6 +560,7 @@ function render(rows){
       tr.addEventListener('click', ()=> openModal(r.ID, r));
     } else {
       tr.innerHTML=`
+        <td class="col-calc" style="display:none"></td>
         <td class="col-calc" style="display:none"></td>
         <td class="col-calc" style="display:none"></td>
         <td class="col-calc" style="display:none"></td>
@@ -539,11 +591,21 @@ function render(rows){
   document.querySelectorAll('.col-PROVINCIA').forEach(td=> td.style.display = CFG.showCols.PROVINCIA ? '' : 'none');
 }
 
+/* Clic su intestazioni per ordinare */
+document.querySelector('#resultTable thead').addEventListener('click', (e)=>{
+  const th=e.target.closest('th'); if(!th) return;
+  const key=th.dataset.k; if(!key) return;
+  if(SORT_KEY===key){ SORT_DIR*=-1; } else { SORT_KEY=key; SORT_DIR=1; }
+  render(fullRows);
+});
+
 /* ====== Non aggiornate oggi ====== */
 function findStale(){
   const today = todayIso();
   const all = getLatestStateForAll();
-  staleRows = all.filter(x=> (x._ts||'').slice(0,10) !== today).map(s=> ({...s, _ts_str: fmtDMY(s._ts)}));
+  staleRows = all
+    .filter(x=> (x._ts||'').slice(0,10) !== today)
+    .map(s=> ({...s, _ts_str: fmtDMY(s._ts), _days: daysDiff(s._ts)}));
   document.getElementById('staleWarn').classList.toggle('hidden', staleRows.length===0);
 }
 function renderStale(){
@@ -557,7 +619,7 @@ function renderStale(){
       <td>${escapeHTML(r.SEDE||'')}</td>
       <td>${escapeHTML(r.INDIRIZZO||'')}</td>
       <td>${escapeHTML(r.PROVINCIA||'')}</td>
-      <td>${escapeHTML(r._ts_str||'')}</td>
+      <td>${escapeHTML(r._ts_str||'')} ${r._days!=null? `(${r._days} gg)` : ''}</td>
     `;
     tb.appendChild(tr);
   }
@@ -588,10 +650,12 @@ function renderAggregati(){
 
 /* ====== Export ====== */
 function exportCSV(rows, filename){
-  const cols=['flag','perc_cycle','cycle_idx','resid_in','resid_out','forecast_date','ID','MODELLO','DENOMIN_SEDE','SEDE','INDIRIZZO','PROVINCIA','_stato','_ts_str'];
+  const cols=['flag','perc_cycle','cycle_idx','resid_in','resid_out','need65','forecast_date','ID','MODELLO','DENOMIN_SEDE','SEDE','INDIRIZZO','PROVINCIA','_stato','_ts_str'];
   const lines=[cols.join(';')];
   rows.forEach(r=>{
-    const o={...r}; o.perc_cycle = (o.perc_cycle!=null)? o.perc_cycle.toFixed(2)+'%':''; o.resid_in = (o.resid_in!=null)? o.resid_in.toFixed(2):''; o.resid_out=(o.resid_out!=null)? o.resid_out.toFixed(2):'';
+    const o={...r}; o.perc_cycle = (o.perc_cycle!=null)? o.perc_cycle.toFixed(2)+'%':''; 
+    o.resid_in = (o.resid_in!=null)? o.resid_in.toFixed(2):''; o.resid_out=(o.resid_out!=null)? o.resid_out.toFixed(2):'';
+    o.need65=(o.need65!=null)? o.need65.toFixed(2):'';
     lines.push(cols.map(c=> String(o[c]??'').replace(/;/g,',')).join(';'));
   });
   const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click();
@@ -600,7 +664,8 @@ function exportXLSX(rows, filename){
   const data = rows.map(r=>({
     flag:r.flag||'', 'Percentuale Ciclo': r.perc_cycle!=null? r.perc_cycle.toFixed(2)+'%':'',
     'Ciclo Corrente': r.cycle_idx??'', 'Residuo IN': r.resid_in!=null? r.resid_in.toFixed(2):'',
-    'Residuo OUT': r.resid_out!=null? r.resid_out.toFixed(2):'', 'Fine Ciclo Stimata': r.forecast_date||'',
+    'Residuo OUT': r.resid_out!=null? r.resid_out.toFixed(2):'', 'Residuo al 65%': r.need65!=null? r.need65.toFixed(2):'',
+    'Fine Ciclo Stimata': r.forecast_date||'',
     CODEID:r.ID||'', MODELLO:r.MODELLO||'', 'DENOMIN. SEDE':r.DENOMIN_SEDE||'', SEDE:r.SEDE||'', INDIRIZZO:r.INDIRIZZO||'', PROVINCIA:r.PROVINCIA||'',
     Stato:r._stato||'', 'Ultima Lettura': r._oggi? 'Oggi' : (r._ts_str||'')
   }));
@@ -691,13 +756,11 @@ function openModal(ID,row){
 /* ====== INIT ====== */
 const STORE_CFG='awp_cfg_v3';
 function applyStaleBanner(){ document.getElementById('staleWarn').classList.toggle('hidden', staleRows.length===0); }
-function loadSettingsUI(){ document.getElementById('thrAbs').value=CFG.thrAbs; document.getElementById('thrPct').value=CFG.thrPct; document.getElementById('staleDays').value=CFG.staleDays;
-  document.querySelectorAll('.colToggle').forEach(ch=> ch.checked=!!CFG.showCols[ch.dataset.col]); }
 
 async function initAuto(){
   const status = (m)=> document.getElementById('statStatus').textContent = m;
 
-  /* 1) CICLOSLOT (se non inline prova /Dati/cicloslot.xlsx) */
+  // CICLOSLOT
   if(CICLOSLOT.length===0){
     try{
       const cicloRows = await fetchXLSX('Dati/cicloslot.xlsx');
@@ -706,12 +769,12 @@ async function initAuto(){
     }catch(e){ toast('Impossibile leggere /Dati/cicloslot.xlsx e nessun CICLOSLOT integrato.'); return; }
   } else { CYCLE = buildCicloMaps(CICLOSLOT); }
 
-  /* 2) Manifest */
+  // Manifest
   status('Carico manifest…');
   let lista=[]; try{ const res=await fetch('Dati/manifest.json',{cache:'no-store'}); if(res.ok){ const j=await res.json(); lista=Array.isArray(j.sinottici)?j.sinottici:[]; }}catch{}
   if(!lista.length){ status('Manifest mancante (Dati/manifest.json)'); return; }
 
-  /* 3) Leggi tutti i sinottici */
+  // Leggi tutti
   const files = lista.map(name=>({name, ts: parseStampFromName(name)})).sort((a,b)=> new Date(a.ts)-new Date(b.ts));
   lastUnmapped=[]; let lastShownTs=null; let lastRowsCount=0; let lastName='';
   for(const f of files){
@@ -736,7 +799,7 @@ async function initAuto(){
         INDIRIZZO: cols.indirKey ? norm(r[cols.indirKey]) : '',
         PROVINCIA: cols.provKey ? norm(r[cols.provKey]) : ''
       };
-      if(!rec.ID){ continue; } // senza ID non posso tracciare la macchina
+      if(!rec.ID){ continue; }
       const tsFile = parseStampFromName(f.name);
       const ts = buildTsFromRow(r, cols, tsFile);
 
@@ -753,19 +816,15 @@ async function initAuto(){
   document.getElementById('lastRead').innerHTML = `Ultima lettura: <b>${latestSnapshot}</b>`;
   localStorage.setItem(HIST_KEY, JSON.stringify(history));
 
-  // Stato “righe lette”
   document.getElementById('statStatus').textContent = `Ultimo file: ${lastName || '—'} — righe lette: ${lastRowsCount}`;
 
-  // Vista corrente
   const latestStates = getLatestStateForAll();
   fullRows = latestStates.map(s=> computeRow(s)).filter(Boolean);
   render(fullRows);
   document.getElementById('statMap').textContent = `Mappate/scartate: ${fullRows.length}/${lastUnmapped.length}`;
 
-  // Non aggiornate oggi
   findStale(); renderStale(); applyStaleBanner();
 
-  // Ricerca persistente
   const savedQ = localStorage.getItem('awp_q'); if(savedQ) document.getElementById('search').value=savedQ;
   document.getElementById('search').addEventListener('input', ()=> { localStorage.setItem('awp_q', document.getElementById('search').value); render(fullRows); });
 
