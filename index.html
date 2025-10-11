@@ -31,7 +31,6 @@
     --thead:#fff4e0; --hover:#fff0d4; --zebra:#fff8ea; --overlay:rgba(0,0,0,.25);
     --glow: 0 0 20px rgba(245,158,11,.35), 0 0 40px rgba(245,158,11,.2);
   }
-
   *{box-sizing:border-box}
   body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
   .app{max-width:1350px;margin:auto;padding:16px}
@@ -149,6 +148,7 @@
             <th data-k="resid_in" class="col-calc">Residuo IN</th>
             <th data-k="resid_out" class="col-calc">Residuo OUT</th>
             <th data-k="forecast_date" class="col-calc">Fine Ciclo Stimata</th>
+            <th data-k="ID">CODEID</th>
             <th data-k="MODELLO">MODELLO</th>
             <th data-k="DENOMIN_SEDE">DENOMIN. SEDE</th>
             <th data-k="SEDE">SEDE</th>
@@ -168,7 +168,7 @@
       <table id="staleTable">
         <thead>
           <tr>
-            <th>MODELLO</th><th>DENOMIN. SEDE</th><th>SEDE</th><th>INDIRIZZO</th><th>PROVINCIA</th><th>Ultima Lettura</th>
+            <th>CODEID</th><th>MODELLO</th><th>DENOMIN. SEDE</th><th>SEDE</th><th>INDIRIZZO</th><th>PROVINCIA</th><th>Ultima Lettura</th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -218,8 +218,9 @@
     <h3 id="m_title" style="margin:0 0 8px;">Scheda macchina</h3>
     <div class="row" style="gap:20px;align-items:flex-start;flex-wrap:wrap;">
       <div style="flex:1;min-width:260px;">
-        <div><b>Modello</b>: <span id="m_model"></span></div>
+        <div><b>CODEID</b>: <span id="m_id"></span></div>
         <div><b>Codice Modello</b>: <span id="m_code" style="font-family:ui-monospace,Menlo,Consolas,monospace;"></span></div>
+        <div><b>Modello</b>: <span id="m_model"></span></div>
         <div><b>Locale</b>: <span id="m_locale"></span></div>
         <div><b>Indirizzo</b>: <span id="m_addr"></span></div>
         <div><b>Comune/Prov.</b>: <span id="m_city"></span></div>
@@ -237,8 +238,8 @@
 </div>
 
 <script>
-/* ====== CONFIG / VERSIONE ====== */
-const APP_VERSION = "v1.8.1 — 10-10-2025";
+/* ====== VERSIONE ====== */
+const APP_VERSION = "v1.9.0 — 10-10-2025"; // mostra in login
 document.getElementById('version').textContent = APP_VERSION;
 
 /* ====== UTILITY ====== */
@@ -282,7 +283,7 @@ async function auth(){
   initAuto();
 }
 
-/* Login: animazioni (scintille) */
+/* ====== Mini animazioni login ====== */
 (function sparks(){
   const wrap=document.getElementById('sparks');
   for(let i=0;i<28;i++){
@@ -296,61 +297,41 @@ async function auth(){
   }
 })();
 
-/* ====== TABS ====== */
-document.querySelectorAll('.tab').forEach(t=>{
-  t.onclick=()=>{
-    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
-    t.classList.add('active');
-    const tv=t.dataset.tab;
-    document.getElementById('view-dashboard').classList.toggle('hidden', tv!=='dashboard');
-    document.getElementById('view-nonaggiornate').classList.toggle('hidden', tv!=='nonaggiornate');
-    document.getElementById('view-aggregati').classList.toggle('hidden', tv!=='aggregati');
-    document.getElementById('view-impostazioni').classList.toggle('hidden', tv!=='impostazioni');
-    if(tv==='aggregati') renderAggregati();
-    if(tv==='nonaggiornate') renderStale();
-  };
-});
-
-/* ====== CICLOSLOT ====== */
+/* ====== CICLOSLOT (ciclo/payout per MODELLO) ====== */
 let CICLOSLOT=[]; try{ const el=document.getElementById('cicloslot-json'); if(el && el.textContent.trim()) CICLOSLOT=JSON.parse(el.textContent);}catch(e){}
-const cleanCode = s => (s||'').toString().toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/^0+/, '');
+const cleanCode  = s => (s||'').toString().toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/^0+/, '');
+const cleanID    = s => (s||'').toString().trim(); // CODEID: non strippiamo, lo vogliamo come nel file
 function parsePayout(v){ if(v==null||v==='') return null; let s=String(v).replace('%','').trim(); let n=parseFloat(s); if(isNaN(n)) return null; if(n>1) n/=100; return Math.max(0, Math.min(1, n)); }
 function buildCicloMaps(arr){
-  const byCode=new Map(), model=new Map(), payoutByCode=new Map(), payoutByModel=new Map();
+  const byModelCode=new Map(), payoutByModelCode=new Map(), cicloByModelName=new Map(), payoutByModelName=new Map();
   arr.forEach(x=>{
-    const rawCode = x.code || x['codice modello'] || x['CODICE MODELLO'];
-    const code=cleanCode(rawCode);
+    const modelCode=cleanCode(x.code || x['codice modello'] || x['CODICE MODELLO']);
+    const mdlName=norm(x.model||x.modello||x['MODELLO']||'');
     const cyc=+x.cycle||+x.ciclo||+x['ciclo partite']||+x['partite per ciclo']||+x['CICLO'];
-    const mdl=norm(x.model||x.modello||x['MODELLO']||'');
     const py=parsePayout(x['PAYOUT %']??x['PAYOUT']??x['payout']);
-    if(code&&cyc){ byCode.set(code,cyc); model.set(code,mdl); if(py!=null) payoutByCode.set(code,py); }
-    const mkey=normalize(mdl); if(mkey && py!=null && !payoutByModel.has(mkey)) payoutByModel.set(mkey,py);
+    if(modelCode && cyc){ byModelCode.set(modelCode,cyc); if(py!=null) payoutByModelCode.set(modelCode,py); }
+    const mkey=normalize(mdlName); if(mkey&&cyc) cicloByModelName.set(mkey,cyc);
+    if(mkey&&py!=null) payoutByModelName.set(mkey,py);
   });
-  return {byCode, model, payoutByCode, payoutByModel};
+  return {byModelCode, payoutByModelCode, cicloByModelName, payoutByModelName};
 }
 function buildCicloByModel(arr){ const m=new Map(); arr.forEach(x=>{ const mk=normalize(x.model||x.modello||x['MODELLO']||''); const cyc=+x.cycle||+x.ciclo||+x['ciclo partite']||+x['partite per ciclo']||+x['CICLO']; if(mk&&cyc>0) m.set(mk,cyc); }); return m; }
-let CICLO=buildCicloMaps(CICLOSLOT), CICLO_BY_MODEL=buildCicloByModel(CICLOSLOT);
+let CYCLE=buildCicloMaps(CICLOSLOT);
 
 /* ====== XLSX ====== */
 async function fetchXLSX(url){
-  const res=await fetch(url,{cache:'no-store'});
-  if(!res.ok) throw new Error('Fetch fallito: '+url);
+  const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('Fetch fallito: '+url);
   const buf=await res.arrayBuffer();
   const wb = XLSX.read(new Uint8Array(buf), {type:'array'});
   const ws = wb.Sheets[wb.SheetNames[0]];
-  // PATCH: leggi anche righe nascoste/filtrate
-  const json = XLSX.utils.sheet_to_json(ws, {
-    defval:'',
-    raw:false,
-    blankrows:false,
-    skipHidden:false
-  });
+  const json = XLSX.utils.sheet_to_json(ws, {defval:'', raw:false, blankrows:false, skipHidden:false});
   return json.map(lowerKeys);
 }
 function pickCols(map){
   const keys=Object.keys(map); const pickOne=arr=>arr.find(k=> keys.includes(k));
   return {
-    codeKey: keys.includes('codice modello') ? 'codice modello' : null,
+    idKey:    pickOne(['codeid','id','id awp','id macchina','matricola','codiceid']) || null,
+    modelCodeKey: keys.includes('codice modello') ? 'codice modello' : null,
     inKey:   keys.includes('cnttotin') ? 'cnttotin' : null,
     outKey:  keys.includes('cnttotot') ? 'cnttotot' : null,
     modelloKey: pickOne(['modello','descrizione modello','model','desc modello','descr. modello']),
@@ -368,8 +349,7 @@ const parseCnt = v => { if(typeof v==='number') return v/100; let s=(v||'').toSt
 function parseStampFromName(name){
   const d = name.match(/(\d{4})-(\d{2})-(\d{2})(?:[_\s\-T]?(\d{2})[:\-]?(\d{2}))?/);
   if(!d) return new Date().toISOString();
-  const [ ,Y,M,D,h,m ] = d; const HH=h??'00', MM=m??'00';
-  return `${Y}-${M}-${D}T${HH}:${MM}:00`;
+  const [ ,Y,M,D,h,m ] = d; const HH=h??'00', MM=m??'00'; return `${Y}-${M}-${D}T${HH}:${MM}:00`;
 }
 function buildTsFromRow(r, cols, fallback){
   if(!cols.dateKey) return fallback;
@@ -381,30 +361,31 @@ function buildTsFromRow(r, cols, fallback){
   return `${yy}-${mm}-${dd}T${hhmm}:00`;
 }
 
-/* ====== Storico & Stime ====== */
+/* ====== Storico per AWP (ID) ====== */
 const payoutDefault=0.65;
-const HIST_KEY='awp_history_ts_v2';
+const HIST_KEY='awp_history_by_id_v1';
 let history={}; try{ history=JSON.parse(localStorage.getItem(HIST_KEY)||'{}'); }catch(e){ history={}; }
-function pushHistory(code, ts, IN, OUT, meta){
-  code=cleanCode(code);
-  if(!history[code]) history[code]=[];
-  const arr=history[code];
+/* history[ID] = [ {ts, IN, OUT, meta:{modelCode, MODELLO, ...}} ] */
+function pushHistory(ID, ts, IN, OUT, meta){
+  ID = cleanID(ID); if(!ID) return;
+  if(!history[ID]) history[ID]=[];
+  const arr=history[ID];
   if(arr.some(r=> r.ts===ts)) return;
   arr.push({ts, IN, OUT, meta});
   arr.sort((a,b)=> new Date(a.ts)-new Date(b.ts));
 }
 function getLatestStateForAll(){
   const out=[];
-  for(const code in history){
-    const arr=history[code]; if(!arr?.length) continue;
-    const last=arr[arr.length-1], meta=last.meta||{};
-    out.push({ code, IN:last.IN, OUT:last.OUT, MODELLO:meta.MODELLO||'', DENOMIN_SEDE:meta.DENOMIN_SEDE||'', SEDE:meta.SEDE||'',
-               INDIRIZZO:meta.INDIRIZZO||'', PROVINCIA:meta.PROVINCIA||'', _ts:last.ts });
+  for(const ID in history){
+    const arr=history[ID]; if(!arr?.length) continue;
+    const last=arr[arr.length-1], m=last.meta||{};
+    out.push({ ID, IN:last.IN, OUT:last.OUT, MODELLO:m.MODELLO||'', MODEL_CODE:m.MODEL_CODE||'', DENOMIN_SEDE:m.DENOMIN_SEDE||'', SEDE:m.SEDE||'',
+               INDIRIZZO:m.INDIRIZZO||'', PROVINCIA:m.PROVINCIA||'', _ts:last.ts });
   }
   return out;
 }
-function forecastDate(code, resid_in){
-  const h=history[code]||[]; if(h.length<2) return '—';
+function forecastDate(ID, resid_in){
+  const h=history[ID]||[]; if(h.length<2) return '—';
   const last=h.slice(-6);
   let sumIn=0, sumHrs=0;
   for(let i=1;i<last.length;i++){
@@ -420,8 +401,8 @@ function forecastDate(code, resid_in){
 }
 
 /* ====== Stato riga ====== */
-function computeStato(code){
-  const arr=(history[code]||[]).slice(-2);
+function computeStato(ID){
+  const arr=(history[ID]||[]).slice(-2);
   const today=todayIso();
   if(!arr.length) return {label:'—', badge:''};
   const last=arr[arr.length-1];
@@ -433,24 +414,34 @@ function computeStato(code){
   return inv? {label:'Invariata', badge:'＝'} : {label:'Aggiornata', badge:'✅'};
 }
 
-/* ====== Calcoli per riga ====== */
-function getPayoutFor(code, modelName){
-  const mkey=normalize(modelName||'');
-  return CICLO.payoutByCode.get(cleanCode(code)) ?? CICLO.payoutByModel.get(mkey) ?? payoutDefault;
+/* ====== Calcoli per riga (usa MODEL_CODE per ciclo/payout) ====== */
+function getCicloPayout(modelCode, modelName){
+  const mc = cleanCode(modelCode);
+  const byCode = CYCLE.byModelCode.get(mc);
+  const byName = CYCLE.cicloByModelName.get(normalize(modelName||''));
+  const ciclo  = byCode || byName || null;
+  const py     = CYCLE.payoutByModelCode.get(mc) ?? CYCLE.payoutByModelName.get(normalize(modelName||'')) ?? payoutDefault;
+  return {ciclo, payout: py};
+}
+function rowFlag(delta, resid_in){
+  const cfg = JSON.parse(localStorage.getItem('awp_cfg_v3')||'{}');
+  const abs=Number(cfg.thrAbs||200), pct=Number(cfg.thrPct||0);
+  const passAbs = abs>0 && delta>=abs;
+  const passPct = pct>0 && resid_in>0 && delta>= (pct/100)*resid_in;
+  return (passAbs || passPct) ? '⭐' : '';
 }
 function computeRow(r){
   const pro=(CURRENT_USER?.level||'Base').toLowerCase(); const show=(pro==='abbonato'||pro==='admin');
-  const modelKey=normalize(r.MODELLO||''); 
-  let C = CICLO.byCode.get(cleanCode(r.code)) || CICLO_BY_MODEL.get(modelKey);
-  if(!C){ const alt=cleanCode(r.code); C=CICLO.byCode.get(alt)||C; }
+  const {ciclo:C, payout:P} = getCicloPayout(r.MODEL_CODE, r.MODELLO);
   if(!C) return null;
-  const P = getPayoutFor(r.code, r.MODELLO);
+
   const I=r.IN, V=r.OUT;
-  const stato = computeStato(r.code);
+  const stato = computeStato(r.ID);
   const isToday = (r._ts||'').slice(0,10)===todayIso();
+
   if(!show){
     return {...r, _cycle:C, _payout:P, _delta:0, perc_cycle:null, cycle_idx:null, resid_in:null, resid_out:null,
-            forecast_date:'', _ts_str: fmtDMY(r._ts), _stato: `${stato.badge} ${stato.label}`, _oggi:isToday};
+            forecast_date:'', _ts_str: fmtDMY(r._ts), _stato: `${stato.badge} ${stato.label}`, _oggi:isToday, _I:I, _V:V};
   }
   const cycles_done=Math.floor(I/C);
   const in_cycle=I - cycles_done*C;
@@ -460,11 +451,11 @@ function computeRow(r){
   let resid_out = (P*C) - paid_cycle; if(resid_out<0) resid_out=0;
   const perc_cycle = in_cycle>0? (paid_cycle/in_cycle)*100 : 0;
   const cycle_idx = cycles_done+1;
-  const fDate = forecastDate(cleanCode(r.code), resid_in);
+  const fDate = forecastDate(r.ID, resid_in);
   const delta = resid_out-resid_in;
   const flag = rowFlag(delta, resid_in);
   return {...r, _cycle:C, _payout:P, perc_cycle, cycle_idx, resid_in, resid_out, forecast_date:fDate,
-          _delta:delta, flag, _ts_str: fmtDMY(r._ts), _stato: `${stato.badge} ${stato.label}`, _oggi:isToday};
+          _delta:delta, flag, _ts_str: fmtDMY(r._ts), _stato: `${stato.badge} ${stato.label}`, _oggi:isToday, _I:I, _V:V};
 }
 
 /* ====== Stato globale / rendering ====== */
@@ -472,12 +463,7 @@ const STORE='awp_cfg_v3';
 const defCfg = {thrAbs:200, thrPct:0, staleDays:0, showCols:{INDIRIZZO:true, PROVINCIA:true}};
 let CFG = defCfg; try{ CFG=Object.assign({},defCfg, JSON.parse(localStorage.getItem(STORE)||'{}')); }catch(e){}
 let latestSnapshot='—', lastUnmapped=[], fullRows=[], staleRows=[];
-function rowFlag(delta, resid_in){
-  const abs=Number(CFG.thrAbs)||0, pct=Number(CFG.thrPct)||0;
-  const passAbs = abs>0 && delta>=abs;
-  const passPct = pct>0 && resid_in>0 && delta>= (pct/100)*resid_in;
-  return (passAbs || passPct) ? '⭐' : '';
-}
+
 function filterByQuery(rows){
   const q = norm(document.getElementById('search').value).toLowerCase();
   if(!q) return rows;
@@ -488,7 +474,7 @@ function filterByQuery(rows){
     } else free.push(p.replaceAll('"',''));
   });
   return rows.filter(r=>{
-    const blob = `${r.MODELLO} ${r.DENOMIN_SEDE} ${r.SEDE} ${r.INDIRIZZO} ${r.PROVINCIA}`.toLowerCase();
+    const blob = `${r.ID} ${r.MODELLO} ${r.DENOMIN_SEDE} ${r.SEDE} ${r.INDIRIZZO} ${r.PROVINCIA}`.toLowerCase();
     if(free.some(t=> !blob.includes(t))) return false;
     for(const kv of keyed){ const val = String(r[kv.k?.toUpperCase()] || r[kv.k] || '').toLowerCase(); if(!val.includes(kv.v)) return false; }
     return true;
@@ -511,6 +497,7 @@ function render(rows){
         <td class="col-calc">${r.resid_in!=null ? euro(r.resid_in) : ''}</td>
         <td class="col-calc">${r.resid_out!=null ? euro(r.resid_out) : ''}</td>
         <td class="col-calc">${r.forecast_date || '—'}</td>
+        <td>${escapeHTML(r.ID||'')}</td>
         <td>${escapeHTML(r.MODELLO||'')}</td>
         <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
         <td>${escapeHTML(r.SEDE||'')}</td>
@@ -519,7 +506,7 @@ function render(rows){
         <td>${escapeHTML(r._stato||'')}</td>
         <td>${r._oggi ? '<span class="tag good">Oggi</span>' : escapeHTML(r._ts_str||'')}</td>
       `;
-      tr.addEventListener('click', ()=> openModal(cleanCode(r.code), r));
+      tr.addEventListener('click', ()=> openModal(r.ID, r));
     } else {
       tr.innerHTML=`
         <td class="col-calc" style="display:none"></td>
@@ -528,6 +515,7 @@ function render(rows){
         <td class="col-calc" style="display:none"></td>
         <td class="col-calc" style="display:none"></td>
         <td class="col-calc" style="display:none"></td>
+        <td>${escapeHTML(r.ID||'')}</td>
         <td>${escapeHTML(r.MODELLO||'')}</td>
         <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
         <td>${escapeHTML(r.SEDE||'')}</td>
@@ -563,6 +551,7 @@ function renderStale(){
   for(const r of staleRows){
     const tr=document.createElement('tr');
     tr.innerHTML = `
+      <td>${escapeHTML(r.ID||'')}</td>
       <td>${escapeHTML(r.MODELLO||'')}</td>
       <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
       <td>${escapeHTML(r.SEDE||'')}</td>
@@ -599,7 +588,7 @@ function renderAggregati(){
 
 /* ====== Export ====== */
 function exportCSV(rows, filename){
-  const cols=['flag','perc_cycle','cycle_idx','resid_in','resid_out','forecast_date','MODELLO','DENOMIN_SEDE','SEDE','INDIRIZZO','PROVINCIA','_stato','_ts_str'];
+  const cols=['flag','perc_cycle','cycle_idx','resid_in','resid_out','forecast_date','ID','MODELLO','DENOMIN_SEDE','SEDE','INDIRIZZO','PROVINCIA','_stato','_ts_str'];
   const lines=[cols.join(';')];
   rows.forEach(r=>{
     const o={...r}; o.perc_cycle = (o.perc_cycle!=null)? o.perc_cycle.toFixed(2)+'%':''; o.resid_in = (o.resid_in!=null)? o.resid_in.toFixed(2):''; o.resid_out=(o.resid_out!=null)? o.resid_out.toFixed(2):'';
@@ -612,7 +601,7 @@ function exportXLSX(rows, filename){
     flag:r.flag||'', 'Percentuale Ciclo': r.perc_cycle!=null? r.perc_cycle.toFixed(2)+'%':'',
     'Ciclo Corrente': r.cycle_idx??'', 'Residuo IN': r.resid_in!=null? r.resid_in.toFixed(2):'',
     'Residuo OUT': r.resid_out!=null? r.resid_out.toFixed(2):'', 'Fine Ciclo Stimata': r.forecast_date||'',
-    MODELLO:r.MODELLO||'', 'DENOMIN. SEDE':r.DENOMIN_SEDE||'', SEDE:r.SEDE||'', INDIRIZZO:r.INDIRIZZO||'', PROVINCIA:r.PROVINCIA||'',
+    CODEID:r.ID||'', MODELLO:r.MODELLO||'', 'DENOMIN. SEDE':r.DENOMIN_SEDE||'', SEDE:r.SEDE||'', INDIRIZZO:r.INDIRIZZO||'', PROVINCIA:r.PROVINCIA||'',
     Stato:r._stato||'', 'Ultima Lettura': r._oggi? 'Oggi' : (r._ts_str||'')
   }));
   const ws=XLSX.utils.json_to_sheet(data); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'dati'); XLSX.writeFile(wb, filename);
@@ -629,7 +618,7 @@ document.getElementById('btnAggExport').addEventListener('click', ()=>{
   const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'aggregati'); XLSX.writeFile(wb, `aggregati_${todayIso()}.xlsx`);
 });
 document.getElementById('btnUnmapped').addEventListener('click', ()=> {
-  const lines = ['CODICE MODELLO;MODELLO']; lastUnmapped.forEach(x=> lines.push(`${x.code};${(x.modello||'').replace(/;/g,',')}`));
+  const lines = ['CODICE MODELLO;MODELLO']; lastUnmapped.forEach(x=> lines.push(`${x.modelCode};${(x.modello||'').replace(/;/g,',')}`));
   const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`non_mappati_${latestSnapshot||todayIso()}.csv`; a.click();
 });
 
@@ -665,11 +654,12 @@ function drawChart(canvas, series){
   ctx.strokeStyle='#666'; ctx.lineWidth=2; ctx.stroke();
   ctx.fillStyle='rgba(0,0,0,.6)'; ctx.font='12px system-ui'; ctx.fillText(euro(minV), 5, y(minV)); ctx.fillText(euro(maxV), 5, y(maxV));
 }
-function openModal(code,row){
+function openModal(ID,row){
   const pro=(CURRENT_USER?.level||'Base').toLowerCase(); if(!(pro==='abbonato'||pro==='admin')) return;
-  document.getElementById('m_title').textContent='Scheda macchina – '+code;
+  document.getElementById('m_title').textContent='Scheda macchina – '+ID;
+  document.getElementById('m_id').textContent=ID;
+  document.getElementById('m_code').textContent=row.MODEL_CODE||'';
   document.getElementById('m_model').textContent=row.MODELLO||'';
-  document.getElementById('m_code').textContent=code;
   document.getElementById('m_locale').textContent=row.DENOMIN_SEDE||'';
   document.getElementById('m_addr').textContent=row.INDIRIZZO||'';
   document.getElementById('m_city').textContent=(row.SEDE||'') + (row.PROVINCIA? ' ('+row.PROVINCIA+')':'');
@@ -679,7 +669,7 @@ function openModal(code,row){
   document.getElementById('m_resid_out').textContent=row.resid_out!=null?euro(row.resid_out):'—';
   document.getElementById('m_perc').textContent=(row.perc_cycle!=null?row.perc_cycle.toFixed(2):'—')+'%';
   document.getElementById('m_forecast').textContent=row.forecast_date || '—';
-  const h=(history[code]||[]).slice().sort((a,b)=> new Date(a.ts)-new Date(b.ts));
+  const h=(history[ID]||[]).slice().sort((a,b)=> new Date(a.ts)-new Date(b.ts));
   let html='<table style="width:100%;border-collapse:collapse;"><thead><tr>'
     +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Data/ora</th>'
     +'<th style="text-align:right;border-bottom:1px solid var(--border);padding:6px;">IN</th>'
@@ -698,7 +688,8 @@ function openModal(code,row){
   modal.classList.add('in');
 }
 
-/* ====== INIT AUTO ====== */
+/* ====== INIT ====== */
+const STORE_CFG='awp_cfg_v3';
 function applyStaleBanner(){ document.getElementById('staleWarn').classList.toggle('hidden', staleRows.length===0); }
 function loadSettingsUI(){ document.getElementById('thrAbs').value=CFG.thrAbs; document.getElementById('thrPct').value=CFG.thrPct; document.getElementById('staleDays').value=CFG.staleDays;
   document.querySelectorAll('.colToggle').forEach(ch=> ch.checked=!!CFG.showCols[ch.dataset.col]); }
@@ -706,21 +697,21 @@ function loadSettingsUI(){ document.getElementById('thrAbs').value=CFG.thrAbs; d
 async function initAuto(){
   const status = (m)=> document.getElementById('statStatus').textContent = m;
 
-  // CICLOSLOT
+  /* 1) CICLOSLOT (se non inline prova /Dati/cicloslot.xlsx) */
   if(CICLOSLOT.length===0){
     try{
       const cicloRows = await fetchXLSX('Dati/cicloslot.xlsx');
       const mapped = cicloRows.map(r=>({code:r['codice modello']||r.code||r['CODICE MODELLO'], model:r.modello||r.model||r['MODELLO']||'', ciclo:r.ciclo||r.cycle||r['ciclo']||r['CICLO'], payout:r['payout %']||r['payout']||r['PAYOUT %']||r['PAYOUT']})).filter(x=> x.code && +x.ciclo>0);
-      CICLO = buildCicloMaps(mapped); CICLO_BY_MODEL=buildCicloByModel(mapped);
+      CYCLE = buildCicloMaps(mapped);
     }catch(e){ toast('Impossibile leggere /Dati/cicloslot.xlsx e nessun CICLOSLOT integrato.'); return; }
-  } else { CICLO = buildCicloMaps(CICLOSLOT); CICLO_BY_MODEL=buildCicloByModel(CICLOSLOT); }
+  } else { CYCLE = buildCicloMaps(CICLOSLOT); }
 
-  // Manifest
+  /* 2) Manifest */
   status('Carico manifest…');
   let lista=[]; try{ const res=await fetch('Dati/manifest.json',{cache:'no-store'}); if(res.ok){ const j=await res.json(); lista=Array.isArray(j.sinottici)?j.sinottici:[]; }}catch{}
   if(!lista.length){ status('Manifest mancante (Dati/manifest.json)'); return; }
 
-  // Leggi tutti in ordine temporale
+  /* 3) Leggi tutti i sinottici */
   const files = lista.map(name=>({name, ts: parseStampFromName(name)})).sort((a,b)=> new Date(a.ts)-new Date(b.ts));
   lastUnmapped=[]; let lastShownTs=null; let lastRowsCount=0; let lastName='';
   for(const f of files){
@@ -728,10 +719,15 @@ async function initAuto(){
     const data = await fetchXLSX('Dati/'+f.name);
     lastRowsCount = data.length; lastName = f.name;
     if(!data.length) continue;
-    const cols = pickCols(data[0]); if(!cols.codeKey||!cols.inKey||!cols.outKey) continue;
+    const cols = pickCols(data[0]); 
+    if(!cols.idKey || !cols.modelCodeKey || !cols.inKey || !cols.outKey){
+      console.warn('Colonne obbligatorie mancanti nel file', f.name, cols);
+      continue;
+    }
     for(const r of data){
       const rec = {
-        code: cleanCode(r[cols.codeKey]),
+        ID: cleanID(r[cols.idKey]),
+        MODEL_CODE: cleanCode(r[cols.modelCodeKey]),
         IN: parseCnt(r[cols.inKey]),
         OUT: parseCnt(r[cols.outKey]),
         MODELLO: cols.modelloKey ? norm(r[cols.modelloKey]) : '',
@@ -740,13 +736,15 @@ async function initAuto(){
         INDIRIZZO: cols.indirKey ? norm(r[cols.indirKey]) : '',
         PROVINCIA: cols.provKey ? norm(r[cols.provKey]) : ''
       };
+      if(!rec.ID){ continue; } // senza ID non posso tracciare la macchina
       const tsFile = parseStampFromName(f.name);
       const ts = buildTsFromRow(r, cols, tsFile);
-      let C = CICLO.byCode.get(rec.code) || CICLO_BY_MODEL.get(normalize(rec.MODELLO));
-      if(!C){ const alt=cleanCode(rec.code); C = CICLO.byCode.get(alt) || C; }
-      if(!C){ lastUnmapped.push({code:rec.code, modello:rec.MODELLO}); continue; }
-      pushHistory(rec.code, ts, rec.IN, rec.OUT, {
-        MODELLO:rec.MODELLO, DENOMIN_SEDE:rec.DENOMIN_SEDE, SEDE:rec.SEDE, INDIRIZZO:rec.INDIRIZZO, PROVINCIA:rec.PROVINCIA
+
+      const {ciclo} = getCicloPayout(rec.MODEL_CODE, rec.MODELLO);
+      if(!ciclo){ lastUnmapped.push({modelCode:rec.MODEL_CODE, modello:rec.MODELLO}); continue; }
+
+      pushHistory(rec.ID, ts, rec.IN, rec.OUT, {
+        MODEL_CODE:rec.MODEL_CODE, MODELLO:rec.MODELLO, DENOMIN_SEDE:rec.DENOMIN_SEDE, SEDE:rec.SEDE, INDIRIZZO:rec.INDIRIZZO, PROVINCIA:rec.PROVINCIA
       });
       lastShownTs = ts;
     }
