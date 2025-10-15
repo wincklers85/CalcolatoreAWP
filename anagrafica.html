@@ -4,207 +4,409 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>AWP Manager — Anagrafica</title>
-
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min.js"></script>
-
 <style>
-  :root{
-    --bg:#f5f7fa; --fg:#1b1b1b; --muted:#5d6b7a; --card:#ffffff; --border:#dfe3ea;
-    --acc:#007bff; --acc-2:#00bfff; --ok:#2ea043; --warn:#f59e0b; --bad:#ef4444;
-    --table-head:#eef2f7; --hover:rgba(0,0,0,.03);
-  }
-  body.theme-light { --bg:#f5f7fa; --fg:#1b1b1b; --muted:#5d6b7a; --card:#ffffff; --border:#dfe3ea; --acc:#007bff; --acc-2:#00bfff; --table-head:#eef2f7; --hover:rgba(0,0,0,.03); }
-  body.theme-dark  { --bg:#121417; --fg:#e4e7ec; --muted:#9aa3af; --card:#181b20; --border:#2a2f36; --acc:#3399ff; --acc-2:#6fd3ff; --table-head:#1c2128; --hover:rgba(255,255,255,.04); }
-  body.theme-blue  { --bg:#e9f5ff; --fg:#002b4d; --muted:#335d7a; --card:#ffffff; --border:#cfe6fb; --acc:#0066cc; --acc-2:#1aa3ff; --table-head:#d9eeff; --hover:rgba(0,40,80,.05); }
-  body.theme-contrast { --bg:#000; --fg:#ff0; --muted:#ffe766; --card:#0b0b0b; --border:#333; --acc:#ff3333; --acc-2:#ffea00; --table-head:#111; --hover:rgba(255,255,0,.05); }
+:root{
+  --bg:#f5f7fa; --fg:#1b1b1b; --muted:#5d6b7a; --card:#ffffff; --border:#dfe3ea;
+  --acc:#007bff; --ok:#2ea043; --warn:#f59e0b; --bad:#ef4444;
+  --table-head:#eef2f7; --shadow:0 10px 26px rgba(0,0,0,.08);
+}
+body.theme-light{}
+body.theme-dark{ --bg:#121417; --fg:#e4e7ec; --muted:#9aa3af; --card:#181b20; --border:#2a2f36; --acc:#3399ff; --table-head:#1c2128; --shadow:0 10px 30px rgba(0,0,0,.35) }
+body.theme-blue{ --bg:#e9f5ff; --fg:#002b4d; --muted:#335d7a; --card:#ffffff; --border:#cfe6fb; --acc:#0066cc; --table-head:#d9eeff; --shadow:0 12px 28px rgba(0,80,160,.15) }
+body.theme-contrast{ --bg:#000; --fg:#ff0; --muted:#ffe766; --card:#0b0b0b; --border:#333; --acc:#ff3333; --table-head:#111; --shadow:0 10px 26px rgba(255,255,0,.12) }
 
-  html,body{height:100%}
-  body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;transition:background .25s ease,color .25s ease}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
 
-  .navbar{
-    position:sticky; top:0; z-index:20;
-    display:flex; align-items:center; justify-content:space-between; gap:12px;
-    padding:10px 16px; background:var(--card); border-bottom:1px solid var(--border);
-    backdrop-filter: blur(6px);
-  }
-  .brand{display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--fg)}
-  .brand img{height:28px; width:auto; display:block}
-  .brand strong{font-weight:700; letter-spacing:.2px}
-  .navlinks a{ color:var(--fg); text-decoration:none; margin:0 8px; padding:6px 10px; border-radius:8px; }
-  .navlinks a:hover{ background:var(--table-head) }
-  .right{ display:flex; align-items:center; gap:8px; }
-  select,button,input{ background:var(--card); color:var(--fg); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-weight:600; }
-  button.primary{ background:var(--acc); color:#fff; border-color:var(--acc); }
-  button.primary:hover{ filter:brightness(.95) }
+/* NAVBAR */
+.navbar{
+  position:sticky; top:0; z-index:30;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:10px 16px; background:var(--card); border-bottom:1px solid var(--border);
+  backdrop-filter: blur(6px);
+}
+.brand{display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--fg)}
+.brand img{height:28px}
+.navlinks a{ color:var(--fg); text-decoration:none; margin:0 8px; padding:6px 10px; border-radius:8px }
+.navlinks a:hover{ background:var(--table-head) }
+.navlinks a[aria-current="page"]{ font-weight:700; text-decoration:underline }
+.right{display:flex; align-items:center; gap:8px}
+select,button,input{ background:var(--card); color:var(--fg); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-weight:600 }
+button.primary{ background:var(--acc); color:#fff; border-color:var(--acc) }
 
-  main{ padding:18px; max-width:1200px; margin:0 auto; }
-  .toolbar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:6px 0 14px; }
-  .table-wrap{ overflow:auto; border:1px solid var(--border); border-radius:14px; background:var(--card); box-shadow:0 6px 20px rgba(0,0,0,.06); animation:fadeIn .3s ease }
-  table{ width:100%; border-collapse:collapse; min-width:1000px; }
-  th,td{ padding:10px 12px; border-bottom:1px solid var(--border) }
-  th{ background:var(--table-head); text-align:left; position:sticky; top:0; z-index:1 }
-  tr:hover td{ background:var(--hover) }
-  .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+/* LAYOUT */
+main{ padding:18px; max-width:1200px; margin:0 auto }
+.card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:var(--shadow); margin-bottom:14px }
+.card h3{ margin:0 0 10px; font-size:16px }
 
-  footer{ text-align:center; padding:20px; color:var(--muted) }
+.controls{ display:flex; flex-wrap:wrap; gap:10px; align-items:center }
+.pill{ display:inline-block; padding:3px 8px; border:1px solid var(--border); border-radius:999px; background:var(--card); margin-right:6px; font-size:12px; color:var(--muted) }
+
+.tabs{ display:flex; gap:8px; margin-bottom:8px }
+.tab{ padding:8px 12px; border:1px solid var(--border); background:var(--card); border-radius:999px; cursor:pointer; font-weight:700 }
+.tab[aria-selected="true"]{ background:var(--table-head) }
+
+table{ width:100%; border-collapse:collapse }
+th,td{ padding:10px 12px; border-bottom:1px solid var(--border) }
+th{ background:var(--table-head); text-align:left; white-space:nowrap }
+tr:hover td{ background:rgba(0,0,0,.03) }
+td.bad{ color:var(--bad); font-weight:700 }
+td.ok{ color:var(--ok); font-weight:700 }
+
+.meta{ margin-top:6px; font-size:12px; color:var(--muted) }
+
+/* Loader + Error */
+#loader{ position:fixed; inset:0; background:rgba(0,0,0,.08); display:none; align-items:center; justify-content:center; z-index:40 }
+.spinner{ width:54px; height:54px; border-radius:50%; border:5px solid rgba(0,0,0,.15); border-top-color:var(--acc); animation:spin .9s linear infinite }
+@keyframes spin{ to{ transform:rotate(360deg) } }
+#errorBox{ max-width:1200px; margin:10px auto 0; background:#ffecec; border:1px solid #ffb3b3; color:#7a0000; padding:10px 14px; border-radius:10px; display:none; }
+
+footer{ padding:14px; text-align:center; color:var(--muted) }
 </style>
 </head>
 <body>
   <div class="navbar">
-    <a class="brand" href="./dashboard.html">
-      <img src="./logo-awp.svg" alt="AWP Manager logo">
-      <strong>AWP Manager</strong>
-    </a>
+    <a class="brand" href="./dashboard.html"><img src="./logo-awp.svg" alt="AWP"><strong>AWP Manager</strong></a>
     <nav class="navlinks">
       <a href="./dashboard.html">Dashboard</a>
       <a href="./letture.html">Letture</a>
       <a href="./manutenzione.html">Manutenzione</a>
-      <a href="./anagrafica.html" style="font-weight:700; text-decoration:underline;">Anagrafica</a>
+      <a href="./anagrafica.html" aria-current="page">Anagrafica</a>
     </nav>
     <div class="right">
-      <label for="themeSel" style="font-size:13px;color:var(--muted);">Tema</label>
+      <label for="themeSel" style="font-size:13px;color:var(--muted)">Tema</label>
       <select id="themeSel">
         <option value="theme-light">☀️ Chiaro AWP</option>
         <option value="theme-dark">🌙 Scuro AWP</option>
         <option value="theme-blue">🌤️ Azzurro AWP</option>
         <option value="theme-contrast">⚫ Alto Contrasto</option>
       </select>
-      <button id="btnRefresh" class="primary">🔄 Aggiorna dati</button>
-      <input id="q" placeholder="Cerca in tutte le colonne..." />
-      <select id="es"></select>
+      <button id="btnRefresh" class="primary">🔄 Aggiorna</button>
     </div>
   </div>
 
+  <div id="errorBox"></div>
+
   <main>
-    <div class="table-wrap">
-      <table id="tbl">
-        <thead>
-          <tr>
-            <th>ESATTORE</th>
-            <th>LOCALE</th>
-            <th>COMUNE</th>
-            <th>MODELLO</th>
-            <th>AWP</th>
-            <th>PDA</th>
-            <th>DATA ULTIMA</th>
-            <th>STATO</th>
-          </tr>
-        </thead>
-        <tbody></tbody>
-      </table>
+    <div class="card">
+      <div class="tabs">
+        <button class="tab" id="tabMac" aria-selected="true">Macchine</button>
+        <button class="tab" id="tabLoc">Locali</button>
+      </div>
+
+      <div class="controls">
+        <label>Esattore:
+          <select id="selEsattore"><option value="">— Tutti —</option></select>
+        </label>
+        <label>Stato:
+          <select id="selStato">
+            <option value="">Tutte</option>
+            <option value="ATTIVE">Attive</option>
+            <option value="FERIE">Ferie (Blocco Amm.)</option>
+            <option value="MANUT">Manutenzione (724)</option>
+          </select>
+        </label>
+        <label>Ordina per:
+          <select id="selOrd">
+            <option value="ESATTORE,SEDE">Esattore → Locale</option>
+            <option value="SEDE,ESATTORE">Locale → Esattore</option>
+            <option value="COMUNE,SEDE">Comune → Locale</option>
+            <option value="GIORNI_DESC">Giorni mancata lettura (desc)</option>
+            <option value="DATA_DESC">Ultima lettura (più recente)</option>
+          </select>
+        </label>
+        <input id="search" placeholder="Cerca locale/comune/CODEID…" />
+        <button id="btnApply" class="primary">Applica</button>
+        <button id="btnDownload">⬇️ Scarica XLSX</button>
+        <span class="pill" id="pillSin">Sinottico: —</span>
+        <span class="pill" id="pillFoglio">Foglio: —</span>
+        <span class="pill" id="pillCount">Selezione: —</span>
+      </div>
+      <div class="meta">L’anagrafica è costruita dal sinottico più recente (manifest) unito ai PDV tramite <strong>DENOMIN. SEDE</strong>. Una macchina è identificata dal suo <strong>CODEID</strong> e, se presente più volte, si usa la riga con <em>data più recente</em>.</div>
+    </div>
+
+    <div class="card" id="cardMac">
+      <h3>Anagrafica Macchine</h3>
+      <div style="overflow:auto">
+        <table id="tblMac">
+          <thead>
+            <tr>
+              <th>ESATTORE</th>
+              <th>LOCALE</th>
+              <th>AWP (CODEID)</th>
+              <th>PDA</th>
+              <th>ULTIMA LETTURA</th>
+              <th>GIORNI</th>
+              <th>STATO</th>
+              <th>COMUNE</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="meta">Se selezioni “Attive” sono escluse Ferie/Manutenzione.</div>
+    </div>
+
+    <div class="card" id="cardLoc" style="display:none">
+      <h3>Anagrafica Locali</h3>
+      <div style="overflow:auto">
+        <table id="tblLoc">
+          <thead>
+            <tr>
+              <th>ESATTORE</th>
+              <th>LOCALE</th>
+              <th>COMUNE</th>
+              <th>Totale</th>
+              <th>Attive</th>
+              <th>Ferie</th>
+              <th>Manut.</th>
+              <th>Ultima lettura (max)</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="meta">Aggregazione per <strong>DENOMIN. SEDE</strong> (conteggi per stato e data massima lettura).</div>
     </div>
   </main>
 
   <footer>© <span id="year"></span> AWP Manager — Anagrafica</footer>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min.js"></script>  
+  <div id="loader"><div class="spinner"></div></div>
+
+  <!-- XLSX loader (locale → CDN) -->
+  <script>
+  (function(){
+    const urls=['./libs/xlsx.full.min.js','https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js','https://unpkg.com/xlsx@0.20.2/dist/xlsx.full.min.js'];
+    function loadOne(u){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=u;s.async=false;s.onload=()=>res();s.onerror=()=>rej();document.head.appendChild(s);});}
+    (async()=>{for(const u of urls){try{await loadOne(u); if(window.XLSX) break;}catch(_){}} if(!window.XLSX) alert('Impossibile caricare la libreria XLSX');})();
+  })();
+  </script>
+
 <script>
-/* Tema */
-const THEME_KEY='awp_theme', themeSel=document.getElementById('themeSel');
-function applyTheme(t){ document.body.className=t; }
-function initTheme(){ const t=localStorage.getItem(THEME_KEY)||'theme-light'; applyTheme(t); themeSel.value=t; }
-themeSel.addEventListener('change',()=>{ const v=themeSel.value; applyTheme(v); localStorage.setItem(THEME_KEY,v); });
+(function(){
+  /* ====== Helpers ====== */
+  const $=s=>document.querySelector(s);
+  function showLoader(v){$('#loader').style.display=v?'flex':'none';}
+  function showError(msg){const b=$('#errorBox');b.textContent=msg;b.style.display='block';alert(msg);}
+  function applyTheme(t){document.body.className=t;}
+  function initTheme(){const t=localStorage.getItem('awp_theme')||'theme-light';applyTheme(t);$('#themeSel').value=t;}
+  $('#themeSel').addEventListener('change',e=>{applyTheme(e.target.value);localStorage.setItem('awp_theme',e.target.value);});
 
-/* Fetch helpers */
-async function fetchJSON(u){ const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error('Errore: '+u); return r.json(); }
-async function fetchXLSX(u){ const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error('Errore: '+u); const ab=await r.arrayBuffer(); const wb=XLSX.read(ab,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]]; return XLSX.utils.sheet_to_json(ws,{defval:null}); }
+  function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
+  function pick(r,names){for(const n of names){if(r[n]!=null&&r[n]!=='')return r[n];}return'';}
+  function pickCodeId(row){const norm=k=>k.toUpperCase().replace(/[^A-Z0-9]/g,'');const keys=Object.keys(row);let h=keys.find(k=>norm(k)==='CODEID');if(h)return String(row[h]??'').trim();h=keys.find(k=>/COD(ICE)?ID/i.test(k));if(h)return String(row[h]??'').trim();h=keys.find(k=>/(SERIALE|MATRICOLA|AWP)/i.test(k));return h?String(row[h]??'').trim():'';}
+  function parseDateIT(v){
+    if(v==null||v==='')return null;
+    if(typeof v==='number'||/^[0-9]+$/.test(String(v).trim())){
+      const n=Number(v); if(!Number.isNaN(n)&&n>0&&n<2958465){const base=new Date(Date.UTC(1899,11,30));const d=new Date(base.getTime()+n*86400000);return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+    }
+    const s=String(v).trim().replace(/[\/\.]/g,'-');
+    const m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/);
+    if(m){const[,gg,mm,yyyy]=m;return new Date(+yyyy,+mm-1,+gg);}
+    const d=new Date(s); if(!isNaN(d)) return new Date(d.getFullYear(),d.getMonth(),d.getDate());
+    return null;
+  }
+  function daysDiffFromToday(d){ if(!d) return Infinity; const t=new Date(); t.setHours(0,0,0,0); const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return Math.floor((t-x)/86400000); }
+  function fmtDate(d){if(!d)return'';const gg=String(d.getDate()).padStart(2,'0');const mm=String(d.getMonth()+1).padStart(2,'0');return `${gg}-${mm}-${d.getFullYear()}`;}
 
-/* State */
-const q=document.getElementById('q');
-const selEs=document.getElementById('es');
-const tbody=document.querySelector('#tbl tbody');
-let ALL=[], FILTERED=[], ESATTORI=[];
-
-function normalizeRow(r, map){
-  const locale=String(r['DENOMIN.SEDE'] ?? r['DENOMINAZIONE SEDE'] ?? '').trim();
-  const comune=String(r['COMUNE'] ?? '').trim();
-  const modello=String(r['MODELLO'] ?? '').trim();
-  const stato =String(r['DESCR.STATO'] ?? '').trim();
-  const data  =String(r['DATA ULTIMA LETTURA VAL.'] ?? r['DATA ULTIMA LETTURA'] ?? r['ULTIMA LETTURA'] ?? '').trim();
-  const awp   =String(r['AWP'] ?? r['MATRICOLA AWP'] ?? r['MATRICOLA'] ?? r['SERIALE'] ?? '').trim();
-  const pda   =String(r['PDA'] ?? r['ID PDA'] ?? r['MATRICOLA PDA'] ?? '').trim();
-  const esatt = map.get(locale.toUpperCase()) ?? '—';
-  return { ESATTORE:esatt, LOCALE:locale, COMUNE:comune, MODELLO:modello, AWP:awp, PDA:pda, DATA_ULTIMA:data, STATO:stato };
-}
-
-async function loadAll(){
-  const manifest=await fetchJSON('./Dati/manifest.json');
-  const latest=manifest.sinottici[manifest.sinottici.length-1];
-
-  try{ ESATTORI = await fetchJSON('./Dati/esattori.json'); }
-  catch{ ESATTORI = ["ALESSANDRO","MATTIA","STEPHAN","MATTEO","LUCA","MAGAZZINO"]; }
-
-  const pdv=await fetchXLSX('./Dati/PDV-e-ESATTORI.xlsx');
-  const map=new Map();
-  for(const r of pdv){
-    const sede=String(r['DENOMINAZIONE SEDE']??'').trim().toUpperCase();
-    const esa =String(r['ESATTORE']??'').trim().toUpperCase();
-    if(sede) map.set(sede, esa || '—');
+  async function fetchJSON(u,l){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${l||u} fallito (${r.status})`);return r.json();}
+  async function fetchXLSX_largest(u,l){
+    const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${l||u} fallito (${r.status})`);
+    const ab=await r.arrayBuffer();const wb=XLSX.read(ab,{type:'array'});
+    let best=null,rows=[],len=0;for(const n of wb.SheetNames){const ws=wb.Sheets[n];const arr=XLSX.utils.sheet_to_json(ws,{defval:null});if(arr.length>len){len=arr.length;rows=arr;best=n;}}
+    return {rows, sheetName:best||wb.SheetNames[0]};
   }
 
-  const sin=await fetchXLSX('./Dati/'+latest);
-  const rows=sin.map(r=>normalizeRow(r,map));
+  /* ====== Stato app ====== */
+  let latestName='', esattori=[], sedeToEs=new Map();
+  let macchine=[]; // record completi per macchina (CODEID unico)
+  let locali=[];   // aggregati per sede
 
-  // Ordina per ESATTORE, LOCALE, AWP
-  rows.sort((a,b)=>{
-    const e=(a.ESATTORE||'').localeCompare(b.ESATTORE||''); if(e) return e;
-    const l=(a.LOCALE||'').localeCompare(b.LOCALE||''); if(l) return l;
-    return (a.AWP||'').localeCompare(b.AWP||'');
+  /* ====== Caricamento ====== */
+  async function loadAll(){
+    showLoader(true); $('#errorBox').style.display='none';
+    try{
+      const manifest=await fetchJSON('./Dati/manifest.json','manifest.json');
+      if(!manifest.sinottici||!manifest.sinottici.length) throw new Error('manifest.json: lista sinottici vuota');
+      latestName=manifest.sinottici[manifest.sinottici.length-1];
+      $('#pillSin').textContent='Sinottico: '+latestName;
+
+      try{ esattori=await fetchJSON('./Dati/esattori.json','esattori.json'); }catch(_){ esattori=[]; }
+      const selEs=$('#selEsattore'); selEs.innerHTML='<option value="">— Tutti —</option>'+esattori.map(e=>`<option value="${String(e).toUpperCase()}">${String(e).toUpperCase()}</option>`).join('');
+
+      const pdv=await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.xlsx','PDV-e-ESATTORI.xlsx');
+      sedeToEs=new Map(); for(const r of pdv.rows){ const sede=normalizeSede(r['DENOMIN. SEDE']); const es=(r['ESATTORE']??'').toString().trim().toUpperCase()||'—'; if(sede) sedeToEs.set(sede,es); }
+
+      const sn=await fetchXLSX_largest('./Dati/'+latestName, latestName);
+      $('#pillFoglio').textContent='Foglio: '+sn.sheetName;
+
+      // Build CODEID -> riga più recente
+      const byCode=new Map();
+      for(const row of sn.rows){
+        const codeid=pickCodeId(row); if(!codeid) continue;
+        const sede=row['DENOMIN. SEDE'] ?? pick(row,['DENOMIN.SEDE','DENOMINAZIONE SEDE']);
+        const data=parseDateIT(row['DATA ULTIMA LETTURA VAL.'] ?? pick(row,['DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
+        const stato=String(row['DESCR.STATO'] ?? '').trim();
+        const comune=pick(row,['COMUNE','CITTA','LOCALITA','CITTÀ']);
+        const pda   =pick(row,['PDA','COD.PDA','ID PDA','IDPDA','COD_PDA']);
+        const prev=byCode.get(codeid);
+        if(!prev || (data && prev.data && data>prev.data) || (!prev?.data && data)){
+          byCode.set(codeid,{codeid,sede,stato,data,comune,pda});
+        }
+      }
+
+      // Normalizza e classifica
+      macchine=[];
+      for(const {codeid,sede,stato,data,comune,pda} of byCode.values()){
+        const es = sedeToEs.get(normalizeSede(sede)) ?? '—';
+        const giorni=daysDiffFromToday(data);
+        let statoCat='ATTIVE';
+        if(/724\s*IN\s*CORSO/i.test(stato)) statoCat='MANUT';
+        else if(/BLOCCO\s*AMMINISTRATIVO/i.test(stato)) statoCat='FERIE';
+        macchine.push({ ESATTORE:es, SEDE:sede, CODEID:codeid, PDA:pda, DATA:data, GIORNI:giorni, STATO:statoCat, COMUNE:comune });
+      }
+
+      // Aggrega Locali
+      const bySede=new Map();
+      for(const r of macchine){
+        const key=normalizeSede(r.SEDE);
+        if(!bySede.has(key)) bySede.set(key,{ ESATTORE:r.ESATTORE, SEDE:r.SEDE, COMUNE:r.COMUNE, TOT:0, ATTIVE:0, FERIE:0, MANUT:0, MAX:null });
+        const a=bySede.get(key);
+        a.TOT++; if(r.STATO==='ATTIVE') a.ATTIVE++; else if(r.STATO==='FERIE') a.FERIE++; else if(r.STATO==='MANUT') a.MANUT++;
+        if(r.DATA && (!a.MAX || r.DATA>a.MAX)) a.MAX=r.DATA;
+        // Esattore/comune: tieni il più popolato o il primo disponibile
+        if(!a.ESATTORE && r.ESATTORE) a.ESATTORE=r.ESATTORE;
+        if(!a.COMUNE && r.COMUNE) a.COMUNE=r.COMUNE;
+      }
+      locali = Array.from(bySede.values());
+
+      // render iniziale
+      render();
+    }catch(e){ showError(e.message||'Errore sconosciuto'); }
+    finally{ showLoader(false); }
+  }
+
+  /* ====== Filtri, rendering, export ====== */
+  function applyFilters(){
+    const esSel=($('#selEsattore').value||'').toUpperCase();
+    const stato=$('#selStato').value;
+    const q=($('#search').value||'').trim().toUpperCase();
+
+    const isMac = $('#cardMac').style.display!=='none';
+    if(isMac){
+      let list=macchine.slice();
+      if(esSel) list=list.filter(r=>(r.ESATTORE||'—').toUpperCase()===esSel);
+      if(stato) list=list.filter(r=>r.STATO===stato);
+      if(q) list=list.filter(r=>(r.SEDE||'').toUpperCase().includes(q)||(r.COMUNE||'').toUpperCase().includes(q)||(r.CODEID||'').toUpperCase().includes(q));
+
+      // ordinamento
+      const ord=$('#selOrd').value;
+      list.sort((a,b)=>{
+        if(ord==='ESATTORE,SEDE'){ const d=(a.ESATTORE||'').localeCompare(b.ESATTORE||''); if(d!==0) return d; return (a.SEDE||'').localeCompare(b.SEDE||''); }
+        if(ord==='SEDE,ESATTORE'){ const d=(a.SEDE||'').localeCompare(b.SEDE||''); if(d!==0) return d; return (a.ESATTORE||'').localeCompare(b.ESATTORE||''); }
+        if(ord==='COMUNE,SEDE'){ const d=(a.COMUNE||'').localeCompare(b.COMUNE||''); if(d!==0) return d; return (a.SEDE||'').localeCompare(b.SEDE||''); }
+        if(ord==='GIORNI_DESC'){ return (isFinite(b.GIORNI)?b.GIORNI:-1) - (isFinite(a.GIORNI)?a.GIORNI:-1); }
+        if(ord==='DATA_DESC'){ return (b.DATA?b.DATA.getTime():0) - (a.DATA?a.DATA.getTime():0); }
+        return 0;
+      });
+      return {type:'MAC', list};
+    }else{
+      let list=locali.slice();
+      if(esSel) list=list.filter(r=>(r.ESATTORE||'—').toUpperCase()===esSel);
+      if(stato==='ATTIVE') list=list.filter(r=>r.ATTIVE>0);
+      if(stato==='FERIE')  list=list.filter(r=>r.FERIE>0);
+      if(stato==='MANUT')  list=list.filter(r=>r.MANUT>0);
+      if(q) list=list.filter(r=>(r.SEDE||'').toUpperCase().includes(q)||(r.COMUNE||'').toUpperCase().includes(q));
+
+      const ord=$('#selOrd').value;
+      list.sort((a,b)=>{
+        if(ord==='ESATTORE,SEDE'){ const d=(a.ESATTORE||'').localeCompare(b.ESATTORE||''); if(d!==0) return d; return (a.SEDE||'').localeCompare(b.SEDE||''); }
+        if(ord==='SEDE,ESATTORE'){ const d=(a.SEDE||'').localeCompare(b.SEDE||''); if(d!==0) return d; return (a.ESATTORE||'').localeCompare(b.ESATTORE||''); }
+        if(ord==='COMUNE,SEDE'){ const d=(a.COMUNE||'').localeCompare(b.COMUNE||''); if(d!==0) return d; return (a.SEDE||'').localeCompare(b.SEDE||''); }
+        if(ord==='GIORNI_DESC'){ return 0; } // non applicabile ai locali
+        if(ord==='DATA_DESC'){ return (b.MAX?b.MAX.getTime():0) - (a.MAX?a.MAX.getTime():0); }
+        return 0;
+      });
+      return {type:'LOC', list};
+    }
+  }
+
+  function render(){
+    const res=applyFilters();
+    const cnt=res.list.length.toLocaleString('it-IT');
+    $('#pillCount').textContent=`Selezione: ${cnt} ${res.type==='MAC'?'macchine':'locali'}`;
+
+    if(res.type==='MAC'){
+      const tb=$('#tblMac tbody'); tb.innerHTML='';
+      res.list.forEach(r=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${r.ESATTORE||'—'}</td>
+                      <td>${r.SEDE||''}</td>
+                      <td>${r.CODEID||''}</td>
+                      <td>${r.PDA||''}</td>
+                      <td>${fmtDate(r.DATA)}</td>
+                      <td class="${r.GIORNI===0?'ok':'bad'}">${isFinite(r.GIORNI)?r.GIORNI:'—'}</td>
+                      <td>${r.STATO}</td>
+                      <td>${r.COMUNE||''}</td>`;
+        tb.appendChild(tr);
+      });
+    }else{
+      const tb=$('#tblLoc tbody'); tb.innerHTML='';
+      res.list.forEach(r=>{
+        const tr=document.createElement('tr');
+        tr.innerHTML=`<td>${r.ESATTORE||'—'}</td>
+                      <td>${r.SEDE||''}</td>
+                      <td>${r.COMUNE||''}</td>
+                      <td>${r.TOT}</td>
+                      <td class="ok">${r.ATTIVE}</td>
+                      <td class="bad">${r.FERIE}</td>
+                      <td class="bad">${r.MANUT}</td>
+                      <td>${fmtDate(r.MAX)}</td>`;
+        tb.appendChild(tr);
+      });
+    }
+  }
+
+  function downloadXLSX(){
+    const res=applyFilters();
+    let headers, data;
+    if(res.type==='MAC'){
+      headers=['ESATTORE','LOCALE','AWP (CODEID)','PDA','ULTIMA LETTURA','GIORNI','STATO','COMUNE'];
+      data = res.list.map(r=>[r.ESATTORE||'', r.SEDE||'', r.CODEID||'', r.PDA||'', fmtDate(r.DATA), isFinite(r.GIORNI)?r.GIORNI:'', r.STATO, r.COMUNE||'']);
+    }else{
+      headers=['ESATTORE','LOCALE','COMUNE','Totale','Attive','Ferie','Manut.','Ultima lettura (max)'];
+      data = res.list.map(r=>[r.ESATTORE||'', r.SEDE||'', r.COMUNE||'', r.TOT, r.ATTIVE, r.FERIE, r.MANUT, fmtDate(r.MAX)]);
+    }
+    const ws=XLSX.utils.aoa_to_sheet([headers,...data]);
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,res.type==='MAC'?'Macchine':'Locali');
+    XLSX.writeFile(wb,`Anagrafica-${res.type==='MAC'?'Macchine':'Locali'}.xlsx`);
+  }
+
+  /* ====== UI ====== */
+  $('#btnApply').addEventListener('click', render);
+  $('#btnDownload').addEventListener('click', downloadXLSX);
+  $('#btnRefresh').addEventListener('click', loadAll);
+  $('#search').addEventListener('keydown', e=>{ if(e.key==='Enter') render(); });
+
+  // Tabs
+  $('#tabMac').addEventListener('click', ()=>{
+    $('#tabMac').setAttribute('aria-selected','true'); $('#tabLoc').removeAttribute('aria-selected');
+    $('#cardMac').style.display='block'; $('#cardLoc').style.display='none'; render();
+  });
+  $('#tabLoc').addEventListener('click', ()=>{
+    $('#tabLoc').setAttribute('aria-selected','true'); $('#tabMac').removeAttribute('aria-selected');
+    $('#cardMac').style.display='none'; $('#cardLoc').style.display='block'; render();
   });
 
-  ALL=rows;
-  populateEsattori();
-  applyFilters();
-}
-
-function populateEsattori(){
-  selEs.innerHTML='';
-  const o=document.createElement('option'); o.value=''; o.textContent='— TUTTI —'; selEs.appendChild(o);
-  ESATTORI.forEach(n=>{ const x=document.createElement('option'); x.value=n; x.textContent=n; selEs.appendChild(x); });
-}
-
-function applyFilters(){
-  const txt=(q.value||'').toLowerCase();
-  const es=(selEs.value||'').toLowerCase();
-
-  FILTERED = ALL.filter(r=>{
-    if(es && String(r.ESATTORE||'').toLowerCase()!==es) return false;
-    if(!txt) return true;
-    return Object.values(r).some(v=>String(v||'').toLowerCase().includes(txt));
+  // boot
+  window.addEventListener('load', ()=>{
+    document.getElementById('year').textContent=new Date().getFullYear();
+    initTheme();
+    loadAll();
   });
-
-  render();
-}
-
-function render(){
-  tbody.innerHTML='';
-  FILTERED.forEach(r=>{
-    const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td>${r.ESATTORE||'—'}</td>
-      <td>${r.LOCALE||''}</td>
-      <td>${r.COMUNE||''}</td>
-      <td>${r.MODELLO||''}</td>
-      <td class="mono">${r.AWP||''}</td>
-      <td class="mono">${r.PDA||''}</td>
-      <td>${r.DATA_ULTIMA||''}</td>
-      <td>${r.STATO||''}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-/* Init */
-document.getElementById('year').textContent=new Date().getFullYear();
-initTheme();
-loadAll().catch(e=>alert(e.message));
-
-document.getElementById('btnRefresh').addEventListener('click', ()=>loadAll().catch(e=>alert(e.message)));
-q.addEventListener('input', applyFilters);
-selEs.addEventListener('change', applyFilters);
+})();
 </script>
 </body>
 </html>
