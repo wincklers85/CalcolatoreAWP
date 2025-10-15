@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>AWP Manager — Dashboard</title>
 
-<!-- Font -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
@@ -14,16 +13,14 @@
     --acc:#007bff; --acc-2:#00bfff; --ok:#2ea043; --warn:#f59e0b; --bad:#ef4444;
     --table-head:#eef2f7; --shadow:0 8px 22px rgba(0,0,0,.06);
   }
-  /* Temi AWP */
-  body.theme-light { --bg:#f5f7fa; --fg:#1b1b1b; --muted:#5d6b7a; --card:#fff; --border:#dfe3ea; --acc:#007bff; --acc-2:#00bfff; --table-head:#eef2f7; --shadow:0 10px 26px rgba(0,0,0,.08); }
-  body.theme-dark  { --bg:#121417; --fg:#e4e7ec; --muted:#9aa3af; --card:#181b20; --border:#2a2f36; --acc:#3399ff; --acc-2:#6fd3ff; --table-head:#1c2128; --shadow:0 10px 30px rgba(0,0,0,.35); }
-  body.theme-blue  { --bg:#e9f5ff; --fg:#002b4d; --muted:#335d7a; --card:#ffffff; --border:#cfe6fb; --acc:#0066cc; --acc-2:#1aa3ff; --table-head:#d9eeff; --shadow:0 12px 28px rgba(0,80,160,.15); }
-  body.theme-contrast { --bg:#000; --fg:#ff0; --muted:#ffe766; --card:#0b0b0b; --border:#333; --acc:#ff3333; --acc-2:#ffea00; --table-head:#111; --shadow:0 10px 26px rgba(255,255,0,.12); }
+  body.theme-light { --bg:#f5f7fa; --fg:#1b1b1b; --muted:#5d6b7a; --card:#fff; --border:#dfe3ea; --acc:#007bff; --acc-2:#00bfff; --table-head:#eef2f7; --shadow:0 10px 26px rgba(0,0,0,.08) }
+  body.theme-dark  { --bg:#121417; --fg:#e4e7ec; --muted:#9aa3af; --card:#181b20; --border:#2a2f36; --acc:#3399ff; --acc-2:#6fd3ff; --table-head:#1c2128; --shadow:0 10px 30px rgba(0,0,0,.35) }
+  body.theme-blue  { --bg:#e9f5ff; --fg:#002b4d; --muted:#335d7a; --card:#ffffff; --border:#cfe6fb; --acc:#0066cc; --acc-2:#1aa3ff; --table-head:#d9eeff; --shadow:0 12px 28px rgba(0,80,160,.15) }
+  body.theme-contrast { --bg:#000; --fg:#ff0; --muted:#ffe766; --card:#0b0b0b; --border:#333; --acc:#ff3333; --acc-2:#ffea00; --table-head:#111; --shadow:0 10px 26px rgba(255,255,0,.12) }
 
   html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;transition:background .25s ease,color .25s ease}
 
-  /* Navbar */
   .navbar{
     position:sticky; top:0; z-index:30;
     display:flex; align-items:center; justify-content:space-between; gap:12px;
@@ -31,34 +28,27 @@
     backdrop-filter: blur(6px);
   }
   .brand{display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--fg)}
-  .brand img{height:28px; width:auto; display:block; filter: drop-shadow(0 0 6px rgba(0,0,0,.15))}
-  .brand strong{font-weight:700; letter-spacing:.2px}
+  .brand img{height:28px; width:auto; filter: drop-shadow(0 0 6px rgba(0,0,0,.15))}
+  .brand strong{font-weight:700}
   .nav-mid{display:flex; align-items:center; gap:10px;}
-  .navlinks a{
-    color:var(--fg); text-decoration:none; margin:0 8px; padding:6px 10px; border-radius:8px;
-    transition: background .2s ease, color .2s ease;
-  }
+  .navlinks a{ color:var(--fg); text-decoration:none; margin:0 8px; padding:6px 10px; border-radius:8px }
   .navlinks a:hover{ background:var(--table-head) }
-  .right{display:flex; align-items:center; gap:8px;}
-  select,button{
-    background:var(--card); color:var(--fg); border:1px solid var(--border);
-    border-radius:10px; padding:8px 12px; font-weight:600;
-  }
-  button.primary{ background:var(--acc); color:#fff; border-color:var(--acc); }
+  .right{display:flex; align-items:center; gap:8px}
+  select,button{ background:var(--card); color:var(--fg); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-weight:600 }
+  button.primary{ background:var(--acc); color:#fff; border-color:var(--acc) }
   button.primary:hover{ filter:brightness(.95) }
 
-  /* Badge 15/ultimo */
-  .badge{ display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:.2px; border:1px solid var(--border); background:var(--card); color:var(--fg) }
+  .badge{ display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; border:1px solid var(--border); background:var(--card) }
   .badge.ok{ border-color:var(--ok); color:var(--ok) }
   .badge.warn{ border-color:var(--warn); color:var(--warn) }
   .badge.danger{ border-color:var(--bad); color:var(--bad) }
 
-  main{ padding:18px; max-width:1200px; margin:0 auto; }
-  .grid{ display:grid; gap:14px; grid-template-columns:repeat(12,1fr); }
+  main{ padding:18px; max-width:1200px; margin:0 auto }
+  .grid{ display:grid; gap:14px; grid-template-columns:repeat(12,1fr) }
   .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:var(--shadow); animation:fadeIn .35s ease }
-  .card h3{ margin:0 0 6px; font-size:14px; color:var(--muted); letter-spacing:.2px }
+  .card h3{ margin:0 0 6px; font-size:14px; color:var(--muted) }
   .kpi{ display:flex; align-items:center; justify-content:space-between }
-  .k-num{ font-size:34px; font-weight:800; letter-spacing:.2px }
+  .k-num{ font-size:34px; font-weight:800 }
   .ok{ color:var(--ok) } .warn{ color:var(--warn) } .bad{ color:var(--bad) }
   .span-3{grid-column:span 3} .span-12{grid-column:span 12}
   @media (max-width:980px){ .span-3{grid-column:span 6} .span-12{grid-column:span 12} }
@@ -68,27 +58,19 @@
   th{ background:var(--table-head); text-align:left }
   tr:hover td{ background:rgba(0,0,0,.03) }
   .meta{ margin-top:6px; font-size:12px; color:var(--muted) }
-  .pill{ display:inline-block; padding:3px 8px; border:1px solid var(--border); border-radius:999px; background:var(--card); margin-right:6px; }
+  .pill{ display:inline-block; padding:3px 8px; border:1px solid var(--border); border-radius:999px; background:var(--card); margin-right:6px }
 
   @keyframes fadeIn{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
 
-  /* Overlay loading */
-  #loader{
-    position:fixed; inset:0; background:rgba(0,0,0,.08); backdrop-filter:blur(2px);
-    display:none; align-items:center; justify-content:center; z-index:40;
-  }
-  .spinner{
-    width:54px; height:54px; border-radius:50%;
-    border:5px solid rgba(0,0,0,.15); border-top-color:var(--acc); animation:spin .9s linear infinite;
-  }
+  #loader{ position:fixed; inset:0; background:rgba(0,0,0,.08); backdrop-filter:blur(2px); display:none; align-items:center; justify-content:center; z-index:40 }
+  .spinner{ width:54px; height:54px; border-radius:50%; border:5px solid rgba(0,0,0,.15); border-top-color:var(--acc); animation:spin .9s linear infinite }
   @keyframes spin{ to{ transform:rotate(360deg) } }
 </style>
 </head>
 <body>
-  <!-- Navbar -->
   <div class="navbar">
-    <a class="brand" href="./dashboard.html" aria-label="AWP Manager Home">
-      <img src="./logo-awp.svg" alt="AWP Manager logo">
+    <a class="brand" href="./dashboard.html">
+      <img src="./logo-awp.svg" alt="AWP Manager">
       <strong>AWP Manager</strong>
     </a>
 
@@ -121,7 +103,6 @@
         <div class="kpi"><div id="kpiTot" class="k-num">—</div></div>
         <div class="meta"><span class="pill" id="metaSinottico">Sinottico: —</span></div>
       </div>
-
       <div class="card span-3">
         <h3>Aggiornate oggi</h3>
         <div class="kpi">
@@ -130,7 +111,6 @@
         </div>
         <div class="meta">Letture con data = oggi</div>
       </div>
-
       <div class="card span-3">
         <h3>Mancate letture</h3>
         <div class="kpi">
@@ -139,7 +119,6 @@
         </div>
         <div class="meta">Escluse ferie e manutenzione</div>
       </div>
-
       <div class="card span-3">
         <h3>Ferie &amp; Manutenzione</h3>
         <div class="kpi">
@@ -178,10 +157,8 @@
 
   <footer>© <span id="year"></span> AWP Manager — Dashboard</footer>
 
-  <!-- Overlay loading -->
   <div id="loader"><div class="spinner" aria-label="Caricamento"></div></div>
 
-  <!-- ===== Loader robusto: prova locale ./libs/, poi CDN fallback ===== -->
   <script>
   (function(){
     const urls = {
@@ -202,29 +179,25 @@
     function loadOne(url){
       return new Promise((resolve, reject)=>{
         const s=document.createElement('script');
-        s.src=url; s.async=false; // Safari-friendly
+        s.src=url; s.async=false;
         s.onload=()=>resolve(url);
-        s.onerror=()=>reject(new Error('errore script '+url));
+        s.onerror=()=>reject(new Error(url));
         document.head.appendChild(s);
       });
     }
     async function loadWithFallback(list, testFn){
       let lastErr=null;
       for(const u of list){
-        try{
-          await loadOne(u);
-          if(testFn()) return u;
-        }catch(e){ lastErr=e; }
+        try{ await loadOne(u); if(testFn()) return u; }catch(e){ lastErr=e; }
       }
-      // Tentativo finale forzato su CDN SheetJS (alcuni ISP bloccano jsDelivr/cdnjs)
-      try{
+      try{ // tentativo finale forzato
         await loadOne('https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js');
         if(testFn()) return 'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js';
       }catch(e){ lastErr=e; }
-      throw lastErr || new Error('Impossibile caricare libreria');
+      throw lastErr || new Error('XLSX non caricato');
     }
 
-    function showLoader(v){ document.getElementById('loader').style.display = v?'flex':'none'; }
+    function showLoader(v){ document.getElementById('loader').style.display = v?'flex':'none' }
 
     async function boot(){
       try{
@@ -239,34 +212,63 @@
       }
     }
 
-    // ========= App =========
+    // ===================== APP =====================
     function startApp(){
-      /* Tema */
+      // Temi
       const THEME_KEY='awp_theme';
       const themeSel=document.getElementById('themeSel');
-      function applyTheme(t){ document.body.classList.remove('theme-light','theme-dark','theme-blue','theme-contrast'); document.body.classList.add(t); }
+      function applyTheme(t){ document.body.className=t; }
       function initTheme(){ const t=localStorage.getItem(THEME_KEY)||'theme-light'; applyTheme(t); themeSel.value=t; }
       themeSel.addEventListener('change', ()=>{ applyTheme(themeSel.value); localStorage.setItem(THEME_KEY, themeSel.value); });
 
-      /* Helpers fetch + XLSX */
+      // Helpers fetch
       async function fetchJSON(url){ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error('Errore: '+url); return r.json(); }
       async function fetchXLSX(url){ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error('Errore: '+url); const ab=await r.arrayBuffer(); const wb=XLSX.read(ab,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]]; return XLSX.utils.sheet_to_json(ws,{defval:null}); }
 
-      /* Date utils */
-      function parseDateFlexible(s){
-        if(!s) return null; const str=String(s).trim();
-        let d=new Date(str); if(!isNaN(d)) return new Date(d.getFullYear(),d.getMonth(),d.getDate());
-        const m1=str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/); if(m1){const[_,dd,mm,yyyy]=m1; return new Date(+yyyy,+mm-1,+dd);}
-        const m2=str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/); if(m2){const[_,yyyy,mm,dd]=m2; return new Date(+yyyy,+mm-1,+dd);}
+      // Parser data per "GG-MM-AAAA HH:MM:SS" + seriali Excel
+      function parseDateIT(value){
+        if (value == null || value === '') return null;
+
+        if (typeof value === 'number' || /^[0-9]+$/.test(String(value).trim())) {
+          const n = Number(value);
+          if (!Number.isNaN(n) && n > 0 && n < 2958465) {
+            const base = new Date(Date.UTC(1899, 11, 30));
+            const d = new Date(base.getTime() + n * 86400000);
+            return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+          }
+        }
+        const s = String(value).trim().replace(/[\/\.]/g, '-');
+        const m = s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+        if (m) { const [, gg, mm, yyyy] = m; return new Date(+yyyy, +mm - 1, +gg); }
+
+        const d = new Date(s);
+        if (!isNaN(d)) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
         return null;
       }
       function daysDiffFromToday(d){
-        if(!d) return Infinity; const t=new Date(); t.setHours(0,0,0,0);
-        const dd=new Date(d.getFullYear(),d.getMonth(),d.getDate());
-        return Math.floor((t - dd)/86400000);
+        if (!d) return Infinity;
+        const today = new Date(); today.setHours(0,0,0,0);
+        const only  = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        return Math.floor((today - only) / 86400000);
       }
 
-      /* Badge 15/ultimo */
+      // Normalizzazione sede per match esattore
+      function normalizeSede(s){
+        return String(s||'')
+          .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+          .replace(/\s+/g,' ')
+          .replace(/[^\w\s\-&']/g,'')
+          .trim().toUpperCase();
+      }
+
+      // Solo AWP / slot
+      const ACCEPT_MODELS = ['AWP','SLOT','AMA','AMUSEMENT WITH PRIZE'];
+      function isAwbModel(model){
+        const m = String(model||'').toUpperCase();
+        return ACCEPT_MODELS.some(k => m.includes(k));
+      }
+
+      // Badge 15/ultimo
       function isLastDayOfMonth(d){ const probe=new Date(d.getFullYear(), d.getMonth()+1, 0); return d.getDate()===probe.getDate(); }
       function daysUntil(a,b){ const t0=new Date(a.getFullYear(),a.getMonth(),a.getDate()); const t1=new Date(b.getFullYear(),b.getMonth(),b.getDate()); return Math.round((t1-t0)/86400000); }
       function nextTaxDay(from){ const y=from.getFullYear(), m=from.getMonth(); const d15=new Date(y,m,15); const last=new Date(y,m+1,0); if(from.getDate()<=15) return d15; if(from.getDate()<last.getDate()) return last; return new Date(y,m+1,15); }
@@ -279,7 +281,7 @@
         el.textContent = `⏳ Mancano ${diff} gg — ${target.getDate()===15?'15 del mese':'Ultimo del mese'}`;
       }
 
-      /* DOM refs */
+      // DOM refs
       const elTot=document.getElementById('kpiTot');
       const elOk=document.getElementById('kpiOk');
       const elOkPerc=document.getElementById('kpiOkPerc');
@@ -290,19 +292,13 @@
       const elMetaSin=document.getElementById('metaSinottico');
       const tblTopBody=document.querySelector('#tblTop tbody');
 
-      /* Animazione numeri */
       function animateNumber(el, target, duration=700){
         const start=Number(el.textContent.replace(/[^\d]/g,''))||0;
         const t0=performance.now();
-        function tick(now){
-          const p=Math.min(1,(now-t0)/duration);
-          el.textContent=Math.round(start+(target-start)*p).toLocaleString('it-IT');
-          if(p<1) requestAnimationFrame(tick);
-        }
+        function tick(now){ const p=Math.min(1,(now-t0)/duration); el.textContent=Math.round(start+(target-start)*p).toLocaleString('it-IT'); if(p<1) requestAnimationFrame(tick); }
         requestAnimationFrame(tick);
       }
 
-      /* Grafico */
       let chart;
       function renderChart(labels, percValues){
         const ctx=document.getElementById('chartEsattori').getContext('2d');
@@ -310,8 +306,7 @@
         chart=new Chart(ctx,{
           type:'bar',
           data:{ labels, datasets:[{ label:'% aggiornate oggi', data:percValues, borderWidth:1 }]},
-          options:{
-            animation:{ duration:900, easing:'easeOutQuart' },
+          options:{ animation:{ duration:900, easing:'easeOutQuart' },
             scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } },
             plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:c=>c.parsed.y.toFixed(1)+'%' } } }
           }
@@ -329,29 +324,34 @@
           const pdv=await fetchXLSX('./Dati/PDV-e-ESATTORI.xlsx');
           const sedeToEs=new Map();
           for(const r of pdv){
-            const sede=String(r['DENOMINAZIONE SEDE']??'').trim().toUpperCase();
-            const esa=String(r['ESATTORE']??'').trim().toUpperCase();
-            if(sede) sedeToEs.set(sede, esa||'—');
+            const sede=normalizeSede(r['DENOMINAZIONE SEDE']);
+            const esa =String(r['ESATTORE']??'').trim().toUpperCase() || '—';
+            if(sede) sedeToEs.set(sede, esa);
           }
 
           const sin=await fetchXLSX('./Dati/'+latest);
-
-          const rows = sin.map(r=>{
-            const locale=String(r['DENOMIN.SEDE'] ?? r['DENOMINAZIONE SEDE'] ?? '').trim();
-            const stato =String(r['DESCR.STATO'] ?? '').trim();
-            const data  =String(r['DATA ULTIMA LETTURA VAL.'] ?? r['DATA ULTIMA LETTURA'] ?? r['ULTIMA LETTURA'] ?? '').trim();
-            const giorni=daysDiffFromToday(parseDateFlexible(data));
-            const esatt =sedeToEs.get(locale.toUpperCase()) ?? '—';
-            return { LOCALE:locale, STATO:stato, DATA:data, GIORNI:giorni, ESATTORE:esatt };
+          const rowsRaw = sin.map(r=>{
+            const locale = String(r['DENOMIN.SEDE'] ?? r['DENOMINAZIONE SEDE'] ?? '').trim();
+            const stato  = String(r['DESCR.STATO'] ?? '').trim();
+            const modello= String(r['MODELLO'] ?? '').trim();
+            const dataStr= String(r['DATA ULTIMA LETTURA VAL.'] ?? r['DATA ULTIMA LETTURA'] ?? r['ULTIMA LETTURA'] ?? '').trim();
+            const data   = parseDateIT(dataStr);
+            const giorni = daysDiffFromToday(data);
+            const esatt  = sedeToEs.get(normalizeSede(locale)) ?? '—';
+            return { LOCALE:locale, STATO:stato, MODELLO:modello, DATA:dataStr, GIORNI:giorni, ESATTORE:esatt };
           });
 
-          const inManut = rows.filter(r => r.STATO.toUpperCase().includes('724 IN CORSO'));
-          const inFerie = rows.filter(r => r.STATO.toUpperCase().includes('BLOCCO AMMINISTRATIVO'));
-          const attive  = rows.filter(r => !r.STATO.toUpperCase().includes('724 IN CORSO') && !r.STATO.toUpperCase().includes('BLOCCO AMMINISTRATIVO'));
+          const inManut = rowsRaw.filter(r => /724\s*IN\s*CORSO/i.test(r.STATO));
+          const inFerie = rowsRaw.filter(r => /BLOCCO\s*AMMINISTRATIVO/i.test(r.STATO));
+          const attiveAwb = rowsRaw.filter(r =>
+            isAwbModel(r.MODELLO) &&
+            !/724\s*IN\s*CORSO/i.test(r.STATO) &&
+            !/BLOCCO\s*AMMINISTRATIVO/i.test(r.STATO)
+          );
 
-          const tot=attive.length;
-          const ok =attive.filter(r=>r.GIORNI===0).length;
-          const bad=attive.filter(r=>r.GIORNI>0 || !isFinite(r.GIORNI)).length;
+          const tot=attiveAwb.length;
+          const ok =attiveAwb.filter(r=>r.GIORNI===0).length;
+          const bad=attiveAwb.filter(r=>r.GIORNI>0 || !isFinite(r.GIORNI)).length;
 
           animateNumber(elTot, tot);
           animateNumber(elOk, ok);
@@ -362,7 +362,7 @@
           elMan.innerHTML = '/ <span>'+inManut.length.toLocaleString('it-IT')+' manut.</span>';
 
           const byEs=new Map();
-          for(const r of attive){
+          for(const r of attiveAwb){
             const es=r.ESATTORE||'—';
             if(!byEs.has(es)) byEs.set(es,{tot:0, ok:0});
             const a=byEs.get(es); a.tot++; if(r.GIORNI===0) a.ok++;
@@ -380,12 +380,9 @@
             tr.innerHTML=`<td>${r.ESATTORE}</td><td>${r.TOT}</td><td class="ok">${r.OK}</td><td class="bad">${r.BAD}</td><td>${r.PERC.toFixed(1)}%</td>`;
             tb.appendChild(tr);
           });
-        } finally {
-          showLoader(false);
-        }
+        } finally { showLoader(false); }
       }
 
-      // Init
       document.getElementById('year').textContent=new Date().getFullYear();
       initTheme();
       updateTaxBadge();
@@ -393,7 +390,6 @@
       document.getElementById('btnRefresh').addEventListener('click', ()=>{ updateTaxBadge(); loadAll().catch(e=>alert(e.message)); });
     }
 
-    // Avvio
     window.addEventListener('load', boot);
   })();
   </script>
