@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AWP Manager — Letture</title>
+
+<!-- Font moderno -->
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<!-- SheetJS per leggere/scrivere XLSX in RAM -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min.js"></script>
+
+<style>
+  :root{
+    --bg:#f5f7fa; --fg:#1b1b1b; --muted:#5d6b7a; --card:#ffffff; --border:#dfe3ea;
+    --acc:#007bff; --acc-2:#00bfff; --ok:#2ea043; --warn:#f59e0b; --bad:#ef4444;
+    --table-head:#eef2f7; --hover:rgba(0,0,0,.03);
+  }
+  /* Temi AWP */
+  body.theme-light { --bg:#f5f7fa; --fg:#1b1b1b; --muted:#5d6b7a; --card:#ffffff; --border:#dfe3ea; --acc:#007bff; --acc-2:#00bfff; --table-head:#eef2f7; --hover:rgba(0,0,0,.03); }
+  body.theme-dark  { --bg:#121417; --fg:#e4e7ec; --muted:#9aa3af; --card:#181b20; --border:#2a2f36; --acc:#3399ff; --acc-2:#6fd3ff; --table-head:#1c2128; --hover:rgba(255,255,255,.04); }
+  body.theme-blue  { --bg:#e9f5ff; --fg:#002b4d; --muted:#335d7a; --card:#ffffff; --border:#cfe6fb; --acc:#0066cc; --acc-2:#1aa3ff; --table-head:#d9eeff; --hover:rgba(0,40,80,.05); }
+  body.theme-contrast { --bg:#000; --fg:#ff0; --muted:#ffe766; --card:#0b0b0b; --border:#333; --acc:#ff3333; --acc-2:#ffea00; --table-head:#111; --hover:rgba(255,255,0,.05); }
+
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;transition:background .25s ease,color .25s ease}
+
+  /* Navbar sticky */
+  .navbar{
+    position:sticky; top:0; z-index:20;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:10px 16px; background:var(--card); border-bottom:1px solid var(--border);
+    backdrop-filter: blur(6px);
+  }
+  .brand{display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--fg)}
+  .brand img{height:28px; width:auto; display:block; filter: drop-shadow(0 0 6px rgba(0,0,0,.15))}
+  .brand strong{font-weight:700; letter-spacing:.2px}
+  .navlinks a{
+    color:var(--fg); text-decoration:none; margin:0 8px; padding:6px 10px; border-radius:8px;
+    transition: background .2s ease, color .2s ease;
+  }
+  .navlinks a:hover{ background:var(--table-head) }
+  .right{ display:flex; align-items:center; gap:8px; }
+  select,button,input{
+    background:var(--card); color:var(--fg); border:1px solid var(--border);
+    border-radius:10px; padding:8px 12px; font-weight:600;
+  }
+  button.primary{ background:var(--acc); color:#fff; border-color:var(--acc); }
+  button.primary:hover{ filter:brightness(.95) }
+
+  main{ padding:18px; max-width:1200px; margin:0 auto; }
+  .toolbar{
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:6px 0 14px;
+  }
+  .pill{ display:inline-block; padding:4px 10px; border:1px solid var(--border); border-radius:999px; background:var(--card); color:var(--muted); font-size:12px; }
+  .table-wrap{ overflow:auto; border:1px solid var(--border); border-radius:14px; background:var(--card); box-shadow:0 6px 20px rgba(0,0,0,.06); animation:fadeIn .3s ease }
+  table{ width:100%; border-collapse:collapse; min-width:900px; }
+  th,td{ padding:10px 12px; border-bottom:1px solid var(--border) }
+  th{ background:var(--table-head); text-align:left; position:sticky; top:0; z-index:1 }
+  tr:hover td{ background:var(--hover) }
+  .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .g-big{ font-weight:700 }
+  .g-crit{ color:var(--bad) }
+  .g-warn{ color:var(--warn) }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+
+  footer{ text-align:center; padding:20px; color:var(--muted) }
+</style>
+</head>
+<body>
+  <!-- Navbar sticky -->
+  <div class="navbar">
+    <a class="brand" href="./dashboard.html" aria-label="AWP Manager Home">
+      <img src="./logo-awp.svg" alt="AWP Manager logo">
+      <strong>AWP Manager</strong>
+    </a>
+    <nav class="navlinks">
+      <a href="./dashboard.html">Dashboard</a>
+      <a href="./letture.html" style="font-weight:700; text-decoration:underline;">Letture</a>
+      <a href="./manutenzione.html">Manutenzione</a>
+      <a href="./anagrafica.html">Anagrafica</a>
+    </nav>
+    <div class="right">
+      <label for="themeSel" style="font-size:13px;color:var(--muted);">Tema</label>
+      <select id="themeSel" title="Seleziona tema">
+        <option value="theme-light">☀️ Chiaro AWP</option>
+        <option value="theme-dark">🌙 Scuro AWP</option>
+        <option value="theme-blue">🌤️ Azzurro AWP</option>
+        <option value="theme-contrast">⚫ Alto Contrasto</option>
+      </select>
+      <button id="btnRefresh" class="primary">🔄 Aggiorna dati</button>
+      <button id="btnExport">⬇️ Esporta XLSX</button>
+    </div>
+  </div>
+
+  <main>
+    <div class="toolbar">
+      <label>Esattore:
+        <select id="esattore"></select>
+      </label>
+      <label>Giorni arretrato (&gt;):
+        <input id="days" type="number" min="0" value="0" />
+      </label>
+      <span id="meta" class="pill">Sinottico: —</span>
+    </div>
+
+    <div class="table-wrap">
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th>ESATTORE</th>
+            <th>LOCALE</th>
+            <th>AWP</th>
+            <th>PDA</th>
+            <th>GIORNI</th>
+            <th>COMUNE</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer>© <span id="year"></span> AWP Manager — Letture</footer>
+
+<script>
+/* ==============================
+   Tema (4 varianti) con persistenza
+   ============================== */
+const THEME_KEY = 'awp_theme';
+const themeSel = document.getElementById('themeSel');
+function applyTheme(t){
+  document.body.classList.remove('theme-light','theme-dark','theme-blue','theme-contrast');
+  document.body.classList.add(t);
+}
+function initTheme(){
+  const saved = localStorage.getItem(THEME_KEY) || 'theme-light';
+  applyTheme(saved);
+  themeSel.value = saved;
+}
+themeSel.addEventListener('change', () => {
+  const v = themeSel.value;
+  applyTheme(v);
+  localStorage.setItem(THEME_KEY, v);
+});
+
+/* ==============================
+   Utils fetch/parse
+   ============================== */
+async function fetchJSON(url){
+  const r = await fetch(url, {cache:'no-store'});
+  if(!r.ok) throw new Error('Errore caricamento: ' + url);
+  return r.json();
+}
+async function fetchXLSX(url){
+  const r = await fetch(url, {cache:'no-store'});
+  if(!r.ok) throw new Error('Errore caricamento: ' + url);
+  const ab = await r.arrayBuffer();
+  const wb = XLSX.read(ab, { type: 'array' });
+  const ws = wb.Sheets[wb.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(ws, { defval: null });
+}
+
+/* ==============================
+   Date helpers
+   ============================== */
+function parseDateFlexible(s){
+  if(!s) return null;
+  const str = String(s).trim();
+  let d = new Date(str);
+  if(!isNaN(d)) return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const m1 = str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+  if(m1){ const [_,dd,mm,yyyy]=m1; return new Date(+yyyy, +mm-1, +dd); }
+  const m2 = str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+  if(m2){ const [_,yyyy,mm,dd]=m2; return new Date(+yyyy, +mm-1, +dd); }
+  return null;
+}
+function daysDiffFromToday(d){
+  if(!d) return Infinity;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const t = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diff = (today - t) / (1000*60*60*24);
+  return Math.floor(diff);
+}
+
+/* ==============================
+   Stato globale
+   ============================== */
+const elYear = document.getElementById('year');
+const elMeta = document.getElementById('meta');
+const selEsattore = document.getElementById('esattore');
+const inputDays = document.getElementById('days');
+const tbody = document.querySelector('#tbl tbody');
+
+let DATA = []; // righe normalizzate (attive)
+let ESATTORI = [];
+
+/* ==============================
+   Caricamento dati (manifest -> file latest -> xlsx)
+   ============================== */
+async function loadData(){
+  // Manifest
+  const manifest = await fetchJSON('./Dati/manifest.json');
+  if(!manifest || !Array.isArray(manifest.sinottici) || manifest.sinottici.length === 0){
+    throw new Error('manifest.json non valido: chiave "sinottici" mancante o vuota.');
+  }
+  const latest = manifest.sinottici[manifest.sinottici.length - 1];
+  elMeta.textContent = 'Sinottico: ' + latest;
+
+  // Esattori list
+  try {
+    ESATTORI = await fetchJSON('./Dati/esattori.json');
+  } catch { ESATTORI = ["ALESSANDRO","MATTIA","STEPHAN","MATTEO","LUCA","MAGAZZINO"]; }
+
+  // PDV → ESATTORE
+  const pdv = await fetchXLSX('./Dati/PDV-e-ESATTORI.xlsx');
+  const sedeToEs = new Map();
+  for(const r of pdv){
+    const sede = String(r['DENOMINAZIONE SEDE'] ?? '').trim().toUpperCase();
+    const esattore = String(r['ESATTORE'] ?? '').trim().toUpperCase();
+    if(sede) sedeToEs.set(sede, esattore || '—');
+  }
+
+  // Sinottico
+  const sin = await fetchXLSX('./Dati/' + latest);
+  // Normalizza righe e filtra attive (esclude ferie/manutenzione)
+  const rows = sin.map(r => {
+    const locale = String(r['DENOMIN.SEDE'] ?? r['DENOMINAZIONE SEDE'] ?? '').trim();
+    const comune = String(r['COMUNE'] ?? '').trim();
+    const modello = String(r['MODELLO'] ?? '').trim();
+    const stato  = String(r['DESCR.STATO'] ?? '').trim();
+    const dataUltStr = String(r['DATA ULTIMA LETTURA VAL.'] ?? r['DATA ULTIMA LETTURA'] ?? r['ULTIMA LETTURA'] ?? '').trim();
+    const awp = String(r['AWP'] ?? r['MATRICOLA AWP'] ?? r['MATRICOLA'] ?? r['SERIALE'] ?? '').trim();
+    const pda = String(r['PDA'] ?? r['ID PDA'] ?? r['MATRICOLA PDA'] ?? '').trim();
+    const giorni = daysDiffFromToday(parseDateFlexible(dataUltStr));
+    const esattore = sedeToEs.get(locale.toUpperCase()) ?? '—';
+    return { ESATTORE:esattore, LOCALE:locale, AWP:awp, PDA:pda, GIORNI:giorni, COMUNE:comune, MODELLO:modello, STATO:stato };
+  }).filter(r =>
+    !r.STATO.toUpperCase().includes('724 IN CORSO') &&
+    !r.STATO.toUpperCase().includes('BLOCCO AMMINISTRATIVO')
+  );
+
+  DATA = rows;
+}
+
+/* ==============================
+   UI helpers
+   ============================== */
+function populateEsattori(){
+  selEsattore.innerHTML = '';
+  const optAll = document.createElement('option');
+  optAll.value = '';
+  optAll.textContent = '— TUTTI —';
+  selEsattore.appendChild(optAll);
+  ESATTORI.forEach(name => {
+    const o = document.createElement('option');
+    o.value = name;
+    o.textContent = name;
+    selEsattore.appendChild(o);
+  });
+}
+
+function renderTable(){
+  const days = Number(inputDays.value || 0);
+  const selected = String(selEsattore.value || '').toUpperCase();
+
+  // filtro per giorni > soglia
+  let rows = DATA.filter(r => {
+    if (r.GIORNI === '' || !isFinite(r.GIORNI)) return true; // data mancante → mostra
+    return r.GIORNI > days;
+  });
+
+  // filtro per esattore
+  if (selected) rows = rows.filter(r => String(r.ESATTORE||'').toUpperCase() === selected);
+
+  // ordinamento
+  if (!selected) {
+    rows.sort((a,b) => {
+      const es = String(a.ESATTORE||'').localeCompare(String(b.ESATTORE||''));
+      if (es !== 0) return es;
+      return (b.GIORNI||0) - (a.GIORNI||0);
+    });
+  } else {
+    rows.sort((a,b) => (b.GIORNI||0) - (a.GIORNI||0));
+  }
+
+  // render
+  tbody.innerHTML = '';
+  for(const r of rows){
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${r.ESATTORE || '—'}</td>
+      <td>${r.LOCALE || ''}</td>
+      <td class="mono">${r.AWP || ''}</td>
+      <td class="mono">${r.PDA || ''}</td>
+      <td class="g-big ${(r.GIORNI>=5)?'g-crit':(r.GIORNI>=2)?'g-warn':''}">${Number.isFinite(r.GIORNI)? r.GIORNI : ''}</td>
+      <td>${r.COMUNE || ''}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+/* ==============================
+   Export XLSX lato client
+   ============================== */
+function exportXLSX(){
+  const days = Number(inputDays.value || 0);
+  const selected = String(selEsattore.value || '').toUpperCase();
+  let rows = DATA.filter(r => (r.GIORNI === '' || !isFinite(r.GIORNI)) ? true : (r.GIORNI > days));
+  if (selected) rows = rows.filter(r => String(r.ESATTORE||'').toUpperCase() === selected);
+
+  const out = rows.map(r => ({
+    ESATTORE: r.ESATTORE,
+    LOCALE: r.LOCALE,
+    AWP: r.AWP,
+    PDA: r.PDA,
+    GIORNI: Number.isFinite(r.GIORNI) ? r.GIORNI : '',
+    COMUNE: r.COMUNE
+  }));
+
+  const ws = XLSX.utils.json_to_sheet(out);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Mancate Letture');
+
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth()+1).padStart(2,'0');
+  const dd = String(today.getDate()).padStart(2,'0');
+  const name = `MancateLetture_${selected || 'TUTTI'}_${yyyy}-${mm}-${dd}_>${days}gg.xlsx`;
+  XLSX.writeFile(wb, name);
+}
+
+/* ==============================
+   Init
+   ============================== */
+document.getElementById('year').textContent = new Date().getFullYear();
+initTheme();
+
+// Caricamento automatico
+(async ()=>{
+  try{
+    await loadData();
+    populateEsattori();
+    renderTable();
+  }catch(e){
+    alert(e.message);
+  }
+})();
+
+document.getElementById('btnRefresh').addEventListener('click', async ()=>{
+  try{
+    await loadData();
+    renderTable();
+  }catch(e){
+    alert(e.message);
+  }
+});
+document.getElementById('btnExport').addEventListener('click', exportXLSX);
+selEsattore.addEventListener('change', renderTable);
+inputDays.addEventListener('input', renderTable);
+</script>
+</body>
+</html>
