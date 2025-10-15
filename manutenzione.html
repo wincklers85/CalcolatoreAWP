@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AWP Manager — Manutenzione & Ferie</title>
+
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min.js"></script>
+
+<style>
+  :root{
+    --bg:#f5f7fa; --fg:#1b1b1b; --muted:#5d6b7a; --card:#ffffff; --border:#dfe3ea;
+    --acc:#007bff; --acc-2:#00bfff; --ok:#2ea043; --warn:#f59e0b; --bad:#ef4444;
+    --table-head:#eef2f7; --hover:rgba(0,0,0,.03);
+  }
+  body.theme-light { --bg:#f5f7fa; --fg:#1b1b1b; --muted:#5d6b7a; --card:#ffffff; --border:#dfe3ea; --acc:#007bff; --acc-2:#00bfff; --table-head:#eef2f7; --hover:rgba(0,0,0,.03); }
+  body.theme-dark  { --bg:#121417; --fg:#e4e7ec; --muted:#9aa3af; --card:#181b20; --border:#2a2f36; --acc:#3399ff; --acc-2:#6fd3ff; --table-head:#1c2128; --hover:rgba(255,255,255,.04); }
+  body.theme-blue  { --bg:#e9f5ff; --fg:#002b4d; --muted:#335d7a; --card:#ffffff; --border:#cfe6fb; --acc:#0066cc; --acc-2:#1aa3ff; --table-head:#d9eeff; --hover:rgba(0,40,80,.05); }
+  body.theme-contrast { --bg:#000; --fg:#ff0; --muted:#ffe766; --card:#0b0b0b; --border:#333; --acc:#ff3333; --acc-2:#ffea00; --table-head:#111; --hover:rgba(255,255,0,.05); }
+
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;transition:background .25s ease,color .25s ease}
+
+  .navbar{
+    position:sticky; top:0; z-index:20;
+    display:flex; align-items:center; justify-content:space-between; gap:12px;
+    padding:10px 16px; background:var(--card); border-bottom:1px solid var(--border);
+    backdrop-filter: blur(6px);
+  }
+  .brand{display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--fg)}
+  .brand img{height:28px; width:auto; display:block}
+  .brand strong{font-weight:700; letter-spacing:.2px}
+  .navlinks a{ color:var(--fg); text-decoration:none; margin:0 8px; padding:6px 10px; border-radius:8px; }
+  .navlinks a:hover{ background:var(--table-head) }
+  .right{ display:flex; align-items:center; gap:8px; }
+  select,button{ background:var(--card); color:var(--fg); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-weight:600; }
+  button.primary{ background:var(--acc); color:#fff; border-color:var(--acc); }
+  button.primary:hover{ filter:brightness(.95) }
+
+  main{ padding:18px; max-width:1200px; margin:0 auto; }
+  h2{ margin:18px 0 12px; }
+  .pill{ display:inline-block; padding:4px 10px; border:1px solid var(--border); border-radius:999px; background:var(--card); color:var(--muted); font-size:12px; margin-left:8px; }
+
+  .table-wrap{ overflow:auto; border:1px solid var(--border); border-radius:14px; background:var(--card); box-shadow:0 6px 20px rgba(0,0,0,.06); margin-bottom:22px; animation:fadeIn .3s ease }
+  table{ width:100%; border-collapse:collapse; min-width:900px; }
+  th,td{ padding:10px 12px; border-bottom:1px solid var(--border) }
+  th{ background:var(--table-head); text-align:left; position:sticky; top:0; z-index:1 }
+  tr:hover td{ background:var(--hover) }
+  .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+  footer{ text-align:center; padding:20px; color:var(--muted) }
+</style>
+</head>
+<body>
+  <div class="navbar">
+    <a class="brand" href="./dashboard.html">
+      <img src="./logo-awp.svg" alt="AWP Manager logo">
+      <strong>AWP Manager</strong>
+    </a>
+    <nav class="navlinks">
+      <a href="./dashboard.html">Dashboard</a>
+      <a href="./letture.html">Letture</a>
+      <a href="./manutenzione.html" style="font-weight:700; text-decoration:underline;">Manutenzione</a>
+      <a href="./anagrafica.html">Anagrafica</a>
+    </nav>
+    <div class="right">
+      <label for="themeSel" style="font-size:13px;color:var(--muted);">Tema</label>
+      <select id="themeSel">
+        <option value="theme-light">☀️ Chiaro AWP</option>
+        <option value="theme-dark">🌙 Scuro AWP</option>
+        <option value="theme-blue">🌤️ Azzurro AWP</option>
+        <option value="theme-contrast">⚫ Alto Contrasto</option>
+      </select>
+      <button id="btnRefresh" class="primary">🔄 Aggiorna dati</button>
+      <span id="meta" class="pill">Sinottico: —</span>
+    </div>
+  </div>
+
+  <main>
+    <h2>🛠️ “724 in corso” (Manutenzione)</h2>
+    <div class="table-wrap">
+      <table id="tblM">
+        <thead>
+          <tr>
+            <th>ESATTORE</th><th>LOCALE</th><th>AWP</th><th>PDA</th><th>COMUNE</th><th>STATO</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h2>🛌 Blocco Amministrativo (Ferie)</h2>
+    <div class="table-wrap">
+      <table id="tblF">
+        <thead>
+          <tr>
+            <th>ESATTORE</th><th>LOCALE</th><th>AWP</th><th>PDA</th><th>COMUNE</th><th>STATO</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer>© <span id="year"></span> AWP Manager — Manutenzione</footer>
+
+<script>
+/* Tema */
+const THEME_KEY='awp_theme', themeSel=document.getElementById('themeSel');
+function applyTheme(t){ document.body.className=t; }
+function initTheme(){ const t=localStorage.getItem(THEME_KEY)||'theme-light'; applyTheme(t); themeSel.value=t; }
+themeSel.addEventListener('change',()=>{ const v=themeSel.value; applyTheme(v); localStorage.setItem(THEME_KEY,v); });
+
+/* Fetch helpers */
+async function fetchJSON(u){ const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error('Errore: '+u); return r.json(); }
+async function fetchXLSX(u){ const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error('Errore: '+u); const ab=await r.arrayBuffer(); const wb=XLSX.read(ab,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]]; return XLSX.utils.sheet_to_json(ws,{defval:null}); }
+
+/* State */
+const elMeta=document.getElementById('meta');
+const tbM=document.querySelector('#tblM tbody');
+const tbF=document.querySelector('#tblF tbody');
+
+async function loadAll(){
+  const manifest = await fetchJSON('./Dati/manifest.json');
+  const latest = manifest.sinottici[manifest.sinottici.length-1];
+  elMeta.textContent = 'Sinottico: ' + latest;
+
+  const pdv = await fetchXLSX('./Dati/PDV-e-ESATTORI.xlsx');
+  const map = new Map();
+  for(const r of pdv){
+    const sede=String(r['DENOMINAZIONE SEDE']??'').trim().toUpperCase();
+    const esa=String(r['ESATTORE']??'').trim().toUpperCase();
+    if(sede) map.set(sede, esa||'—');
+  }
+
+  const sin = await fetchXLSX('./Dati/'+latest);
+
+  const ferie=[], manut=[];
+  for(const r of sin){
+    const stato=String(r['DESCR.STATO']??'').toUpperCase();
+    const locale=String(r['DENOMIN.SEDE'] ?? r['DENOMINAZIONE SEDE'] ?? '').trim();
+    const es = map.get(locale.toUpperCase()) ?? '—';
+    const row={
+      ESATTORE: es,
+      LOCALE: locale,
+      AWP: String(r['AWP'] ?? r['MATRICOLA AWP'] ?? r['MATRICOLA'] ?? r['SERIALE'] ?? '').trim(),
+      PDA: String(r['PDA'] ?? r['ID PDA'] ?? r['MATRICOLA PDA'] ?? '').trim(),
+      COMUNE: String(r['COMUNE'] ?? '').trim(),
+      STATO: String(r['DESCR.STATO'] ?? '').trim()
+    };
+    if(stato.includes('724 IN CORSO')) manut.push(row);
+    else if(stato.includes('BLOCCO AMMINISTRATIVO')) ferie.push(row);
+  }
+
+  manut.sort((a,b)=> a.ESATTORE.localeCompare(b.ESATTORE) || a.LOCALE.localeCompare(b.LOCALE));
+  ferie.sort((a,b)=> a.ESATTORE.localeCompare(b.ESATTORE) || a.LOCALE.localeCompare(b.LOCALE));
+
+  tbM.innerHTML=''; manut.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${r.ESATTORE}</td><td>${r.LOCALE}</td><td class="mono">${r.AWP}</td><td class="mono">${r.PDA}</td><td>${r.COMUNE}</td><td>${r.STATO}</td>`;
+    tbM.appendChild(tr);
+  });
+  tbF.innerHTML=''; ferie.forEach(r=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${r.ESATTORE}</td><td>${r.LOCALE}</td><td class="mono">${r.AWP}</td><td class="mono">${r.PDA}</td><td>${r.COMUNE}</td><td>${r.STATO}</td>`;
+    tbF.appendChild(tr);
+  });
+}
+
+/* Init */
+document.getElementById('year').textContent=new Date().getFullYear();
+initTheme();
+loadAll().catch(e=>alert(e.message));
+document.getElementById('btnRefresh').addEventListener('click', ()=>loadAll().catch(e=>alert(e.message)));
+</script>
+</body>
+</html>
