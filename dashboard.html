@@ -171,13 +171,56 @@
 
   <footer>© <span id="year"></span> AWP Manager — Dashboard</footer>
 
-  <!-- === Librerie esterne (defer) === -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min.js" defer></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" defer></script>
+  <!-- === Loader robusto: XLSX + Chart.js con fallback multipli === -->
+<script>
+(function(){
+  const urls = {
+    xlsx: [
+      './libs/xlsx.full.min.js', // ✅ locale (se lo aggiungi in repo)
+      'https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js',
+      'https://unpkg.com/xlsx@0.20.2/dist/xlsx.full.min.js'
+    ],
+    chart: [
+      './libs/chart.umd.min.js', // ✅ locale (se lo aggiungi in repo)
+      'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
+      'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js',
+      'https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js'
+    ]
+  };
 
-  <!-- === Script principale: esegue solo quando TUTTO è carico (Safari-safe) === -->
-  <script>
-  window.addEventListener('load', () => {
+  function loadOne(url){
+    return new Promise((resolve, reject)=>{
+      const s=document.createElement('script');
+      s.src=url; s.async=false; // Safari-friendly
+      s.onload=()=>resolve(url);
+      s.onerror=()=>reject(new Error('errore script '+url));
+      document.head.appendChild(s);
+    });
+  }
+  async function loadWithFallback(list, testFn){
+    for(const u of list){
+      try{
+        await loadOne(u);
+        if(testFn()) return u;
+      }catch(_){}
+    }
+    throw new Error('Impossibile caricare libreria: '+list[0]);
+  }
+
+  async function boot(){
+    try{
+      await loadWithFallback(urls.xlsx, ()=>!!window.XLSX);
+      await loadWithFallback(urls.chart, ()=>!!window.Chart);
+      // quando entrambe pronte → esegui l’app
+      startApp();
+    }catch(e){
+      alert(e.message + '\nControlla la connessione o aggiungi i file locali in /libs/');
+    }
+  }
+
+  // ===== qui incolliamo il codice che prima era nel window.load =====
+  function startApp(){
     /* Tema */
     const THEME_KEY='awp_theme';
     const themeSel=document.getElementById('themeSel');
@@ -203,7 +246,7 @@
       return Math.floor((t - dd)/86400000);
     }
 
-    /* Badge 15 / ultimo */
+    /* Badge 15/ultimo */
     function isLastDayOfMonth(d){ const probe=new Date(d.getFullYear(), d.getMonth()+1, 0); return d.getDate()===probe.getDate(); }
     function daysUntil(a,b){ const t0=new Date(a.getFullYear(),a.getMonth(),a.getDate()); const t1=new Date(b.getFullYear(),b.getMonth(),b.getDate()); return Math.round((t1-t0)/86400000); }
     function nextTaxDay(from){ const y=from.getFullYear(), m=from.getMonth(); const d15=new Date(y,m,15); const last=new Date(y,m+1,0); if(from.getDate()<=15) return d15; if(from.getDate()<last.getDate()) return last; return new Date(y,m+1,15); }
@@ -227,7 +270,6 @@
     const elMetaSin=document.getElementById('metaSinottico');
     const tblTopBody=document.querySelector('#tblTop tbody');
 
-    /* Animazione numeri */
     function animateNumber(el, target, duration=700){
       const start=Number(el.textContent.replace(/[^\d]/g,''))||0;
       const t0=performance.now();
@@ -239,7 +281,6 @@
       requestAnimationFrame(tick);
     }
 
-    /* Chart.js */
     let chart;
     function renderChart(labels, percValues){
       const ctx=document.getElementById('chartEsattori').getContext('2d');
@@ -255,15 +296,12 @@
       });
     }
 
-    /* Caricamento e KPI */
     async function loadAll(){
-      // Manifest -> ultimo file
       const manifest=await fetchJSON('./Dati/manifest.json');
       if(!manifest || !Array.isArray(manifest.sinottici) || manifest.sinottici.length===0) throw new Error('manifest.json non valido');
       const latest=manifest.sinottici[manifest.sinottici.length-1];
       elMetaSin.textContent='Sinottico: '+latest;
 
-      // PDV → ESATTORE
       const pdv=await fetchXLSX('./Dati/PDV-e-ESATTORI.xlsx');
       const sedeToEs=new Map();
       for(const r of pdv){
@@ -272,10 +310,8 @@
         if(sede) sedeToEs.set(sede, esa||'—');
       }
 
-      // Sinottico
       const sin=await fetchXLSX('./Dati/'+latest);
 
-      // Normalizza righe
       const rows = sin.map(r=>{
         const locale=String(r['DENOMIN.SEDE'] ?? r['DENOMINAZIONE SEDE'] ?? '').trim();
         const stato =String(r['DESCR.STATO'] ?? '').trim();
@@ -301,7 +337,6 @@
       animateNumber(elFerie, inFerie.length);
       elMan.innerHTML = '/ <span>'+inManut.length.toLocaleString('it-IT')+' manut.</span>';
 
-      // Per esattore (grafico + top)
       const byEs=new Map();
       for(const r of attive){
         const es=r.ESATTORE||'—';
@@ -312,7 +347,7 @@
       const perc=labels.map(es=>{ const a=byEs.get(es); return a.tot? (a.ok*100/a.tot) : 0; });
       renderChart(labels, perc);
 
-      const tb=document.querySelector('#tblTop tbody'); tb.innerHTML='';
+      const tb=tblTopBody; tb.innerHTML='';
       labels.map(es=>{
         const a=byEs.get(es); const bad=a.tot-a.ok; const p=a.tot?(a.ok*100/a.tot):0;
         return {ESATTORE:es, TOT:a.tot, OK:a.ok, BAD:bad, PERC:p};
@@ -323,16 +358,17 @@
       });
     }
 
-    /* Init */
+    // Init
     document.getElementById('year').textContent=new Date().getFullYear();
     initTheme();
     updateTaxBadge();
     loadAll().catch(e=>alert(e.message));
-    document.getElementById('btnRefresh').addEventListener('click', ()=>{
-      updateTaxBadge();
-      loadAll().catch(e=>alert(e.message));
-    });
-  });
-  </script>
+    document.getElementById('btnRefresh').addEventListener('click', ()=>{ updateTaxBadge(); loadAll().catch(e=>alert(e.message)); });
+  }
+
+  // Avvia loader
+  boot();
+})();
+</script>
 </body>
 </html>
