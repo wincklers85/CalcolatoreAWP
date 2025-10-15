@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>AWP Manager — Dashboard</title>
 
-<!-- Font moderno -->
+<!-- Font -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
@@ -23,9 +23,9 @@
   html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif;transition:background .25s ease,color .25s ease}
 
-  /* Navbar sticky */
+  /* Navbar */
   .navbar{
-    position:sticky; top:0; z-index:20;
+    position:sticky; top:0; z-index:30;
     display:flex; align-items:center; justify-content:space-between; gap:12px;
     padding:10px 16px; background:var(--card); border-bottom:1px solid var(--border);
     backdrop-filter: blur(6px);
@@ -47,28 +47,21 @@
   button.primary{ background:var(--acc); color:#fff; border-color:var(--acc); }
   button.primary:hover{ filter:brightness(.95) }
 
-  /* Badge 15 / ultimo */
-  .badge {
-    display:inline-block; padding:4px 10px; border-radius:999px;
-    font-size:12px; font-weight:700; letter-spacing:.2px; border:1px solid var(--border);
-    background:var(--card); color:var(--fg);
-  }
-  .badge.ok { border-color: var(--ok); color: var(--ok); }
-  .badge.warn { border-color: var(--warn); color: var(--warn); }
-  .badge.danger { border-color: var(--bad); color: var(--bad); }
+  /* Badge 15/ultimo */
+  .badge{ display:inline-block; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:700; letter-spacing:.2px; border:1px solid var(--border); background:var(--card); color:var(--fg) }
+  .badge.ok{ border-color:var(--ok); color:var(--ok) }
+  .badge.warn{ border-color:var(--warn); color:var(--warn) }
+  .badge.danger{ border-color:var(--bad); color:var(--bad) }
 
   main{ padding:18px; max-width:1200px; margin:0 auto; }
   .grid{ display:grid; gap:14px; grid-template-columns:repeat(12,1fr); }
-  .card{
-    background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px;
-    box-shadow: var(--shadow); animation:fadeIn .35s ease;
-  }
+  .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:var(--shadow); animation:fadeIn .35s ease }
   .card h3{ margin:0 0 6px; font-size:14px; color:var(--muted); letter-spacing:.2px }
-  .kpi{ display:flex; align-items:center; justify-content:space-between; }
-  .k-num{ font-size:34px; font-weight:800; letter-spacing:.2px; }
+  .kpi{ display:flex; align-items:center; justify-content:space-between }
+  .k-num{ font-size:34px; font-weight:800; letter-spacing:.2px }
   .ok{ color:var(--ok) } .warn{ color:var(--warn) } .bad{ color:var(--bad) }
-  .span-3{grid-column: span 3} .span-6{grid-column: span 6} .span-12{grid-column: span 12}
-  @media (max-width:980px){ .span-3{grid-column: span 6} .span-6,.span-12{grid-column: span 12} }
+  .span-3{grid-column:span 3} .span-12{grid-column:span 12}
+  @media (max-width:980px){ .span-3{grid-column:span 6} .span-12{grid-column:span 12} }
 
   table{ width:100%; border-collapse:collapse }
   th,td{ padding:10px 12px; border-bottom:1px solid var(--border) }
@@ -77,7 +70,18 @@
   .meta{ margin-top:6px; font-size:12px; color:var(--muted) }
   .pill{ display:inline-block; padding:3px 8px; border:1px solid var(--border); border-radius:999px; background:var(--card); margin-right:6px; }
 
-  @keyframes fadeIn { from{opacity:0; transform: translateY(6px)} to{ opacity:1; transform:none } }
+  @keyframes fadeIn{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+
+  /* Overlay loading */
+  #loader{
+    position:fixed; inset:0; background:rgba(0,0,0,.08); backdrop-filter:blur(2px);
+    display:none; align-items:center; justify-content:center; z-index:40;
+  }
+  .spinner{
+    width:54px; height:54px; border-radius:50%;
+    border:5px solid rgba(0,0,0,.15); border-top-color:var(--acc); animation:spin .9s linear infinite;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg) } }
 </style>
 </head>
 <body>
@@ -117,6 +121,7 @@
         <div class="kpi"><div id="kpiTot" class="k-num">—</div></div>
         <div class="meta"><span class="pill" id="metaSinottico">Sinottico: —</span></div>
       </div>
+
       <div class="card span-3">
         <h3>Aggiornate oggi</h3>
         <div class="kpi">
@@ -125,6 +130,7 @@
         </div>
         <div class="meta">Letture con data = oggi</div>
       </div>
+
       <div class="card span-3">
         <h3>Mancate letture</h3>
         <div class="kpi">
@@ -133,6 +139,7 @@
         </div>
         <div class="meta">Escluse ferie e manutenzione</div>
       </div>
+
       <div class="card span-3">
         <h3>Ferie &amp; Manutenzione</h3>
         <div class="kpi">
@@ -171,204 +178,224 @@
 
   <footer>© <span id="year"></span> AWP Manager — Dashboard</footer>
 
-  <!-- === Loader robusto: XLSX + Chart.js con fallback multipli === -->
-<script>
-(function(){
-  const urls = {
-    xlsx: [
-      './libs/xlsx.full.min.js', // ✅ locale (se lo aggiungi in repo)
-      'https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min.js',
-      'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js',
-      'https://unpkg.com/xlsx@0.20.2/dist/xlsx.full.min.js'
-    ],
-    chart: [
-      './libs/chart.umd.min.js', // ✅ locale (se lo aggiungi in repo)
-      'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
-      'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js',
-      'https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js'
-    ]
-  };
+  <!-- Overlay loading -->
+  <div id="loader"><div class="spinner" aria-label="Caricamento"></div></div>
 
-  function loadOne(url){
-    return new Promise((resolve, reject)=>{
-      const s=document.createElement('script');
-      s.src=url; s.async=false; // Safari-friendly
-      s.onload=()=>resolve(url);
-      s.onerror=()=>reject(new Error('errore script '+url));
-      document.head.appendChild(s);
-    });
-  }
-  async function loadWithFallback(list, testFn){
-    for(const u of list){
+  <!-- ===== Loader robusto: prova locale ./libs/, poi CDN fallback ===== -->
+  <script>
+  (function(){
+    const urls = {
+      xlsx: [
+        './libs/xlsx.full.min.js',
+        'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js',
+        'https://unpkg.com/xlsx@0.20.2/dist/xlsx.full.min.js'
+      ],
+      chart: [
+        './libs/chart.umd.min.js',
+        'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js',
+        'https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js'
+      ]
+    };
+
+    function loadOne(url){
+      return new Promise((resolve, reject)=>{
+        const s=document.createElement('script');
+        s.src=url; s.async=false; // Safari-friendly
+        s.onload=()=>resolve(url);
+        s.onerror=()=>reject(new Error('errore script '+url));
+        document.head.appendChild(s);
+      });
+    }
+    async function loadWithFallback(list, testFn){
+      let lastErr=null;
+      for(const u of list){
+        try{
+          await loadOne(u);
+          if(testFn()) return u;
+        }catch(e){ lastErr=e; }
+      }
+      // Tentativo finale forzato su CDN SheetJS (alcuni ISP bloccano jsDelivr/cdnjs)
       try{
-        await loadOne(u);
-        if(testFn()) return u;
-      }catch(_){}
-    }
-    throw new Error('Impossibile caricare libreria: '+list[0]);
-  }
-
-  async function boot(){
-    try{
-      await loadWithFallback(urls.xlsx, ()=>!!window.XLSX);
-      await loadWithFallback(urls.chart, ()=>!!window.Chart);
-      // quando entrambe pronte → esegui l’app
-      startApp();
-    }catch(e){
-      alert(e.message + '\nControlla la connessione o aggiungi i file locali in /libs/');
-    }
-  }
-
-  // ===== qui incolliamo il codice che prima era nel window.load =====
-  function startApp(){
-    /* Tema */
-    const THEME_KEY='awp_theme';
-    const themeSel=document.getElementById('themeSel');
-    function applyTheme(t){ document.body.classList.remove('theme-light','theme-dark','theme-blue','theme-contrast'); document.body.classList.add(t); }
-    function initTheme(){ const t=localStorage.getItem(THEME_KEY)||'theme-light'; applyTheme(t); themeSel.value=t; }
-    themeSel.addEventListener('change', ()=>{ applyTheme(themeSel.value); localStorage.setItem(THEME_KEY, themeSel.value); });
-
-    /* Helpers fetch + XLSX */
-    async function fetchJSON(url){ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error('Errore caricamento: '+url); return r.json(); }
-    async function fetchXLSX(url){ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error('Errore caricamento: '+url); const ab=await r.arrayBuffer(); const wb=XLSX.read(ab,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]]; return XLSX.utils.sheet_to_json(ws,{defval:null}); }
-
-    /* Date utils */
-    function parseDateFlexible(s){
-      if(!s) return null; const str=String(s).trim();
-      let d=new Date(str); if(!isNaN(d)) return new Date(d.getFullYear(),d.getMonth(),d.getDate());
-      const m1=str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/); if(m1){const[_,dd,mm,yyyy]=m1; return new Date(+yyyy,+mm-1,+dd);}
-      const m2=str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/); if(m2){const[_,yyyy,mm,dd]=m2; return new Date(+yyyy,+mm-1,+dd);}
-      return null;
-    }
-    function daysDiffFromToday(d){
-      if(!d) return Infinity; const t=new Date(); t.setHours(0,0,0,0);
-      const dd=new Date(d.getFullYear(),d.getMonth(),d.getDate());
-      return Math.floor((t - dd)/86400000);
+        await loadOne('https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js');
+        if(testFn()) return 'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js';
+      }catch(e){ lastErr=e; }
+      throw lastErr || new Error('Impossibile caricare libreria');
     }
 
-    /* Badge 15/ultimo */
-    function isLastDayOfMonth(d){ const probe=new Date(d.getFullYear(), d.getMonth()+1, 0); return d.getDate()===probe.getDate(); }
-    function daysUntil(a,b){ const t0=new Date(a.getFullYear(),a.getMonth(),a.getDate()); const t1=new Date(b.getFullYear(),b.getMonth(),b.getDate()); return Math.round((t1-t0)/86400000); }
-    function nextTaxDay(from){ const y=from.getFullYear(), m=from.getMonth(); const d15=new Date(y,m,15); const last=new Date(y,m+1,0); if(from.getDate()<=15) return d15; if(from.getDate()<last.getDate()) return last; return new Date(y,m+1,15); }
-    function updateTaxBadge(){
-      const el=document.getElementById('taxBadge'); if(!el) return;
-      const today=new Date(); today.setHours(0,0,0,0);
-      if(today.getDate()===15 || isLastDayOfMonth(today)){ el.textContent='⚠️ Oggi lettura obbligatoria'; el.className='badge danger'; return; }
-      const target=nextTaxDay(today); const diff=daysUntil(today,target);
-      el.className='badge ' + (diff<=2?'warn':'ok');
-      el.textContent = `⏳ Mancano ${diff} gg — ${target.getDate()===15?'15 del mese':'Ultimo del mese'}`;
-    }
+    function showLoader(v){ document.getElementById('loader').style.display = v?'flex':'none'; }
 
-    /* DOM refs */
-    const elTot=document.getElementById('kpiTot');
-    const elOk=document.getElementById('kpiOk');
-    const elOkPerc=document.getElementById('kpiOkPerc');
-    const elBad=document.getElementById('kpiBad');
-    const elBadPerc=document.getElementById('kpiBadPerc');
-    const elFerie=document.getElementById('kpiFerie');
-    const elMan=document.getElementById('kpiMan');
-    const elMetaSin=document.getElementById('metaSinottico');
-    const tblTopBody=document.querySelector('#tblTop tbody');
-
-    function animateNumber(el, target, duration=700){
-      const start=Number(el.textContent.replace(/[^\d]/g,''))||0;
-      const t0=performance.now();
-      function tick(now){
-        const p=Math.min(1,(now-t0)/duration);
-        el.textContent=Math.round(start+(target-start)*p).toLocaleString('it-IT');
-        if(p<1) requestAnimationFrame(tick);
+    async function boot(){
+      try{
+        showLoader(true);
+        await loadWithFallback(urls.xlsx, ()=>!!window.XLSX);
+        await loadWithFallback(urls.chart, ()=>!!window.Chart);
+        startApp();
+      }catch(e){
+        alert('Impossibile caricare libreria: '+(e && e.message ? e.message : 'sconosciuta')+
+              '\nControlla la connessione o verifica i file in /libs/');
+        showLoader(false);
       }
-      requestAnimationFrame(tick);
     }
 
-    let chart;
-    function renderChart(labels, percValues){
-      const ctx=document.getElementById('chartEsattori').getContext('2d');
-      if(chart) chart.destroy();
-      chart=new Chart(ctx,{
-        type:'bar',
-        data:{ labels, datasets:[{ label:'% aggiornate oggi', data:percValues, borderWidth:1 }]},
-        options:{
-          animation:{ duration:900, easing:'easeOutQuart' },
-          scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } },
-          plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:c=>c.parsed.y.toFixed(1)+'%' } } }
+    // ========= App =========
+    function startApp(){
+      /* Tema */
+      const THEME_KEY='awp_theme';
+      const themeSel=document.getElementById('themeSel');
+      function applyTheme(t){ document.body.classList.remove('theme-light','theme-dark','theme-blue','theme-contrast'); document.body.classList.add(t); }
+      function initTheme(){ const t=localStorage.getItem(THEME_KEY)||'theme-light'; applyTheme(t); themeSel.value=t; }
+      themeSel.addEventListener('change', ()=>{ applyTheme(themeSel.value); localStorage.setItem(THEME_KEY, themeSel.value); });
+
+      /* Helpers fetch + XLSX */
+      async function fetchJSON(url){ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error('Errore: '+url); return r.json(); }
+      async function fetchXLSX(url){ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error('Errore: '+url); const ab=await r.arrayBuffer(); const wb=XLSX.read(ab,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]]; return XLSX.utils.sheet_to_json(ws,{defval:null}); }
+
+      /* Date utils */
+      function parseDateFlexible(s){
+        if(!s) return null; const str=String(s).trim();
+        let d=new Date(str); if(!isNaN(d)) return new Date(d.getFullYear(),d.getMonth(),d.getDate());
+        const m1=str.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/); if(m1){const[_,dd,mm,yyyy]=m1; return new Date(+yyyy,+mm-1,+dd);}
+        const m2=str.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/); if(m2){const[_,yyyy,mm,dd]=m2; return new Date(+yyyy,+mm-1,+dd);}
+        return null;
+      }
+      function daysDiffFromToday(d){
+        if(!d) return Infinity; const t=new Date(); t.setHours(0,0,0,0);
+        const dd=new Date(d.getFullYear(),d.getMonth(),d.getDate());
+        return Math.floor((t - dd)/86400000);
+      }
+
+      /* Badge 15/ultimo */
+      function isLastDayOfMonth(d){ const probe=new Date(d.getFullYear(), d.getMonth()+1, 0); return d.getDate()===probe.getDate(); }
+      function daysUntil(a,b){ const t0=new Date(a.getFullYear(),a.getMonth(),a.getDate()); const t1=new Date(b.getFullYear(),b.getMonth(),b.getDate()); return Math.round((t1-t0)/86400000); }
+      function nextTaxDay(from){ const y=from.getFullYear(), m=from.getMonth(); const d15=new Date(y,m,15); const last=new Date(y,m+1,0); if(from.getDate()<=15) return d15; if(from.getDate()<last.getDate()) return last; return new Date(y,m+1,15); }
+      function updateTaxBadge(){
+        const el=document.getElementById('taxBadge'); if(!el) return;
+        const today=new Date(); today.setHours(0,0,0,0);
+        if(today.getDate()===15 || isLastDayOfMonth(today)){ el.textContent='⚠️ Oggi lettura obbligatoria'; el.className='badge danger'; return; }
+        const target=nextTaxDay(today); const diff=daysUntil(today,target);
+        el.className='badge ' + (diff<=2?'warn':'ok');
+        el.textContent = `⏳ Mancano ${diff} gg — ${target.getDate()===15?'15 del mese':'Ultimo del mese'}`;
+      }
+
+      /* DOM refs */
+      const elTot=document.getElementById('kpiTot');
+      const elOk=document.getElementById('kpiOk');
+      const elOkPerc=document.getElementById('kpiOkPerc');
+      const elBad=document.getElementById('kpiBad');
+      const elBadPerc=document.getElementById('kpiBadPerc');
+      const elFerie=document.getElementById('kpiFerie');
+      const elMan=document.getElementById('kpiMan');
+      const elMetaSin=document.getElementById('metaSinottico');
+      const tblTopBody=document.querySelector('#tblTop tbody');
+
+      /* Animazione numeri */
+      function animateNumber(el, target, duration=700){
+        const start=Number(el.textContent.replace(/[^\d]/g,''))||0;
+        const t0=performance.now();
+        function tick(now){
+          const p=Math.min(1,(now-t0)/duration);
+          el.textContent=Math.round(start+(target-start)*p).toLocaleString('it-IT');
+          if(p<1) requestAnimationFrame(tick);
         }
-      });
-    }
-
-    async function loadAll(){
-      const manifest=await fetchJSON('./Dati/manifest.json');
-      if(!manifest || !Array.isArray(manifest.sinottici) || manifest.sinottici.length===0) throw new Error('manifest.json non valido');
-      const latest=manifest.sinottici[manifest.sinottici.length-1];
-      elMetaSin.textContent='Sinottico: '+latest;
-
-      const pdv=await fetchXLSX('./Dati/PDV-e-ESATTORI.xlsx');
-      const sedeToEs=new Map();
-      for(const r of pdv){
-        const sede=String(r['DENOMINAZIONE SEDE']??'').trim().toUpperCase();
-        const esa=String(r['ESATTORE']??'').trim().toUpperCase();
-        if(sede) sedeToEs.set(sede, esa||'—');
+        requestAnimationFrame(tick);
       }
 
-      const sin=await fetchXLSX('./Dati/'+latest);
-
-      const rows = sin.map(r=>{
-        const locale=String(r['DENOMIN.SEDE'] ?? r['DENOMINAZIONE SEDE'] ?? '').trim();
-        const stato =String(r['DESCR.STATO'] ?? '').trim();
-        const data  =String(r['DATA ULTIMA LETTURA VAL.'] ?? r['DATA ULTIMA LETTURA'] ?? r['ULTIMA LETTURA'] ?? '').trim();
-        const giorni=daysDiffFromToday(parseDateFlexible(data));
-        const esatt =sedeToEs.get(locale.toUpperCase()) ?? '—';
-        return { LOCALE:locale, STATO:stato, DATA:data, GIORNI:giorni, ESATTORE:esatt };
-      });
-
-      const inManut = rows.filter(r => r.STATO.toUpperCase().includes('724 IN CORSO'));
-      const inFerie = rows.filter(r => r.STATO.toUpperCase().includes('BLOCCO AMMINISTRATIVO'));
-      const attive  = rows.filter(r => !r.STATO.toUpperCase().includes('724 IN CORSO') && !r.STATO.toUpperCase().includes('BLOCCO AMMINISTRATIVO'));
-
-      const tot=attive.length;
-      const ok =attive.filter(r=>r.GIORNI===0).length;
-      const bad=attive.filter(r=>r.GIORNI>0 || !isFinite(r.GIORNI)).length;
-
-      animateNumber(elTot, tot);
-      animateNumber(elOk, ok);
-      elOkPerc.textContent = (tot? (ok*100/tot).toFixed(1):'0.0')+'%';
-      animateNumber(elBad, bad);
-      elBadPerc.textContent = (tot? (bad*100/tot).toFixed(1):'0.0')+'%';
-      animateNumber(elFerie, inFerie.length);
-      elMan.innerHTML = '/ <span>'+inManut.length.toLocaleString('it-IT')+' manut.</span>';
-
-      const byEs=new Map();
-      for(const r of attive){
-        const es=r.ESATTORE||'—';
-        if(!byEs.has(es)) byEs.set(es,{tot:0, ok:0});
-        const a=byEs.get(es); a.tot++; if(r.GIORNI===0) a.ok++;
+      /* Grafico */
+      let chart;
+      function renderChart(labels, percValues){
+        const ctx=document.getElementById('chartEsattori').getContext('2d');
+        if(chart) chart.destroy();
+        chart=new Chart(ctx,{
+          type:'bar',
+          data:{ labels, datasets:[{ label:'% aggiornate oggi', data:percValues, borderWidth:1 }]},
+          options:{
+            animation:{ duration:900, easing:'easeOutQuart' },
+            scales:{ y:{ beginAtZero:true, max:100, ticks:{ callback:v=>v+'%' } } },
+            plugins:{ legend:{ display:false }, tooltip:{ callbacks:{ label:c=>c.parsed.y.toFixed(1)+'%' } } }
+          }
+        });
       }
-      const labels=Array.from(byEs.keys()).sort();
-      const perc=labels.map(es=>{ const a=byEs.get(es); return a.tot? (a.ok*100/a.tot) : 0; });
-      renderChart(labels, perc);
 
-      const tb=tblTopBody; tb.innerHTML='';
-      labels.map(es=>{
-        const a=byEs.get(es); const bad=a.tot-a.ok; const p=a.tot?(a.ok*100/a.tot):0;
-        return {ESATTORE:es, TOT:a.tot, OK:a.ok, BAD:bad, PERC:p};
-      }).sort((A,B)=>B.BAD-A.BAD).forEach(r=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${r.ESATTORE}</td><td>${r.TOT}</td><td class="ok">${r.OK}</td><td class="bad">${r.BAD}</td><td>${r.PERC.toFixed(1)}%</td>`;
-        tb.appendChild(tr);
-      });
+      async function loadAll(){
+        try{
+          showLoader(true);
+          const manifest=await fetchJSON('./Dati/manifest.json');
+          if(!manifest || !Array.isArray(manifest.sinottici) || manifest.sinottici.length===0) throw new Error('manifest.json non valido');
+          const latest=manifest.sinottici[manifest.sinottici.length-1];
+          elMetaSin.textContent='Sinottico: '+latest;
+
+          const pdv=await fetchXLSX('./Dati/PDV-e-ESATTORI.xlsx');
+          const sedeToEs=new Map();
+          for(const r of pdv){
+            const sede=String(r['DENOMINAZIONE SEDE']??'').trim().toUpperCase();
+            const esa=String(r['ESATTORE']??'').trim().toUpperCase();
+            if(sede) sedeToEs.set(sede, esa||'—');
+          }
+
+          const sin=await fetchXLSX('./Dati/'+latest);
+
+          const rows = sin.map(r=>{
+            const locale=String(r['DENOMIN.SEDE'] ?? r['DENOMINAZIONE SEDE'] ?? '').trim();
+            const stato =String(r['DESCR.STATO'] ?? '').trim();
+            const data  =String(r['DATA ULTIMA LETTURA VAL.'] ?? r['DATA ULTIMA LETTURA'] ?? r['ULTIMA LETTURA'] ?? '').trim();
+            const giorni=daysDiffFromToday(parseDateFlexible(data));
+            const esatt =sedeToEs.get(locale.toUpperCase()) ?? '—';
+            return { LOCALE:locale, STATO:stato, DATA:data, GIORNI:giorni, ESATTORE:esatt };
+          });
+
+          const inManut = rows.filter(r => r.STATO.toUpperCase().includes('724 IN CORSO'));
+          const inFerie = rows.filter(r => r.STATO.toUpperCase().includes('BLOCCO AMMINISTRATIVO'));
+          const attive  = rows.filter(r => !r.STATO.toUpperCase().includes('724 IN CORSO') && !r.STATO.toUpperCase().includes('BLOCCO AMMINISTRATIVO'));
+
+          const tot=attive.length;
+          const ok =attive.filter(r=>r.GIORNI===0).length;
+          const bad=attive.filter(r=>r.GIORNI>0 || !isFinite(r.GIORNI)).length;
+
+          animateNumber(elTot, tot);
+          animateNumber(elOk, ok);
+          elOkPerc.textContent = (tot? (ok*100/tot).toFixed(1):'0.0')+'%';
+          animateNumber(elBad, bad);
+          elBadPerc.textContent = (tot? (bad*100/tot).toFixed(1):'0.0')+'%';
+          animateNumber(elFerie, inFerie.length);
+          elMan.innerHTML = '/ <span>'+inManut.length.toLocaleString('it-IT')+' manut.</span>';
+
+          const byEs=new Map();
+          for(const r of attive){
+            const es=r.ESATTORE||'—';
+            if(!byEs.has(es)) byEs.set(es,{tot:0, ok:0});
+            const a=byEs.get(es); a.tot++; if(r.GIORNI===0) a.ok++;
+          }
+          const labels=Array.from(byEs.keys()).sort();
+          const perc=labels.map(es=>{ const a=byEs.get(es); return a.tot? (a.ok*100/a.tot) : 0; });
+          renderChart(labels, perc);
+
+          const tb=tblTopBody; tb.innerHTML='';
+          labels.map(es=>{
+            const a=byEs.get(es); const xbad=a.tot-a.ok; const p=a.tot?(a.ok*100/a.tot):0;
+            return {ESATTORE:es, TOT:a.tot, OK:a.ok, BAD:xbad, PERC:p};
+          }).sort((A,B)=>B.BAD-A.BAD).forEach(r=>{
+            const tr=document.createElement('tr');
+            tr.innerHTML=`<td>${r.ESATTORE}</td><td>${r.TOT}</td><td class="ok">${r.OK}</td><td class="bad">${r.BAD}</td><td>${r.PERC.toFixed(1)}%</td>`;
+            tb.appendChild(tr);
+          });
+        } finally {
+          showLoader(false);
+        }
+      }
+
+      // Init
+      document.getElementById('year').textContent=new Date().getFullYear();
+      initTheme();
+      updateTaxBadge();
+      loadAll().catch(e=>alert(e.message));
+      document.getElementById('btnRefresh').addEventListener('click', ()=>{ updateTaxBadge(); loadAll().catch(e=>alert(e.message)); });
     }
 
-    // Init
-    document.getElementById('year').textContent=new Date().getFullYear();
-    initTheme();
-    updateTaxBadge();
-    loadAll().catch(e=>alert(e.message));
-    document.getElementById('btnRefresh').addEventListener('click', ()=>{ updateTaxBadge(); loadAll().catch(e=>alert(e.message)); });
-  }
-
-  // Avvia loader
-  boot();
-})();
-</script>
+    // Avvio
+    window.addEventListener('load', boot);
+  })();
+  </script>
 </body>
 </html>
