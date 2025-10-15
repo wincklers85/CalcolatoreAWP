@@ -7,24 +7,30 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root{ --bg:#f5f7fa; --fg:#1b1b1b; --muted:#5d6b7a; --card:#fff; --border:#dfe3ea; --acc:#007bff; --ok:#2ea043; --warn:#f59e0b; --bad:#ef4444; --table-head:#eef2f7; --shadow:0 8px 22px rgba(0,0,0,.06) }
-  body.theme-light{ } body.theme-dark{ --bg:#121417; --fg:#e4e7ec; --muted:#9aa3af; --card:#181b20; --border:#2a2f36; --acc:#3399ff; --table-head:#1c2128; --shadow:0 10px 30px rgba(0,0,0,.35) }
+  body.theme-light{}
+  body.theme-dark{ --bg:#121417; --fg:#e4e7ec; --muted:#9aa3af; --card:#181b20; --border:#2a2f36; --acc:#3399ff; --table-head:#1c2128; --shadow:0 10px 30px rgba(0,0,0,.35) }
   body.theme-blue{ --bg:#e9f5ff; --fg:#002b4d; --muted:#335d7a; --card:#fff; --border:#cfe6fb; --acc:#0066cc; --table-head:#d9eeff; --shadow:0 12px 28px rgba(0,80,160,.15) }
   body.theme-contrast{ --bg:#000; --fg:#ff0; --muted:#ffe766; --card:#0b0b0b; --border:#333; --acc:#ff3333; --table-head:#111; --shadow:0 10px 26px rgba(255,255,0,.12) }
   html,body{height:100%} body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
   .navbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--border);backdrop-filter:blur(6px)}
   .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fg)} .brand img{height:28px}
-  .navlinks a{color:var(--fg);text-decoration:none;margin:0 8px;padding:6px 10px;border-radius:8px} .navlinks a:hover{background:var(--table-head)}
-  .right{display:flex;align-items:center;gap:8px} select,button{background:var(--card);color:var(--fg);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-weight:600}
+  .nav-mid{display:flex;align-items:center;gap:10px}
+  .navlinks a{color:var(--fg);text-decoration:none;margin:0 8px;padding:6px 10px;border-radius:8px}
+  .navlinks a[aria-current="page"]{font-weight:700;text-decoration:underline}
+  .right{display:flex;align-items:center;gap:8px}
+  select,button{background:var(--card);color:var(--fg);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-weight:600}
   button.primary{background:var(--acc);color:#fff;border-color:var(--acc)}
   .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid var(--border);background:var(--card)}
   .badge.ok{border-color:var(--ok);color:var(--ok)} .badge.warn{border-color:var(--warn);color:var(--warn)} .badge.danger{border-color:var(--bad);color:var(--bad)}
   main{padding:18px;max-width:1200px;margin:0 auto}
   .grid{display:grid;gap:14px;grid-template-columns:repeat(12,1fr)}
-  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow);animation:fadeIn .35s ease}
   .card h3{margin:0 0 6px;font-size:14px;color:var(--muted)}
   .kpi{display:flex;align-items:center;justify-content:space-between}
-  .k-num{font-size:34px;font-weight:800} .ok{color:var(--ok)} .bad{color:var(--bad)}
-  .span-3{grid-column:span 3} .span-12{grid-column:span 12} @media(max-width:980px){.span-3{grid-column:span 6}.span-12{grid-column:span 12}}
+  .k-num{font-size:34px;font-weight:800}
+  .ok{color:var(--ok)} .bad{color:var(--bad)}
+  .span-3{grid-column:span 3} .span-12{grid-column:span 12}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   table{width:100%;border-collapse:collapse} th,td{padding:10px 12px;border-bottom:1px solid var(--border)} th{background:var(--table-head);text-align:left}
   .meta{margin-top:6px;font-size:12px;color:var(--muted)} .pill{display:inline-block;padding:3px 8px;border:1px solid var(--border);border-radius:999px;background:var(--card);margin-right:6px}
   #loader{position:fixed;inset:0;background:rgba(0,0,0,.08);display:none;align-items:center;justify-content:center;z-index:40}
@@ -35,10 +41,10 @@
 <body>
   <div class="navbar">
     <a class="brand" href="./dashboard.html"><img src="./logo-awp.svg" alt="AWP"><strong>AWP Manager</strong></a>
-    <div style="display:flex;align-items:center;gap:10px">
+    <div class="nav-mid">
       <span id="taxBadge" class="badge">—</span>
       <nav class="navlinks">
-        <a href="./dashboard.html" style="font-weight:700;text-decoration:underline;">Dashboard</a>
+        <a href="./dashboard.html" aria-current="page">Dashboard</a>
         <a href="./letture.html">Letture</a>
         <a href="./manutenzione.html">Manutenzione</a>
         <a href="./anagrafica.html">Anagrafica</a>
@@ -82,7 +88,7 @@
       <div class="card span-12">
         <h3>% aggiornate per Esattore (oggi)</h3>
         <canvas id="chartEsattori" height="120"></canvas>
-        <div class="meta"><span class="pill" id="metaEsattori">Esattori: —</span> Quota aggiornate oggi / totale per ogni esattore</div>
+        <div class="meta"><span class="pill" id="metaEsattori">Esattori: —</span> Quota aggiornate oggi / totale per ciascun esattore</div>
       </div>
 
       <div class="card span-12">
@@ -98,162 +104,137 @@
     </div>
   </main>
 
-  <footer>© <span id="year"></span> AWP Manager — Dashboard</footer>
+  <footer style="padding:14px;text-align:center">© <span id="year"></span> AWP Manager — Dashboard</footer>
   <div id="loader"><div class="spinner" aria-label="Caricamento"></div></div>
 
-  <script>
-  (function(){
-    // ------- loader librerie (locale -> CDN) -------
-    const urls = {
-      xlsx: ['./libs/xlsx.full.min.js','https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js','https://unpkg.com/xlsx@0.20.2/dist/xlsx.full.min.js'],
-      chart:['./libs/chart.umd.min.js','https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js','https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js','https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js']
-    };
-    function loadOne(u){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=u;s.async=false;s.onload=()=>res(u);s.onerror=()=>rej(new Error(u));document.head.appendChild(s);});}
-    async function loadWithFallback(list,test){for(const u of list){try{await loadOne(u);if(test())return u;}catch(e){}}throw new Error(list[0]);}
-    function showLoader(v){document.getElementById('loader').style.display=v?'flex':'none';}
+<script>
+(function(){
+  // ------- loader librerie (locale -> CDN) -------
+  const urls = {
+    xlsx: ['./libs/xlsx.full.min.js','https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js','https://unpkg.com/xlsx@0.20.2/dist/xlsx.full.min.js'],
+    chart:['./libs/chart.umd.min.js','https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js','https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js','https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js']
+  };
+  function loadOne(u){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=u;s.async=false;s.onload=()=>res(u);s.onerror=()=>rej(new Error(u));document.head.appendChild(s);});}
+  async function loadWithFallback(list,test){for(const u of list){try{await loadOne(u);if(test())return u;}catch(_){}}throw new Error('Non disponibile: '+list[0]);}
 
-    // ------- app -------
-    function applyTheme(t){document.body.className=t;}
-    function initTheme(){const t=localStorage.getItem('awp_theme')||'theme-light';applyTheme(t);document.getElementById('themeSel').value=t;}
-    document.getElementById('themeSel').addEventListener('change',e=>{applyTheme(e.target.value);localStorage.setItem('awp_theme',e.target.value);});
+  // ------- helpers UI -------
+  const $=sel=>document.querySelector(sel);
+  function showLoader(v){$('#loader').style.display=v?'flex':'none';}
+  function showError(msg){console.error(msg);alert(msg);const n=document.createElement('div');n.className='meta';n.style.color='var(--bad)';n.textContent='Errore: '+msg;document.body.appendChild(n);}
+  function animateNumber(el, target, duration=700){const start=Number(el.textContent.replace(/[^\d]/g,''))||0;const t0=performance.now();function tick(now){const p=Math.min(1,(now-t0)/duration);el.textContent=Math.round(start+(target-start)*p).toLocaleString('it-IT');if(p<1)requestAnimationFrame(tick);}requestAnimationFrame(tick);}
 
-    async function fetchJSON(u){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error('Errore: '+u);return r.json();}
-    // XLSX: prendi il foglio con più righe
-    async function fetchXLSX_largest(u){
-      const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error('Errore: '+u);
-      const ab=await r.arrayBuffer(); const wb=XLSX.read(ab,{type:'array'});
-      let bestName=null, bestRows=[], bestLen=0;
-      for(const name of wb.SheetNames){
-        const ws=wb.Sheets[name];
-        const rows=XLSX.utils.sheet_to_json(ws,{defval:null});
-        if(rows.length>bestLen){ bestLen=rows.length; bestRows=rows; bestName=name; }
+  // ------- tema -------
+  function applyTheme(t){document.body.className=t;}
+  function initTheme(){const t=localStorage.getItem('awp_theme')||'theme-light';applyTheme(t);$('#themeSel').value=t;}
+  $('#themeSel').addEventListener('change',e=>{applyTheme(e.target.value);localStorage.setItem('awp_theme',e.target.value);});
+
+  // ------- fetch helpers -------
+  async function fetchJSON(u,label){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${label||u} fallito (${r.status})`);return r.json();}
+  async function fetchXLSX_largest(u,label){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${label||u} fallito (${r.status})`);const ab=await r.arrayBuffer();const wb=XLSX.read(ab,{type:'array'});let bestName=null,bestRows=[],bestLen=0;for(const name of wb.SheetNames){const ws=wb.Sheets[name];const rows=XLSX.utils.sheet_to_json(ws,{defval:null});if(rows.length>bestLen){bestLen=rows.length;bestRows=rows;bestName=name;}}return{rows:bestRows,sheetName:bestName||wb.SheetNames[0]}}
+
+  // ------- date utils -------
+  function parseDateIT(v){
+    if(v==null||v==='')return null;
+    if(typeof v==='number'||/^[0-9]+$/.test(String(v).trim())){
+      const n=Number(v); if(!Number.isNaN(n)&&n>0&&n<2958465){const base=new Date(Date.UTC(1899,11,30));const d=new Date(base.getTime()+n*86400000);return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+    }
+    const s=String(v).trim().replace(/[\/\.]/g,'-');
+    const m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/);
+    if(m){const[,gg,mm,yyyy]=m;return new Date(+yyyy,+mm-1,+gg);}
+    const d=new Date(s); if(!isNaN(d)) return new Date(d.getFullYear(),d.getMonth(),d.getDate());
+    return null;
+  }
+  function daysDiffFromToday(d){if(!d)return Infinity;const t=new Date();t.setHours(0,0,0,0);const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());return Math.floor((t-x)/86400000);}
+  function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
+
+  // ------- badge 15 / ultimo -------
+  function isLastDayOfMonth(d){const p=new Date(d.getFullYear(),d.getMonth()+1,0);return d.getDate()===p.getDate();}
+  function daysUntil(a,b){const t0=new Date(a.getFullYear(),a.getMonth(),a.getDate());const t1=new Date(b.getFullYear(),b.getMonth(),b.getDate());return Math.round((t1-t0)/86400000);}
+  function nextTaxDay(from){const y=from.getFullYear(),m=from.getMonth();const d15=new Date(y,m,15);const last=new Date(y,m+1,0);if(from.getDate()<=15)return d15;if(from.getDate()<last.getDate())return last;return new Date(y,m+1,15);}
+  function updateTaxBadge(){const el=$('#taxBadge');const t=new Date();t.setHours(0,0,0,0);if(t.getDate()===15||isLastDayOfMonth(t)){el.textContent='⚠️ Oggi lettura obbligatoria';el.className='badge danger';return;}const target=nextTaxDay(t);const diff=daysUntil(t,target);el.className='badge '+(diff<=2?'warn':'ok');el.textContent=`⏳ Mancano ${diff} gg — ${target.getDate()===15?'15 del mese':'Ultimo del mese'}`;}
+
+  // ------- chart opzionale -------
+  let chart=null;
+  function renderChart(labels,vals){
+    if(!window.Chart){console.warn('Chart.js non caricato');return;}
+    const ctx=$('#chartEsattori').getContext('2d'); if(chart) chart.destroy();
+    chart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'% aggiornate oggi',data:vals,borderWidth:1}]},options:{animation:{duration:900},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toFixed(1)+'%'}}}});}
+
+  // ------- caricamento dashboard -------
+  const elTot=$('#kpiTot'), elOk=$('#kpiOk'), elOkP=$('#kpiOkPerc'), elBad=$('#kpiBad'), elBadP=$('#kpiBadPerc'), elFer=$('#kpiFerie'), elMan=$('#kpiMan'), elMetaSin=$('#metaSinottico'), elMetaFog=$('#metaFoglio'), elMetaEs=$('#metaEsattori'), tbl=$('#tblTop tbody');
+
+  async function loadAll(){
+    showLoader(true);
+    try{
+      const manifest=await fetchJSON('./Dati/manifest.json','manifest.json');
+      if(!manifest.sinottici||!manifest.sinottici.length) throw new Error('manifest.json: lista vuota');
+      const latest=manifest.sinottici[manifest.sinottici.length-1];
+      elMetaSin.textContent='Sinottico: '+latest;
+
+      // esattori (opzionale)
+      let esattori=[]; try{esattori=await fetchJSON('./Dati/esattori.json','esattori.json');}catch(_){}
+      if(elMetaEs) elMetaEs.textContent='Esattori: '+(esattori.length||'—');
+
+      // PDV → mappa sede→esattore
+      const pdv=await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.xlsx','PDV-e-ESATTORI.xlsx');
+      const sedeToEs=new Map();
+      for(const r of pdv.rows){
+        const sede=normalizeSede(r['DENOMINAZIONE SEDE']);
+        const esa=String(r['ESATTORE']??'').trim().toUpperCase()||'—';
+        if(sede) sedeToEs.set(sede,esa);
       }
-      return {rows:bestRows, sheetName:bestName||wb.SheetNames[0]};
-    }
 
-    // Parser data GG-MM-AAAA HH:MM:SS + seriali Excel
-    function parseDateIT(v){
-      if(v==null||v==='')return null;
-      if(typeof v==='number'||/^[0-9]+$/.test(String(v).trim())){
-        const n=Number(v); if(!Number.isNaN(n)&&n>0&&n<2958465){
-          const base=new Date(Date.UTC(1899,11,30)); const d=new Date(base.getTime()+n*86400000);
-          return new Date(d.getFullYear(),d.getMonth(),d.getDate());
-        }
-      }
-      const s=String(v).trim().replace(/[\/\.]/g,'-');
-      const m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/);
-      if(m){const[,gg,mm,yyyy]=m;return new Date(+yyyy,+mm-1,+gg);}
-      const d=new Date(s); if(!isNaN(d)) return new Date(d.getFullYear(),d.getMonth(),d.getDate());
-      return null;
-    }
-    function daysDiffFromToday(d){ if(!d) return Infinity; const t=new Date(); t.setHours(0,0,0,0); const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return Math.floor((t-x)/86400000); }
+      // Sinottico → foglio più grande
+      const sn=await fetchXLSX_largest('./Dati/'+latest, latest);
+      elMetaFog.textContent='Foglio: '+sn.sheetName;
 
-    function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
+      const rows=sn.rows.map(r=>{
+        const sede=String(r['DENOMIN.SEDE'] ?? r['DENOMINAZIONE SEDE'] ?? '').trim();
+        const stato=String(r['DESCR.STATO'] ?? '').trim();
+        const dataS=String(r['DATA ULTIMA LETTURA VAL.'] ?? r['DATA ULTIMA LETTURA'] ?? r['ULTIMA LETTURA'] ?? '').trim();
+        const data=parseDateIT(dataS);
+        const giorni=daysDiffFromToday(data);
+        const es=sedeToEs.get(normalizeSede(sede)) ?? '—';
+        return {SEDE:sede,STATO:stato,DATA:data,GIORNI:giorni,ESATTORE:es};
+      });
 
-    function isLastDayOfMonth(d){const p=new Date(d.getFullYear(),d.getMonth()+1,0);return d.getDate()===p.getDate();}
-    function daysUntil(a,b){const t0=new Date(a.getFullYear(),a.getMonth(),a.getDate());const t1=new Date(b.getFullYear(),b.getMonth(),b.getDate());return Math.round((t1-t0)/86400000);}
-    function nextTaxDay(from){const y=from.getFullYear(),m=from.getMonth();const d15=new Date(y,m,15);const last=new Date(y,m+1,0);if(from.getDate()<=15)return d15;if(from.getDate()<last.getDate())return last;return new Date(y,m+1,15);}
-    function updateTaxBadge(){const el=document.getElementById('taxBadge');const t=new Date();t.setHours(0,0,0,0);if(t.getDate()===15||isLastDayOfMonth(t)){el.textContent='⚠️ Oggi lettura obbligatoria';el.className='badge danger';return;}const target=nextTaxDay(t);const diff=daysUntil(t,target);el.className='badge '+(diff<=2?'warn':'ok');el.textContent=`⏳ Mancano ${diff} gg — ${target.getDate()===15?'15 del mese':'Ultimo del mese'}`;}
+      const inManut=rows.filter(r=>/724\s*IN\s*CORSO/i.test(r.STATO));
+      const inFerie=rows.filter(r=>/BLOCCO\s*AMMINISTRATIVO/i.test(r.STATO));
+      const attive =rows.filter(r=>!/724\s*IN\s*CORSO/i.test(r.STATO) && !/BLOCCO\s*AMMINISTRATIVO/i.test(r.STATO));
 
-    let chart; function renderChart(labels,vals){const ctx=document.getElementById('chartEsattori').getContext('2d'); if(chart) chart.destroy(); chart=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'% aggiornate oggi',data:vals,borderWidth:1}]},options:{animation:{duration:900},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toFixed(1)+'%'}}}});}
+      const tot=attive.length, ok=attive.filter(r=>r.GIORNI===0).length, bad=attive.filter(r=>r.GIORNI>0 || !isFinite(r.GIORNI)).length;
+      animateNumber(elTot,tot); animateNumber(elOk,ok); elOkP.textContent=(tot?(ok*100/tot).toFixed(1):'0.0')+'%';
+      animateNumber(elBad,bad); elBadP.textContent=(tot?(bad*100/tot).toFixed(1):'0.0')+'%';
+      elFer.textContent=inFerie.length.toLocaleString('it-IT'); elMan.innerHTML='/ <span>'+inManut.length.toLocaleString('it-IT')+' manut.</span>';
 
-    async function loadAll(){
-      showLoader(true);
-      try{
-        // manifest -> ultimo file
-        const manifest=await fetchJSON('./Dati/manifest.json');
-        const latest=manifest.sinottici[manifest.sinottici.length-1];
-        document.getElementById('metaSinottico').textContent='Sinottico: '+latest;
+      const byEs=new Map(); esattori.forEach(e=>byEs.set(String(e).toUpperCase(),{tot:0,ok:0}));
+      for(const r of attive){const es=r.ESATTORE||'—'; if(!byEs.has(es)) byEs.set(es,{tot:0,ok:0}); const a=byEs.get(es); a.tot++; if(r.GIORNI===0) a.ok++;}
+      const labels=(esattori.length?esattori.map(x=>String(x).toUpperCase()):Array.from(byEs.keys())); Array.from(byEs.keys()).forEach(k=>{if(!labels.includes(k))labels.push(k);});
+      const perc=labels.map(es=>{const a=byEs.get(es)||{tot:0,ok:0};return a.tot?(a.ok*100/a.tot):0;});
+      renderChart(labels, perc);
 
-        // esattori.json (ordine richiesto)
-        let esattori=[];
-        try{ esattori = await fetchJSON('./Dati/esattori.json'); }catch(_){}
-        document.getElementById('metaEsattori').textContent = 'Esattori: '+(esattori.length||'—');
+      tbl.innerHTML=''; labels.map(es=>{const a=byEs.get(es)||{tot:0,ok:0};return{ES:es,TOT:a.tot,OK:a.ok,BAD:a.tot-a.ok,PERC:a.tot?(a.ok*100/a.tot):0}})
+        .sort((A,B)=>B.BAD-A.BAD)
+        .forEach(r=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${r.ES}</td><td>${r.TOT}</td><td class="ok">${r.OK}</td><td class="bad">${r.BAD}</td><td>${r.PERC.toFixed(1)}%</td>`;tbl.appendChild(tr);});
 
-        // PDV-e-ESATTORI.xlsx -> mappa sede→esattore
-        const pdvWB = await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.xlsx');
-        const sedeToEs=new Map();
-        for(const r of pdvWB.rows){
-          const sede=normalizeSede(r['DENOMINAZIONE SEDE']);
-          const esa=String(r['ESATTORE']??'').trim().toUpperCase()||'—';
-          if(sede) sedeToEs.set(sede,esa);
-        }
+    }catch(e){ showError(e.message||'Errore sconosciuto'); }
+    finally{ showLoader(false); }
+  }
 
-        // Sinottico -> foglio più grande
-        const sn = await fetchXLSX_largest('./Dati/'+latest);
-        document.getElementById('metaFoglio').textContent = 'Foglio: '+sn.sheetName;
+  // boot
+  window.addEventListener('load', async ()=>{
+    $('#year').textContent=new Date().getFullYear();
+    initTheme(); updateTaxBadge(); showLoader(true);
+    try{
+      await loadWithFallback(urls.xlsx, ()=>!!window.XLSX);
+      try{ await loadWithFallback(urls.chart, ()=>!!window.Chart); }catch(_){}
+      await loadAll();
+    }catch(e){ showError('Errore librerie: '+(e.message||e)); }
+    finally{ showLoader(false); }
+  });
 
-        // normalizza
-        const rows = sn.rows.map(r=>{
-          const sede = String(r['DENOMIN.SEDE'] ?? r['DENOMINAZIONE SEDE'] ?? '').trim();
-          const stato= String(r['DESCR.STATO'] ?? '').trim();
-          const dataS= String(r['DATA ULTIMA LETTURA VAL.'] ?? r['DATA ULTIMA LETTURA'] ?? r['ULTIMA LETTURA'] ?? '').trim();
-          const data = parseDateIT(dataS);
-          const giorni= daysDiffFromToday(data);
-          const esatt = sedeToEs.get(normalizeSede(sede)) ?? '—';
-          return {SEDE:sede, STATO:stato, DATA_STR:dataS, DATA:data, GIORNI:giorni, ESATTORE:esatt};
-        });
-
-        // esclusioni
-        const inManut = rows.filter(r=>/724\s*IN\s*CORSO/i.test(r.STATO));
-        const inFerie = rows.filter(r=>/BLOCCO\s*AMMINISTRATIVO/i.test(r.STATO));
-        const attive  = rows.filter(r=>!/724\s*IN\s*CORSO/i.test(r.STATO) && !/BLOCCO\s*AMMINISTRATIVO/i.test(r.STATO));
-
-        // KPI
-        const tot=attive.length;
-        const ok =attive.filter(r=>r.GIORNI===0).length;
-        const bad=attive.filter(r=>r.GIORNI>0 || !isFinite(r.GIORNI)).length;
-
-        animate('#kpiTot',tot); animate('#kpiOk',ok); document.querySelector('#kpiOkPerc').textContent=(tot?(ok*100/tot).toFixed(1):'0.0')+'%';
-        animate('#kpiBad',bad); document.querySelector('#kpiBadPerc').textContent=(tot?(bad*100/tot).toFixed(1):'0.0')+'%';
-        document.querySelector('#kpiFerie').textContent=inFerie.length.toLocaleString('it-IT');
-        document.querySelector('#kpiMan').innerHTML='/ <span>'+inManut.length.toLocaleString('it-IT')+' manut.</span>';
-
-        // per esattore (inizializza tutti quelli del JSON)
-        const byEs=new Map();
-        (esattori.length?esattori:[]).forEach(e=>byEs.set(String(e).toUpperCase(),{tot:0,ok:0}));
-        for(const r of attive){
-          const es=r.ESATTORE||'—';
-          if(!byEs.has(es)) byEs.set(es,{tot:0,ok:0});
-          const a=byEs.get(es); a.tot++; if(r.GIORNI===0) a.ok++;
-        }
-
-        // ordine: usa quello del JSON, poi eventuali extra in coda
-        const labels = (esattori.length?esattori.map(x=>String(x).toUpperCase()):Array.from(byEs.keys())).filter((v,i,a)=>a.indexOf(v)===i);
-        Array.from(byEs.keys()).forEach(k=>{ if(!labels.includes(k)) labels.push(k); });
-        const perc = labels.map(es=>{ const a=byEs.get(es)||{tot:0,ok:0}; return a.tot?(a.ok*100/a.tot):0; });
-        renderChart(labels, perc);
-
-        // tabella top
-        const tb=document.querySelector('#tblTop tbody'); tb.innerHTML='';
-        labels.map(es=>{const a=byEs.get(es)||{tot:0,ok:0};return{ES:es,TOT:a.tot,OK:a.ok,BAD:a.tot-a.ok,PERC:a.tot?(a.ok*100/a.tot):0}})
-              .sort((A,B)=>B.BAD-A.BAD)
-              .forEach(r=>{const tr=document.createElement('tr'); tr.innerHTML=`<td>${r.ES}</td><td>${r.TOT}</td><td class="ok">${r.OK}</td><td class="bad">${r.BAD}</td><td>${r.PERC.toFixed(1)}%</td>`; tb.appendChild(tr); });
-
-      } finally { showLoader(false); }
-    }
-
-    function animate(sel,val,dur=700){
-      const el=document.querySelector(sel); const start=Number(el.textContent.replace(/[^\d]/g,''))||0; const t0=performance.now();
-      function tick(now){const p=Math.min(1,(now-t0)/dur); el.textContent=Math.round(start+(val-start)*p).toLocaleString('it-IT'); if(p<1) requestAnimationFrame(tick);}
-      requestAnimationFrame(tick);
-    }
-
-    // boot
-    window.addEventListener('load', async ()=>{
-      document.getElementById('year').textContent=new Date().getFullYear();
-      initTheme(); updateTaxBadge();
-      showLoader(true);
-      try{
-        await loadWithFallback(urls.xlsx, ()=>!!window.XLSX);
-        await loadWithFallback(urls.chart, ()=>!!window.Chart);
-        await loadAll();
-      }catch(e){ alert('Impossibile caricare libreria: '+e.message); }
-      showLoader(false);
-    });
-
-    document.getElementById('btnRefresh').addEventListener('click', ()=>{ updateTaxBadge(); loadAll().catch(e=>alert(e.message)); });
-  })();
-  </script>
+  $('#btnRefresh').addEventListener('click', ()=>{ updateTaxBadge(); loadAll(); });
+})();
+</script>
 </body>
 </html>
