@@ -37,11 +37,17 @@ button.primary{ background:var(--acc); color:#fff; border-color:var(--acc) }
 
 /* LAYOUT */
 main{ padding:18px; max-width:1200px; margin:0 auto }
+.grid{ display:grid; gap:14px; grid-template-columns:repeat(12,1fr) }
 .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:var(--shadow); margin-bottom:14px }
 .card h3{ margin:0 0 10px; font-size:16px }
-
-.controls{ display:flex; flex-wrap:wrap; gap:10px; align-items:center }
 .pill{ display:inline-block; padding:3px 8px; border:1px solid var(--border); border-radius:999px; background:var(--card); margin-right:6px; font-size:12px; color:var(--muted) }
+.controls{ display:flex; flex-wrap:wrap; gap:10px; align-items:center }
+
+.kpi{ display:flex; gap:14px; flex-wrap:wrap }
+.kbox{ background:var(--card); border:1px solid var(--border); border-radius:14px; padding:12px 14px; min-width:140px; box-shadow:var(--shadow) }
+.kbox .lbl{ font-size:12px; color:var(--muted) }
+.kbox .val{ font-weight:900; font-size:22px }
+.bad{ color:var(--bad) } .ok{ color:var(--ok) } .warn{ color:var(--warn) }
 
 .tabs{ display:flex; gap:8px; margin-bottom:8px }
 .tab{ padding:8px 12px; border:1px solid var(--border); background:var(--card); border-radius:999px; cursor:pointer; font-weight:700 }
@@ -55,6 +61,10 @@ td.bad{ color:var(--bad); font-weight:700 }
 td.ok{ color:var(--ok); font-weight:700 }
 
 .meta{ margin-top:6px; font-size:12px; color:var(--muted) }
+
+/* PAGINAZIONE */
+.pager{ display:flex; align-items:center; gap:8px; justify-content:flex-end; margin-top:8px }
+.pager button{ padding:6px 10px }
 
 /* Loader + Error */
 #loader{ position:fixed; inset:0; background:rgba(0,0,0,.08); display:none; align-items:center; justify-content:center; z-index:40 }
@@ -101,10 +111,12 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
         </label>
         <label>Stato:
           <select id="selStato">
-            <option value="">Tutte</option>
-            <option value="ATTIVE">Attive</option>
-            <option value="FERIE">Ferie (Blocco Amm.)</option>
-            <option value="MANUT">Manutenzione (724)</option>
+            <option value="">Tutti</option>
+            <option value="ATTIVA">Attive</option>
+            <option value="FERIE">Ferie</option>
+            <option value="MANUT">Manutenzione</option>
+            <option value="BLOCCO">Blocco</option>
+            <option value="BLOCCO_DA_DA">Blocco da DA</option>
           </select>
         </label>
         <label>Ordina per:
@@ -117,13 +129,28 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
           </select>
         </label>
         <input id="search" placeholder="Cerca locale/comune/CODEID…" />
+        <label>Righe/pagina:
+          <select id="pageSize">
+            <option>25</option><option selected>50</option><option>100</option><option>200</option>
+          </select>
+        </label>
         <button id="btnApply" class="primary">Applica</button>
         <button id="btnDownload">⬇️ Scarica XLSX</button>
         <span class="pill" id="pillSin">Sinottico: —</span>
         <span class="pill" id="pillFoglio">Foglio: —</span>
         <span class="pill" id="pillCount">Selezione: —</span>
       </div>
-      <div class="meta">L’anagrafica è costruita dal sinottico più recente (manifest) unito ai PDV tramite <strong>DENOMIN. SEDE</strong>. Una macchina è identificata dal suo <strong>CODEID</strong> e, se presente più volte, si usa la riga con <em>data più recente</em>.</div>
+
+      <div class="kpi" id="kpiRow">
+        <div class="kbox"><div class="lbl">Totale</div><div class="val" id="kTot">—</div></div>
+        <div class="kbox"><div class="lbl">Attive</div><div class="val ok" id="kAtt">—</div></div>
+        <div class="kbox"><div class="lbl">Ferie</div><div class="val bad" id="kFer">—</div></div>
+        <div class="kbox"><div class="lbl">Manut.</div><div class="val warn" id="kMan">—</div></div>
+        <div class="kbox"><div class="lbl">Blocco</div><div class="val bad" id="kBlo">—</div></div>
+        <div class="kbox"><div class="lbl">Blocco da DA</div><div class="val bad" id="kDa">—</div></div>
+      </div>
+
+      <div class="meta">Anagrafica costruita dal <strong>sinottico più recente</strong> (manifest) unito ai PDV tramite <strong>DENOMIN. SEDE</strong>. Le macchine sono identificate da <strong>CODEID</strong> e, se ripetute, si usa la riga con <em>Data ultima lettura</em> più recente.</div>
     </div>
 
     <div class="card" id="cardMac">
@@ -145,7 +172,11 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
           <tbody></tbody>
         </table>
       </div>
-      <div class="meta">Se selezioni “Attive” sono escluse Ferie/Manutenzione.</div>
+      <div class="pager">
+        <button id="prevMac">◀︎</button>
+        <span id="pageInfoMac" class="pill">—</span>
+        <button id="nextMac">▶︎</button>
+      </div>
     </div>
 
     <div class="card" id="cardLoc" style="display:none">
@@ -161,13 +192,19 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
               <th>Attive</th>
               <th>Ferie</th>
               <th>Manut.</th>
+              <th>Blocco</th>
+              <th>Blocco da DA</th>
               <th>Ultima lettura (max)</th>
             </tr>
           </thead>
           <tbody></tbody>
         </table>
       </div>
-      <div class="meta">Aggregazione per <strong>DENOMIN. SEDE</strong> (conteggi per stato e data massima lettura).</div>
+      <div class="pager">
+        <button id="prevLoc">◀︎</button>
+        <span id="pageInfoLoc" class="pill">—</span>
+        <button id="nextLoc">▶︎</button>
+      </div>
     </div>
   </main>
 
@@ -186,7 +223,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
 
 <script>
 (function(){
-  /* ====== Helpers ====== */
+  /* ===== Helpers generali ===== */
   const $=s=>document.querySelector(s);
   function showLoader(v){$('#loader').style.display=v?'flex':'none';}
   function showError(msg){const b=$('#errorBox');b.textContent=msg;b.style.display='block';alert(msg);}
@@ -196,11 +233,19 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
 
   function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
   function pick(r,names){for(const n of names){if(r[n]!=null&&r[n]!=='')return r[n];}return'';}
-  function pickCodeId(row){const norm=k=>k.toUpperCase().replace(/[^A-Z0-9]/g,'');const keys=Object.keys(row);let h=keys.find(k=>norm(k)==='CODEID');if(h)return String(row[h]??'').trim();h=keys.find(k=>/COD(ICE)?ID/i.test(k));if(h)return String(row[h]??'').trim();h=keys.find(k=>/(SERIALE|MATRICOLA|AWP)/i.test(k));return h?String(row[h]??'').trim():'';}
+  function pickCodeId(row){
+    const norm=k=>k.toUpperCase().replace(/[^A-Z0-9]/g,''); const keys=Object.keys(row);
+    let h=keys.find(k=>norm(k)==='CODEID'); if(h) return String(row[h]??'').trim();
+    h=keys.find(k=>/COD(ICE)?ID/i.test(k)); if(h) return String(row[h]??'').trim();
+    h=keys.find(k=>/(SERIALE|MATRICOLA|AWP)/i.test(k)); return h?String(row[h]??'').trim():'';
+  }
   function parseDateIT(v){
     if(v==null||v==='')return null;
     if(typeof v==='number'||/^[0-9]+$/.test(String(v).trim())){
-      const n=Number(v); if(!Number.isNaN(n)&&n>0&&n<2958465){const base=new Date(Date.UTC(1899,11,30));const d=new Date(base.getTime()+n*86400000);return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+      const n=Number(v); if(!Number.isNaN(n)&&n>0&&n<2958465){
+        const base=new Date(Date.UTC(1899,11,30)); const d=new Date(base.getTime()+n*86400000);
+        return new Date(d.getFullYear(),d.getMonth(),d.getDate());
+      }
     }
     const s=String(v).trim().replace(/[\/\.]/g,'-');
     const m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/);
@@ -211,6 +256,31 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
   function daysDiffFromToday(d){ if(!d) return Infinity; const t=new Date(); t.setHours(0,0,0,0); const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return Math.floor((t-x)/86400000); }
   function fmtDate(d){if(!d)return'';const gg=String(d.getDate()).padStart(2,'0');const mm=String(d.getMonth()+1).padStart(2,'0');return `${gg}-${mm}-${d.getFullYear()}`;}
 
+  // M.S./FERIE & DESCR.STATO
+  function pickMSFerie(row){
+    const v=(row['M.S. / FERIE'] ?? row['M.S./ FERIE'] ?? row['M.S./FERIE'] ?? row['MS / FERIE'] ?? row['MS/FERIE'] ?? row['M.S.'] ?? '').toString().trim();
+    return v;
+  }
+  function classifyState(descrStato, msFerie){
+    const ms=(msFerie||'').toUpperCase();
+    if(/FERIE/.test(ms)) return 'FERIE';
+    if(/MANUT/.test(ms) || /M\.S\./.test(ms)) return 'MANUT';
+    const s=(descrStato||'').toUpperCase();
+    if(/BLOCCO\s*AMMINISTRATIVO/.test(s)) return 'FERIE';
+    if(/724\s*IN\s*CORSO/.test(s))       return 'MANUT';
+    if(/BLOCCO\s*DA\s*DA/.test(s))       return 'BLOCCO_DA_DA';
+    if(/\bBLOCCO\b/.test(s) || /\bBLOCCATA\b/.test(s)) return 'BLOCCO';
+    if(/\bATTIVA\b/.test(s))             return 'ATTIVA';
+    return 'ATTIVA';
+  }
+
+  /* ===== Stato app ===== */
+  let latestName='', esattori=[], sedeToEs=new Map();
+  let macchine=[]; // per macchina (CODEID unico)
+  let locali=[];   // per sede
+  // paginazione
+  let pageMac=1,pageLoc=1;
+
   async function fetchJSON(u,l){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${l||u} fallito (${r.status})`);return r.json();}
   async function fetchXLSX_largest(u,l){
     const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${l||u} fallito (${r.status})`);
@@ -219,12 +289,6 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     return {rows, sheetName:best||wb.SheetNames[0]};
   }
 
-  /* ====== Stato app ====== */
-  let latestName='', esattori=[], sedeToEs=new Map();
-  let macchine=[]; // record completi per macchina (CODEID unico)
-  let locali=[];   // aggregati per sede
-
-  /* ====== Caricamento ====== */
   async function loadAll(){
     showLoader(true); $('#errorBox').style.display='none';
     try{
@@ -234,7 +298,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
       $('#pillSin').textContent='Sinottico: '+latestName;
 
       try{ esattori=await fetchJSON('./Dati/esattori.json','esattori.json'); }catch(_){ esattori=[]; }
-      const selEs=$('#selEsattore'); selEs.innerHTML='<option value="">— Tutti —</option>'+esattori.map(e=>`<option value="${String(e).toUpperCase()}">${String(e).toUpperCase()}</option>`).join('');
+      $('#selEsattore').innerHTML='<option value="">— Tutti —</option>'+esattori.map(e=>`<option value="${String(e).toUpperCase()}">${String(e).toUpperCase()}</option>`).join('');
 
       const pdv=await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.xlsx','PDV-e-ESATTORI.xlsx');
       sedeToEs=new Map(); for(const r of pdv.rows){ const sede=normalizeSede(r['DENOMIN. SEDE']); const es=(r['ESATTORE']??'').toString().trim().toUpperCase()||'—'; if(sede) sedeToEs.set(sede,es); }
@@ -242,67 +306,80 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
       const sn=await fetchXLSX_largest('./Dati/'+latestName, latestName);
       $('#pillFoglio').textContent='Foglio: '+sn.sheetName;
 
-      // Build CODEID -> riga più recente
+      // CODEID → riga più recente (salvo anche ms)
       const byCode=new Map();
       for(const row of sn.rows){
         const codeid=pickCodeId(row); if(!codeid) continue;
-        const sede=row['DENOMIN. SEDE'] ?? pick(row,['DENOMIN.SEDE','DENOMINAZIONE SEDE']);
-        const data=parseDateIT(row['DATA ULTIMA LETTURA VAL.'] ?? pick(row,['DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
-        const stato=String(row['DESCR.STATO'] ?? '').trim();
-        const comune=pick(row,['COMUNE','CITTA','LOCALITA','CITTÀ']);
-        const pda   =pick(row,['PDA','COD.PDA','ID PDA','IDPDA','COD_PDA']);
+        const sede  = row['DENOMIN. SEDE'] ?? pick(row,['DENOMIN.SEDE','DENOMINAZIONE SEDE']);
+        const stato = String(row['DESCR.STATO'] ?? row['STATO'] ?? '').trim();
+        const ms    = pickMSFerie(row);
+        const data  = parseDateIT(row['DATA ULTIMA LETTURA VAL.'] ?? pick(row,['DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
+        const comune= pick(row,['COMUNE','CITTA','LOCALITA','CITTÀ']);
+        const pda   = pick(row,['PDA','COD.PDA','ID PDA','IDPDA','COD_PDA']);
         const prev=byCode.get(codeid);
         if(!prev || (data && prev.data && data>prev.data) || (!prev?.data && data)){
-          byCode.set(codeid,{codeid,sede,stato,data,comune,pda});
+          byCode.set(codeid,{codeid,sede,stato,ms,data,comune,pda});
         }
       }
 
-      // Normalizza e classifica
+      // Macchine normalizzate con categoria e giorni
       macchine=[];
-      for(const {codeid,sede,stato,data,comune,pda} of byCode.values()){
-        const es = sedeToEs.get(normalizeSede(sede)) ?? '—';
-        const giorni=daysDiffFromToday(data);
-        let statoCat='ATTIVE';
-        if(/724\s*IN\s*CORSO/i.test(stato)) statoCat='MANUT';
-        else if(/BLOCCO\s*AMMINISTRATIVO/i.test(stato)) statoCat='FERIE';
-        macchine.push({ ESATTORE:es, SEDE:sede, CODEID:codeid, PDA:pda, DATA:data, GIORNI:giorni, STATO:statoCat, COMUNE:comune });
+      for(const {codeid,sede,stato,ms,data,comune,pda} of byCode.values()){
+        const es     = sedeToEs.get(normalizeSede(sede)) ?? '—';
+        const cat    = classifyState(stato, ms);
+        const giorni = daysDiffFromToday(data);
+        macchine.push({ ESATTORE:es, SEDE:sede, CODEID:codeid, PDA:pda, DATA:data, GIORNI:giorni, STATO:cat, COMUNE:comune });
       }
 
-      // Aggrega Locali
+      // KPI globali
+      const kTot=macchine.length;
+      const kAtt=macchine.filter(r=>r.STATO==='ATTIVA').length;
+      const kFer=macchine.filter(r=>r.STATO==='FERIE').length;
+      const kMan=macchine.filter(r=>r.STATO==='MANUT').length;
+      const kBlo=macchine.filter(r=>r.STATO==='BLOCCO').length;
+      const kDa =macchine.filter(r=>r.STATO==='BLOCCO_DA_DA').length;
+      $('#kTot').textContent=kTot.toLocaleString('it-IT');
+      $('#kAtt').textContent=kAtt.toLocaleString('it-IT');
+      $('#kFer').textContent=kFer.toLocaleString('it-IT');
+      $('#kMan').textContent=kMan.toLocaleString('it-IT');
+      $('#kBlo').textContent=kBlo.toLocaleString('it-IT');
+      $('#kDa').textContent =kDa .toLocaleString('it-IT');
+
+      // Locali aggregati
       const bySede=new Map();
       for(const r of macchine){
         const key=normalizeSede(r.SEDE);
-        if(!bySede.has(key)) bySede.set(key,{ ESATTORE:r.ESATTORE, SEDE:r.SEDE, COMUNE:r.COMUNE, TOT:0, ATTIVE:0, FERIE:0, MANUT:0, MAX:null });
+        if(!bySede.has(key)) bySede.set(key,{ ESATTORE:r.ESATTORE, SEDE:r.SEDE, COMUNE:r.COMUNE, TOT:0, ATTIVA:0, FERIE:0, MANUT:0, BLOCCO:0, BLOCCO_DA_DA:0, MAX:null });
         const a=bySede.get(key);
-        a.TOT++; if(r.STATO==='ATTIVE') a.ATTIVE++; else if(r.STATO==='FERIE') a.FERIE++; else if(r.STATO==='MANUT') a.MANUT++;
+        a.TOT++; a[r.STATO]=(a[r.STATO]||0)+1;
         if(r.DATA && (!a.MAX || r.DATA>a.MAX)) a.MAX=r.DATA;
-        // Esattore/comune: tieni il più popolato o il primo disponibile
         if(!a.ESATTORE && r.ESATTORE) a.ESATTORE=r.ESATTORE;
         if(!a.COMUNE && r.COMUNE) a.COMUNE=r.COMUNE;
       }
-      locali = Array.from(bySede.values());
+      locali=Array.from(bySede.values());
 
       // render iniziale
+      pageMac=1; pageLoc=1;
       render();
     }catch(e){ showError(e.message||'Errore sconosciuto'); }
     finally{ showLoader(false); }
   }
 
-  /* ====== Filtri, rendering, export ====== */
+  /* ===== Filtri + ordinamento + paginazione ===== */
   function applyFilters(){
     const esSel=($('#selEsattore').value||'').toUpperCase();
     const stato=$('#selStato').value;
     const q=($('#search').value||'').trim().toUpperCase();
+    const ord=$('#selOrd').value;
 
     const isMac = $('#cardMac').style.display!=='none';
+
     if(isMac){
       let list=macchine.slice();
       if(esSel) list=list.filter(r=>(r.ESATTORE||'—').toUpperCase()===esSel);
       if(stato) list=list.filter(r=>r.STATO===stato);
       if(q) list=list.filter(r=>(r.SEDE||'').toUpperCase().includes(q)||(r.COMUNE||'').toUpperCase().includes(q)||(r.CODEID||'').toUpperCase().includes(q));
 
-      // ordinamento
-      const ord=$('#selOrd').value;
       list.sort((a,b)=>{
         if(ord==='ESATTORE,SEDE'){ const d=(a.ESATTORE||'').localeCompare(b.ESATTORE||''); if(d!==0) return d; return (a.SEDE||'').localeCompare(b.SEDE||''); }
         if(ord==='SEDE,ESATTORE'){ const d=(a.SEDE||'').localeCompare(b.SEDE||''); if(d!==0) return d; return (a.ESATTORE||'').localeCompare(b.ESATTORE||''); }
@@ -311,16 +388,14 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
         if(ord==='DATA_DESC'){ return (b.DATA?b.DATA.getTime():0) - (a.DATA?a.DATA.getTime():0); }
         return 0;
       });
+
       return {type:'MAC', list};
     }else{
       let list=locali.slice();
       if(esSel) list=list.filter(r=>(r.ESATTORE||'—').toUpperCase()===esSel);
-      if(stato==='ATTIVE') list=list.filter(r=>r.ATTIVE>0);
-      if(stato==='FERIE')  list=list.filter(r=>r.FERIE>0);
-      if(stato==='MANUT')  list=list.filter(r=>r.MANUT>0);
+      if(stato) list=list.filter(r=> (stato==='ATTIVA' && r.ATTIVA>0) || (stato==='FERIE'&&r.FERIE>0) || (stato==='MANUT'&&r.MANUT>0) || (stato==='BLOCCO'&&r.BLOCCO>0) || (stato==='BLOCCO_DA_DA'&&r.BLOCCO_DA_DA>0) );
       if(q) list=list.filter(r=>(r.SEDE||'').toUpperCase().includes(q)||(r.COMUNE||'').toUpperCase().includes(q));
 
-      const ord=$('#selOrd').value;
       list.sort((a,b)=>{
         if(ord==='ESATTORE,SEDE'){ const d=(a.ESATTORE||'').localeCompare(b.ESATTORE||''); if(d!==0) return d; return (a.SEDE||'').localeCompare(b.SEDE||''); }
         if(ord==='SEDE,ESATTORE'){ const d=(a.SEDE||'').localeCompare(b.SEDE||''); if(d!==0) return d; return (a.ESATTORE||'').localeCompare(b.ESATTORE||''); }
@@ -329,76 +404,105 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
         if(ord==='DATA_DESC'){ return (b.MAX?b.MAX.getTime():0) - (a.MAX?a.MAX.getTime():0); }
         return 0;
       });
+
       return {type:'LOC', list};
     }
   }
 
+  function paginate(list, page, size){
+    const total=list.length; const pages=Math.max(1, Math.ceil(total/size));
+    const p=Math.min(Math.max(1,page), pages);
+    const start=(p-1)*size; const end=start+size;
+    return { slice:list.slice(start,end), page:p, pages, total };
+  }
+
   function render(){
     const res=applyFilters();
-    const cnt=res.list.length.toLocaleString('it-IT');
-    $('#pillCount').textContent=`Selezione: ${cnt} ${res.type==='MAC'?'macchine':'locali'}`;
-
+    const size=parseInt($('#pageSize').value,10)||50;
     if(res.type==='MAC'){
-      const tb=$('#tblMac tbody'); tb.innerHTML='';
-      res.list.forEach(r=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${r.ESATTORE||'—'}</td>
-                      <td>${r.SEDE||''}</td>
-                      <td>${r.CODEID||''}</td>
-                      <td>${r.PDA||''}</td>
-                      <td>${fmtDate(r.DATA)}</td>
-                      <td class="${r.GIORNI===0?'ok':'bad'}">${isFinite(r.GIORNI)?r.GIORNI:'—'}</td>
-                      <td>${r.STATO}</td>
-                      <td>${r.COMUNE||''}</td>`;
-        tb.appendChild(tr);
-      });
+      const pg=paginate(res.list, pageMac, size);
+      renderMac(pg.slice); $('#pageInfoMac').textContent=`Pagina ${pg.page}/${pg.pages} — ${pg.total.toLocaleString('it-IT')} righe`; pageMac=pg.page;
+      $('#pillCount').textContent=`Selezione: ${res.list.length.toLocaleString('it-IT')} macchine`;
     }else{
-      const tb=$('#tblLoc tbody'); tb.innerHTML='';
-      res.list.forEach(r=>{
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${r.ESATTORE||'—'}</td>
-                      <td>${r.SEDE||''}</td>
-                      <td>${r.COMUNE||''}</td>
-                      <td>${r.TOT}</td>
-                      <td class="ok">${r.ATTIVE}</td>
-                      <td class="bad">${r.FERIE}</td>
-                      <td class="bad">${r.MANUT}</td>
-                      <td>${fmtDate(r.MAX)}</td>`;
-        tb.appendChild(tr);
-      });
+      const pg=paginate(res.list, pageLoc, size);
+      renderLoc(pg.slice); $('#pageInfoLoc').textContent=`Pagina ${pg.page}/${pg.pages} — ${pg.total.toLocaleString('it-IT')} locali`; pageLoc=pg.page;
+      $('#pillCount').textContent=`Selezione: ${res.list.length.toLocaleString('it-IT')} locali`;
     }
+  }
+
+  function renderMac(list){
+    const tb=$('#tblMac tbody'); tb.innerHTML='';
+    list.forEach(r=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${r.ESATTORE||'—'}</td>
+                    <td>${r.SEDE||''}</td>
+                    <td>${r.CODEID||''}</td>
+                    <td>${r.PDA||''}</td>
+                    <td>${fmtDate(r.DATA)}</td>
+                    <td class="${r.GIORNI===0?'ok':'bad'}">${isFinite(r.GIORNI)?r.GIORNI:'—'}</td>
+                    <td>${r.STATO}</td>
+                    <td>${r.COMUNE||''}</td>`;
+      tb.appendChild(tr);
+    });
+  }
+
+  function renderLoc(list){
+    const tb=$('#tblLoc tbody'); tb.innerHTML='';
+    list.forEach(r=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML=`<td>${r.ESATTORE||'—'}</td>
+                    <td>${r.SEDE||''}</td>
+                    <td>${r.COMUNE||''}</td>
+                    <td>${r.TOT}</td>
+                    <td class="ok">${r.ATTIVA||0}</td>
+                    <td class="bad">${r.FERIE||0}</td>
+                    <td class="warn">${r.MANUT||0}</td>
+                    <td class="bad">${r.BLOCCO||0}</td>
+                    <td class="bad">${r.BLOCCO_DA_DA||0}</td>
+                    <td>${fmtDate(r.MAX)}</td>`;
+      tb.appendChild(tr);
+    });
   }
 
   function downloadXLSX(){
     const res=applyFilters();
-    let headers, data;
     if(res.type==='MAC'){
-      headers=['ESATTORE','LOCALE','AWP (CODEID)','PDA','ULTIMA LETTURA','GIORNI','STATO','COMUNE'];
-      data = res.list.map(r=>[r.ESATTORE||'', r.SEDE||'', r.CODEID||'', r.PDA||'', fmtDate(r.DATA), isFinite(r.GIORNI)?r.GIORNI:'', r.STATO, r.COMUNE||'']);
+      const headers=['ESATTORE','LOCALE','AWP (CODEID)','PDA','ULTIMA LETTURA','GIORNI','STATO','COMUNE'];
+      const data=res.list.map(r=>[r.ESATTORE||'', r.SEDE||'', r.CODEID||'', r.PDA||'', fmtDate(r.DATA), isFinite(r.GIORNI)?r.GIORNI:'', r.STATO, r.COMUNE||'']);
+      const ws=XLSX.utils.aoa_to_sheet([headers,...data]); const wb=XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb,ws,'Macchine'); XLSX.writeFile(wb,'Anagrafica-Macchine.xlsx');
     }else{
-      headers=['ESATTORE','LOCALE','COMUNE','Totale','Attive','Ferie','Manut.','Ultima lettura (max)'];
-      data = res.list.map(r=>[r.ESATTORE||'', r.SEDE||'', r.COMUNE||'', r.TOT, r.ATTIVE, r.FERIE, r.MANUT, fmtDate(r.MAX)]);
+      const headers=['ESATTORE','LOCALE','COMUNE','Totale','Attive','Ferie','Manut.','Blocco','Blocco da DA','Ultima lettura (max)'];
+      const data=res.list.map(r=>[r.ESATTORE||'', r.SEDE||'', r.COMUNE||'', r.TOT, r.ATTIVA||0, r.FERIE||0, r.MANUT||0, r.BLOCCO||0, r.BLOCCO_DA_DA||0, fmtDate(r.MAX)]);
+      const ws=XLSX.utils.aoa_to_sheet([headers,...data]); const wb=XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb,ws,'Locali'); XLSX.writeFile(wb,'Anagrafica-Locali.xlsx');
     }
-    const ws=XLSX.utils.aoa_to_sheet([headers,...data]);
-    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,res.type==='MAC'?'Macchine':'Locali');
-    XLSX.writeFile(wb,`Anagrafica-${res.type==='MAC'?'Macchine':'Locali'}.xlsx`);
   }
 
-  /* ====== UI ====== */
-  $('#btnApply').addEventListener('click', render);
+  /* ===== UI ===== */
+  $('#btnApply').addEventListener('click', ()=>{ pageMac=1; pageLoc=1; render(); });
   $('#btnDownload').addEventListener('click', downloadXLSX);
   $('#btnRefresh').addEventListener('click', loadAll);
-  $('#search').addEventListener('keydown', e=>{ if(e.key==='Enter') render(); });
+  $('#pageSize').addEventListener('change', ()=>{ pageMac=1; pageLoc=1; render(); });
+  $('#search').addEventListener('keydown', e=>{ if(e.key==='Enter') { pageMac=1; pageLoc=1; render(); } });
 
   // Tabs
   $('#tabMac').addEventListener('click', ()=>{
     $('#tabMac').setAttribute('aria-selected','true'); $('#tabLoc').removeAttribute('aria-selected');
-    $('#cardMac').style.display='block'; $('#cardLoc').style.display='none'; render();
+    $('#cardMac').style.display='block'; $('#cardLoc').style.display='none';
+    render();
   });
   $('#tabLoc').addEventListener('click', ()=>{
     $('#tabLoc').setAttribute('aria-selected','true'); $('#tabMac').removeAttribute('aria-selected');
-    $('#cardMac').style.display='none'; $('#cardLoc').style.display='block'; render();
+    $('#cardMac').style.display='none'; $('#cardLoc').style.display='block';
+    render();
   });
+
+  // pager
+  $('#prevMac').addEventListener('click', ()=>{ pageMac=Math.max(1,pageMac-1); render(); });
+  $('#nextMac').addEventListener('click', ()=>{ pageMac=pageMac+1; render(); });
+  $('#prevLoc').addEventListener('click', ()=>{ pageLoc=Math.max(1,pageLoc-1); render(); });
+  $('#nextLoc').addEventListener('click', ()=>{ pageLoc=pageLoc+1; render(); });
 
   // boot
   window.addEventListener('load', ()=>{
