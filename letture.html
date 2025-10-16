@@ -35,7 +35,6 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,S
 select,button{ background:var(--card); color:var(--fg); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-weight:600 }
 button.primary{ background:var(--acc); color:#fff; border-color:var(--acc) }
 .badge{ display:inline-block; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:800; border:2px solid var(--border); background:var(--card) }
-.badge.ok{border-color:var(--ok);color:var(--ok)} .badge.warn{border-color:var(--warn);color:var(--warn)} .badge.danger{border-color:var(--bad);color:var(--bad)}
 
 main{ padding:18px; max-width:1200px; margin:0 auto }
 .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:var(--shadow); margin-bottom:14px }
@@ -111,7 +110,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
         <span class="pill" id="pillFoglio">Foglio: —</span>
         <span class="pill" id="pillCount">Selezione: —</span>
       </div>
-      <div class="meta">Mostra le macchine con **mancata lettura** negli ultimi <strong id="metaDays">2</strong> giorni (escluse ferie e manutenzione).</div>
+      <div class="meta">Mostra le macchine <strong>ATTIVE</strong> con <strong>mancata lettura ≥</strong> <strong id="metaDays">2</strong> giorni (esclude Ferie/Manutenzione/Blocchi). Join su <strong>DENOMIN. SEDE</strong>.</div>
     </div>
 
     <div class="card">
@@ -120,7 +119,6 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
         <table id="tbl">
           <thead>
             <tr id="thead">
-              <!-- se nessun esattore selezionato, include colonna ESATTORE -->
               <th class="col-es">ESATTORE</th>
               <th>LOCALE</th>
               <th>AWP</th>
@@ -132,7 +130,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
           <tbody></tbody>
         </table>
       </div>
-      <div class="meta">Ordine: per esattore (se “Tutti”), poi per <em>giorni arretrati</em> decrescenti.</div>
+      <div class="meta">Ordine: per esattore (se “Tutti”), poi per giorni arretrati (desc).</div>
     </div>
   </main>
 
@@ -163,6 +161,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
   function initTheme(){ const t=localStorage.getItem('awp_theme')||'theme-light'; applyTheme(t); $('#themeSel').value=t; }
   $('#themeSel').addEventListener('change',e=>{ applyTheme(e.target.value); localStorage.setItem('awp_theme',e.target.value); });
 
+  /* ===== Helpers dati ===== */
   function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
   function pick(row, names){ for(const n of names){ if(row[n]!=null && row[n]!=='' ) return row[n]; } return ''; }
   function pickCodeId(row){
@@ -183,6 +182,27 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     return null;
   }
   function daysDiffFromToday(d){ if(!d) return Infinity; const t=new Date(); t.setHours(0,0,0,0); const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return Math.floor((t-x)/86400000); }
+  function fmtDate(d){ if(!d) return ''; const gg=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); return `${gg}-${mm}-${d.getFullYear()}`; }
+
+  // Legge "M.S. / FERIE"
+  function pickMSFerie(row){
+    const v = (row['M.S. / FERIE'] ?? row['M.S./ FERIE'] ?? row['M.S./FERIE'] ?? row['MS / FERIE'] ?? row['MS/FERIE'] ?? row['M.S.'] ?? '').toString().trim();
+    return v;
+  }
+  // Classifica stato (prima M.S./FERIE, poi DESCR. STATO)
+  function classifyState(descrStato, msFerie){
+    const ms = (msFerie||'').toUpperCase();
+    if(/FERIE/.test(ms)) return 'FERIE';
+    if(/MANUT/.test(ms) || /M\.S\./.test(ms)) return 'MANUT';
+    const s = (descrStato||'').toUpperCase();
+    if(/BLOCCO\s*AMMINISTRATIVO/.test(s)) return 'FERIE';
+    if(/724\s*IN\s*CORSO/.test(s))       return 'MANUT';
+    if(/BLOCCO\s*DA\s*DA/.test(s))       return 'BLOCCO_DA_DA';
+    if(/\bBLOCCO\b/.test(s) || /\bBLOCCATA\b/.test(s)) return 'BLOCCO';
+    if(/\bATTIVA\b/.test(s))             return 'ATTIVA';
+    return 'ATTIVA';
+  }
+  function isActiveForEsattore(cat){ return cat==='ATTIVA'; }
 
   async function fetchJSON(u,label){ const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error(`Caricamento ${label||u} fallito (${r.status})`); return r.json(); }
   async function fetchXLSX_largest(u,label){
@@ -192,7 +212,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     return {rows, sheetName:best||wb.SheetNames[0]};
   }
 
-  // stato app
+  /* ===== Stato app ===== */
   let latestName=''; let rowsActive=[]; let sedeToEs=new Map(); let esattori=[];
 
   function readDaysSelection(){
@@ -200,15 +220,11 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     if(sel==='custom'){ const n=parseInt($('#daysCustom').value,10); return isFinite(n)&&n>0?n:2; }
     return parseInt(sel,10);
   }
-
   function pickPDA(row){ return pick(row,['PDA','COD.PDA','ID PDA','IDPDA','COD_PDA']); }
   function pickComune(row){ return pick(row,['COMUNE','CITTA','LOCALITA',"CITTÀ"]); }
 
   function buildFilteredList(){
     const maxDays=readDaysSelection(); $('#metaDays').textContent=maxDays;
-    const todayZero=new Date(); todayZero.setHours(0,0,0,0);
-
-    // “attive” già pronte in rowsActive (esclude ferie & manutenzione)
     let list = rowsActive.filter(r => r.GIORNI >= maxDays); // arretrate di >= maxDays
 
     const selEs = $('#selEsattore').value.trim().toUpperCase();
@@ -224,10 +240,10 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     // Ordina: se tutti → per ESATTORE asc poi GIORNI desc; se uno → solo GIORNI desc
     list.sort((a,b)=>{
       if(!selEs){
-        const d=a.ESATTORE.localeCompare(b.ESATTORE);
+        const d=(a.ESATTORE||'').localeCompare(b.ESATTORE||'');
         if(d!==0) return d;
       }
-      return b.GIORNI - a.GIORNI;
+      return (isFinite(b.GIORNI)?b.GIORNI:-1) - (isFinite(a.GIORNI)?a.GIORNI:-1);
     });
 
     return list;
@@ -245,7 +261,6 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
         <td class="bad">${r.GIORNI===Infinity?'—':r.GIORNI}</td>
         <td>${r.COMUNE||''}</td>
       `;
-      // se colonna ESATTORE nascosta, nascondi anche la cella
       if($('#selEsattore').value) tr.children[0].style.display='none';
       tb.appendChild(tr);
     });
@@ -291,31 +306,33 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
       const sn = await fetchXLSX_largest('./Dati/'+latestName, latestName);
       $('#pillFoglio').textContent='Foglio: '+sn.sheetName;
 
-      // Mappa CODEID→riga più recente
+      // Mappa CODEID→riga più recente (salvando anche M.S./FERIE)
       const byCode=new Map();
       for(const row of sn.rows){
         const codeid=pickCodeId(row); if(!codeid) continue;
         const sede = row['DENOMIN. SEDE'] ?? pick(row,['DENOMIN.SEDE','DENOMINAZIONE SEDE']);
-        const data = parseDateIT(row['DATA ULTIMA LETTURA VAL.'] ?? pick(row,['DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
         const stato= String(row['DESCR.STATO'] ?? '').trim();
+        const ms   = pickMSFerie(row);
+        const data = parseDateIT(row['DATA ULTIMA LETTURA VAL.'] ?? pick(row,['DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
         const comune= pickComune(row);
         const pda   = pickPDA(row);
         const prev=byCode.get(codeid);
         if(!prev || (data && prev.data && data>prev.data) || (!prev?.data && data)){
-          byCode.set(codeid,{codeid,sede,stato,data,comune,pda});
+          byCode.set(codeid,{codeid,sede,stato,ms,data,comune,pda});
         }
       }
 
-      // Normalizza + associa esattore + calcola giorni
+      // Normalizza + classifica + giorni
       const all=[];
-      for(const {codeid,sede,stato,data,comune,pda} of byCode.values()){
-        const es = sedeToEs.get(normalizeSede(sede)) ?? '—';
+      for(const {codeid,sede,stato,ms,data,comune,pda} of byCode.values()){
+        const es     = sedeToEs.get(normalizeSede(sede)) ?? '—';
+        const cat    = classifyState(stato, ms);
         const giorni = daysDiffFromToday(data);
-        all.push({ CODEID:codeid, SEDE:sede, ESATTORE:es, STATO:stato, DATA:data, GIORNI:giorni, COMUNE:comune, PDA:pda });
+        all.push({ CODEID:codeid, SEDE:sede, ESATTORE:es, STATO:stato, MS:ms, CAT:cat, DATA:data, GIORNI:giorni, COMUNE:comune, PDA:pda });
       }
 
-      // Escludi ferie / manutenzione
-      rowsActive = all.filter(r=>!/724\s*IN\s*CORSO/i.test(r.STATO) && !/BLOCCO\s*AMMINISTRATIVO/i.test(r.STATO));
+      // Solo ATTIVE nella lista letture
+      rowsActive = all.filter(r => isActiveForEsattore(r.CAT));
 
       // Applica filtri iniziali
       renderTable(buildFilteredList());
