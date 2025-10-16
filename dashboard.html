@@ -38,7 +38,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,S
 select,button{ background:var(--card); color:var(--fg); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-weight:600 }
 button.primary{ background:var(--acc); color:#fff; border-color:var(--acc) }
 
-/* Badge */
+/* Badge fiscale */
 .badge{ display:inline-block; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:800; border:2px solid var(--border); background:var(--card) }
 .badge.ok{border-color:var(--ok);color:var(--ok)}
 .badge.warn{border-color:var(--warn);color:var(--warn)}
@@ -61,9 +61,7 @@ th{ background:var(--table-head); text-align:left }
 tr:hover td{ background:rgba(0,0,0,.03) }
 .meta{ margin-top:6px; font-size:12px; color:var(--muted) }
 .pill{ display:inline-block; padding:3px 8px; border:1px solid var(--border); border-radius:999px; background:var(--card); margin-right:6px }
-.success{ background:rgba(46,160,67,.1) }
 
-/* FX canvas over chart */
 .fx-wrap{ position:relative }
 #fxCanvas{ position:absolute; inset:0; pointer-events:none; }
 
@@ -110,30 +108,27 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
         <div class="kpi"><div id="kpiTot" class="k-num">—</div></div>
         <div class="meta"><span class="pill" id="metaSinottico">Sinottico: —</span> <span class="pill" id="metaFoglio">Foglio: —</span></div>
       </div>
-
       <div class="card span-3">
         <h3>Aggiornate oggi</h3>
         <div class="kpi"><div id="kpiOk" class="k-num ok">—</div><div id="kpiOkPerc" class="meta">—%</div></div>
         <div class="meta">Letture con data = oggi</div>
       </div>
-
       <div class="card span-3">
         <h3>Mancate letture</h3>
         <div class="kpi"><div id="kpiBad" class="k-num bad">—</div><div id="kpiBadPerc" class="meta">—%</div></div>
-        <div class="meta">Escluse ferie e manutenzione</div>
+        <div class="meta">Escluse ferie/manutenzione/blocchi</div>
       </div>
-
       <div class="card span-3">
         <h3>Ferie &amp; Manutenzione</h3>
         <div class="kpi"><div id="kpiFerie" class="k-num">—</div><div id="kpiMan" class="meta">/ <span>— manut.</span></div></div>
-        <div class="meta">DESCR.STATO: “Blocco Amministrativo” / “724 in corso”</div>
+        <div class="meta">Fonte: DESCR. STATO + M.S./FERIE</div>
       </div>
 
       <div class="card span-12 fx-wrap">
         <h3>% aggiornate per Esattore (oggi)</h3>
         <canvas id="chartEsattori" height="120"></canvas>
         <canvas id="fxCanvas"></canvas>
-        <div class="meta"><span class="pill" id="metaEsattori">Esattori: —</span> Quota aggiornate oggi / totale per ciascun esattore</div>
+        <div class="meta"><span class="pill" id="metaEsattori">Esattori: —</span> Quota aggiornate oggi / totale ATTIVE per ciascun esattore</div>
       </div>
 
       <div class="card span-12">
@@ -144,7 +139,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
             <tbody></tbody>
           </table>
         </div>
-        <div class="meta">Esclusi i PDV in ferie o in manutenzione</div>
+        <div class="meta">Esclusi i PDV in ferie/manutenzione/blocchi</div>
       </div>
     </div>
   </main>
@@ -179,11 +174,15 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
   function nextTaxDay(from){const y=from.getFullYear(),m=from.getMonth();const d15=new Date(y,m,15);const last=new Date(y,m+1,0);if(from.getDate()<=15)return d15;if(from.getDate()<last.getDate())return last;return new Date(y,m+1,15);}
   function updateTaxBadge(){const el=$('#taxBadge');const t=new Date();t.setHours(0,0,0,0);if(t.getDate()===15||isLastDayOfMonth(t)){el.textContent='⚠️ Oggi lettura obbligatoria';el.className='badge danger';return;}const target=nextTaxDay(t);const diff=daysUntil(t,target);el.className='badge '+(diff<=2?'warn':'ok');el.textContent=`⏳ Mancano ${diff} gg — ${target.getDate()===15?'15 del mese':'Ultimo del mese'}`;}
 
-  /* ===== Fetch helpers ===== */
-  async function fetchJSON(u,label){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${label||u} fallito (${r.status})`);return r.json();}
-  async function fetchXLSX_largest(u,label){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${label||u} fallito (${r.status})`);const ab=await r.arrayBuffer();const wb=XLSX.read(ab,{type:'array'});let best=null,brows=[],len=0;for(const n of wb.SheetNames){const ws=wb.Sheets[n];const rows=XLSX.utils.sheet_to_json(ws,{defval:null});if(rows.length>len){len=rows.length;brows=rows;best=n;}}return{rows:brows,sheetName:best||wb.SheetNames[0]}}
-
-  /* ===== Date & testo ===== */
+  /* ===== Text & date ===== */
+  function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
+  function pick(row, names){ for(const n of names){ if(row[n]!=null && row[n]!=='' ) return row[n]; } return ''; }
+  function pickCodeId(row){
+    const norm=k=>k.toUpperCase().replace(/[^A-Z0-9]/g,''); const keys=Object.keys(row);
+    let hit=keys.find(k=>norm(k)==='CODEID'); if(hit) return String(row[hit]??'').trim();
+    hit=keys.find(k=>/COD(ICE)?ID/i.test(k)); if(hit) return String(row[hit]??'').trim();
+    hit=keys.find(k=>/(SERIALE|MATRICOLA|AWP)/i.test(k)); return hit?String(row[hit]??'').trim():'';
+  }
   function parseDateIT(v){
     if(v==null||v==='')return null;
     if(typeof v==='number'||/^[0-9]+$/.test(String(v).trim())){
@@ -195,20 +194,28 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     const d=new Date(s); if(!isNaN(d)) return new Date(d.getFullYear(),d.getMonth(),d.getDate());
     return null;
   }
-  function daysDiffFromToday(d){if(!d)return Infinity;const t=new Date();t.setHours(0,0,0,0);const x=new Date(d.getFullYear(),d.getMonth(),d.getDate());return Math.floor((t-x)/86400000);}
-  function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
+  function daysDiffFromToday(d){ if(!d) return Infinity; const t=new Date(); t.setHours(0,0,0,0); const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return Math.floor((t-x)/86400000); }
 
-  // trova CODEID in modo robusto
-  function pickCodeId(row){
-    const norm=k=>k.toUpperCase().replace(/[^A-Z0-9]/g,'');
-    const keys=Object.keys(row);
-    let hit=keys.find(k=>norm(k)==='CODEID'); if(hit) return String(row[hit]??'').trim();
-    hit=keys.find(k=>/COD(ICE)?ID/i.test(k)); if(hit) return String(row[hit]??'').trim();
-    hit=keys.find(k=>/(SERIALE|MATRICOLA|AWP)/i.test(k)); return hit?String(row[hit]??'').trim():'';
+  /* ===== Nuova logica STATO ===== */
+  function pickMSFerie(row){
+    const v = (row['M.S. / FERIE'] ?? row['M.S./ FERIE'] ?? row['M.S./FERIE'] ?? row['MS / FERIE'] ?? row['MS/FERIE'] ?? row['M.S.'] ?? '').toString().trim();
+    return v;
   }
-  function pick(r,names){ for(const n of names){ if(r[n]!=null && r[n]!=='' ) return r[n]; } return ''; }
+  function classifyState(descrStato, msFerie){
+    const ms = (msFerie||'').toUpperCase();
+    if(/FERIE/.test(ms)) return 'FERIE';
+    if(/MANUT/.test(ms) || /M\.S\./.test(ms)) return 'MANUT';
+    const s = (descrStato||'').toUpperCase();
+    if(/BLOCCO\s*AMMINISTRATIVO/.test(s)) return 'FERIE';
+    if(/724\s*IN\s*CORSO/.test(s))       return 'MANUT';
+    if(/BLOCCO\s*DA\s*DA/.test(s))       return 'BLOCCO_DA_DA';
+    if(/\bBLOCCO\b/.test(s) || /\bBLOCCATA\b/.test(s)) return 'BLOCCO';
+    if(/\bATTIVA\b/.test(s))             return 'ATTIVA';
+    return 'ATTIVA';
+  }
+  function isActiveForEsattore(cat){ return cat==='ATTIVA'; }
 
-  /* ===== Chart & fuochi d'artificio ===== */
+  /* ===== Chart & fireworks ===== */
   let chart=null;
   function renderChart(labels,values){
     if(!window.Chart){console.warn('Chart.js non caricato');return;}
@@ -217,43 +224,20 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     chart=new Chart(ctx,{
       type:'bar',
       data:{labels,datasets:[{label:'% aggiornate oggi',data:values,borderWidth:1}]},
-      options:{
-        animation:{duration:900},
-        scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}},
-        plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toFixed(1)+'%'}}}
-      }
+      options:{animation:{duration:900},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toFixed(1)+'%'}}}}
     });
-
-    // se c'è almeno un 100, lancia i fuochi
     if(values.some(v=>Math.round(v)===100)){ launchFireworks(); }
   }
-
-  // Canvas fireworks molto leggero
   function launchFireworks(){
     const canvas=$('#fxCanvas'); const wrap=canvas.parentElement;
     const rect=wrap.getBoundingClientRect(); canvas.width=rect.width; canvas.height=rect.height;
     const c=canvas.getContext('2d'); let particles=[]; const N=160; const D=1800; const start=performance.now();
-
-    function spawn(){
-      for(let i=0;i<N;i++){
-        const a=Math.random()*Math.PI*2, sp=2+Math.random()*3;
-        particles.push({x:canvas.width*0.8, y:canvas.height*0.2, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp, life:800+Math.random()*700});
-      }
-    }
+    function spawn(){ for(let i=0;i<N;i++){ const a=Math.random()*Math.PI*2, sp=2+Math.random()*3; particles.push({x:canvas.width*0.8,y:canvas.height*0.2,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:800+Math.random()*700}); } }
     spawn();
-
     function frame(t){
-      const elapsed=t-start;
-      c.clearRect(0,0,canvas.width,canvas.height);
-      particles.forEach(p=>{
-        p.x+=p.vx; p.y+=p.vy; p.vy+=0.02; p.life-=16;
-        const alpha=Math.max(0, p.life/900);
-        c.globalAlpha=alpha;
-        c.beginPath(); c.arc(p.x,p.y,2,0,Math.PI*2); c.fill();
-      });
-      c.globalAlpha=1;
-
-      if(elapsed<D){ requestAnimationFrame(frame); } else { c.clearRect(0,0,canvas.width,canvas.height); }
+      const elapsed=t-start; c.clearRect(0,0,canvas.width,canvas.height);
+      particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=0.02; p.life-=16; const alpha=Math.max(0,p.life/900); c.globalAlpha=alpha; c.beginPath(); c.arc(p.x,p.y,2,0,Math.PI*2); c.fill(); });
+      c.globalAlpha=1; if(elapsed<D){ requestAnimationFrame(frame); } else { c.clearRect(0,0,canvas.width,canvas.height); }
     }
     requestAnimationFrame(frame);
   }
@@ -265,6 +249,9 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
         tbBody=$('#tblTop tbody');
 
   /* ===== Caricamento principale ===== */
+  async function fetchJSON(u,label){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${label||u} fallito (${r.status})`);return r.json();}
+  async function fetchXLSX_largest(u,label){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${label||u} fallito (${r.status})`);const ab=await r.arrayBuffer();const wb=XLSX.read(ab,{type:'array'});let best=null,brows=[],len=0;for(const n of wb.SheetNames){const ws=wb.Sheets[n];const rows=XLSX.utils.sheet_to_json(ws,{defval:null});if(rows.length>len){len=rows.length;brows=rows;best=n;}}return{rows:brows,sheetName:best||wb.SheetNames[0]}}
+
   async function loadAll(){
     showLoader(true); $('#errorBox').style.display='none';
     try{
@@ -274,7 +261,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
       const latest=manifest.sinottici[manifest.sinottici.length-1];
       elMetaSin.textContent='Sinottico: '+latest;
 
-      // esattori (ordine iniziale)
+      // esattori (ordine opzionale)
       let esattori=[]; try{ esattori=await fetchJSON('./Dati/esattori.json','esattori.json'); }catch(_){}
       if(elMetaEs) elMetaEs.textContent='Esattori: '+(esattori.length||'—');
 
@@ -287,47 +274,47 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
         if(sede) sedeToEs.set(sede, esa);
       }
 
-      // Sinottico (foglio più grande)
+      // Sinottico (foglio più grande) → mappa CODEID → riga più recente (salvo anche MS)
       const sn=await fetchXLSX_largest('./Dati/'+latest, latest);
       elMetaFog.textContent='Foglio: '+sn.sheetName;
 
-      // Build per CODEID: prendi riga più recente
       const byCode=new Map();
       for(const row of sn.rows){
         const codeid = pickCodeId(row);
         if(!codeid) continue;
         const sedeRaw = row['DENOMIN. SEDE'] ?? pick(row,['DENOMIN.SEDE','DENOMINAZIONE SEDE']);
         const stato   = String(row['DESCR.STATO'] ?? row['STATO'] ?? '').trim();
-        const dataStr = row['DATA ULTIMA LETTURA VAL.'] ?? pick(row,['DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']);
-        const data    = parseDateIT(dataStr);
-
+        const ms      = pickMSFerie(row);
+        const data    = parseDateIT(row['DATA ULTIMA LETTURA VAL.'] ?? pick(row,['DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
         const prev = byCode.get(codeid);
         if(!prev || (data && prev.data && data>prev.data) || (!prev?.data && data)){
-          byCode.set(codeid,{codeid,sede:sedeRaw||'',stato,data});
+          byCode.set(codeid,{ codeid, sede:sedeRaw||'', stato, ms, data });
         }
       }
 
-      // Normalizza + associa esattore
+      // Normalizza + classifica stato
       const rows=[];
-      for(const {codeid,sede,stato,data} of byCode.values()){
-        const es = sedeToEs.get(normalizeSede(sede)) ?? '—';
-        const giorni=daysDiffFromToday(data);
-        rows.push({CODEID:codeid, SEDE:sede, STATO:stato, DATA:data, GIORNI:giorni, ESATTORE:es});
+      for(const {codeid,sede,stato,ms,data} of byCode.values()){
+        const es     = sedeToEs.get(normalizeSede(sede)) ?? '—';
+        const cat    = classifyState(stato, ms);
+        const giorni = daysDiffFromToday(data);
+        rows.push({ CODEID:codeid, SEDE:sede, ESATTORE:es, STATO:stato, MS:ms, CAT:cat, DATA:data, GIORNI:giorni });
       }
 
-      // Esclusioni ferie/manutenzione
-      const inManut=rows.filter(r=>/724\s*IN\s*CORSO/i.test(r.STATO));
-      const inFerie=rows.filter(r=>/BLOCCO\s*AMMINISTRATIVO/i.test(r.STATO));
-      const attive =rows.filter(r=>!/724\s*IN\s*CORSO/i.test(r.STATO) && !/BLOCCO\s*AMMINISTRATIVO/i.test(r.STATO));
+      // Esclusioni per conteggi esattore: SOLO ATTIVE
+      const attive = rows.filter(r=>isActiveForEsattore(r.CAT));
+      const inFerie = rows.filter(r=>r.CAT==='FERIE');
+      const inManut = rows.filter(r=>r.CAT==='MANUT');
 
       // KPI
-      const tot=attive.length, ok=attive.filter(r=>r.GIORNI===0).length, bad=attive.filter(r=>r.GIORNI>0 || !isFinite(r.GIORNI)).length;
-      animateNumber(elTot,tot);
-      animateNumber(elOk,ok); elOkP.textContent=(tot?(ok*100/tot).toFixed(1):'0.0')+'%';
+      const tot=attive.length;
+      const ok =attive.filter(r=>r.GIORNI===0).length;
+      const bad=attive.filter(r=>r.GIORNI>0 || !isFinite(r.GIORNI)).length;
+      animateNumber(elTot,tot); animateNumber(elOk,ok); elOkP.textContent=(tot?(ok*100/tot).toFixed(1):'0.0')+'%';
       animateNumber(elBad,bad); elBadP.textContent=(tot?(bad*100/tot).toFixed(1):'0.0')+'%';
       elFer.textContent=inFerie.length.toLocaleString('it-IT'); elMan.innerHTML='/ <span>'+inManut.length.toLocaleString('it-IT')+' manut.</span>';
 
-      // Per esattore (su CODEID attivi)
+      // Aggregazione per esattore (ATTIVE)
       const byEs=new Map();
       esattori.forEach(e=>byEs.set(String(e).toUpperCase(),{tot:0,ok:0}));
       for(const r of attive){
@@ -343,19 +330,16 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
 
       renderChart(labels, perc);
 
-      // Tabella + evidenziazione al 100%
+      // Tabella criticità (ordina per BAD desc)
       tbBody.innerHTML='';
-      labels.map(es=>{
-        const a=byEs.get(es)||{tot:0,ok:0};
-        return {ES:es,TOT:a.tot,OK:a.ok,BAD:a.tot-a.ok,PERC:a.tot?(a.ok*100/a.tot):0};
-      })
-      .sort((A,B)=>B.BAD-A.BAD)
-      .forEach(r=>{
-        const tr=document.createElement('tr');
-        if(Math.round(r.PERC)===100) tr.classList.add('success');
-        tr.innerHTML=`<td>${r.ES}</td><td>${r.TOT}</td><td class="ok">${r.OK}</td><td class="bad">${r.BAD}</td><td>${r.PERC.toFixed(1)}%</td>`;
-        tbBody.appendChild(tr);
-      });
+      labels.map(es=>{const a=byEs.get(es)||{tot:0,ok:0};return{ES:es,TOT:a.tot,OK:a.ok,BAD:a.tot-a.ok,PERC:a.tot?(a.ok*100/a.tot):0}})
+        .sort((A,B)=>B.BAD-A.BAD)
+        .forEach(r=>{
+          const tr=document.createElement('tr');
+          if(Math.round(r.PERC)===100) tr.classList.add('success');
+          tr.innerHTML=`<td>${r.ES}</td><td>${r.TOT}</td><td class="ok">${r.OK}</td><td class="bad">${r.BAD}</td><td>${r.PERC.toFixed(1)}%</td>`;
+          tbBody.appendChild(tr);
+        });
 
     }catch(e){ showError(e.message||'Errore sconosciuto'); }
     finally{ showLoader(false); }
