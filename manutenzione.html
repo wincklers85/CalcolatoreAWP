@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>AWP Manager — Manutenzione</title>
+<title>AWP Manager — Manutenzione e Ferie</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
 <style>
 :root{
   --bg:#f5f7fa; --fg:#1b1b1b; --muted:#5d6b7a; --card:#ffffff; --border:#dfe3ea;
@@ -35,13 +36,12 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,S
 select,button,input{ background:var(--card); color:var(--fg); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-weight:600 }
 button.primary{ background:var(--acc); color:#fff; border-color:var(--acc) }
 
+/* LAYOUT */
 main{ padding:18px; max-width:1200px; margin:0 auto }
 .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:var(--shadow); margin-bottom:14px }
 .card h3{ margin:0 0 10px; font-size:16px }
 .controls{ display:flex; flex-wrap:wrap; gap:10px; align-items:center }
 .pill{ display:inline-block; padding:3px 8px; border:1px solid var(--border); border-radius:999px; background:var(--card); margin-right:6px; font-size:12px; color:var(--muted) }
-.stat{ font-size:28px; font-weight:800 }
-.bad{ color:var(--bad) } .warn{ color:var(--warn) }
 
 table{ width:100%; border-collapse:collapse }
 th,td{ padding:10px 12px; border-bottom:1px solid var(--border) }
@@ -86,16 +86,16 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     <div class="card">
       <h3>Filtri</h3>
       <div class="controls">
-        <label>Tipo:
-          <select id="selTipo">
-            <option value="">Tutte</option>
-            <option value="FERIE">Ferie (Blocco Amministrativo)</option>
-            <option value="MANUT">Manutenzione (724 in corso)</option>
-          </select>
-        </label>
         <label>Esattore:
           <select id="selEsattore">
             <option value="">— Tutti —</option>
+          </select>
+        </label>
+        <label>Tipo:
+          <select id="selTipo">
+            <option value="">— Tutti —</option>
+            <option value="FERIE">Ferie</option>
+            <option value="MANUT">Manutenzione</option>
           </select>
         </label>
         <input id="search" placeholder="Cerca locale/comune/CODEID…" />
@@ -103,17 +103,13 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
         <button id="btnDownload">⬇️ Scarica XLSX</button>
         <span class="pill" id="pillSin">Sinottico: —</span>
         <span class="pill" id="pillFoglio">Foglio: —</span>
-        <span class="pill" id="pillCount">Selezione: —</span>
+        <span class="pill" id="pillCount">Totale: —</span>
       </div>
-      <div class="controls" style="gap:24px;margin-top:10px">
-        <div>Ferie: <span id="kFerie" class="stat bad">—</span></div>
-        <div>Manutenzione: <span id="kMan" class="stat warn">—</span></div>
-      </div>
-      <div class="meta">L’elenco mostra le macchine classificate nel sinottico come <em>“Blocco Amministrativo”</em> o <em>“724 in corso”</em>, con join su <strong>DENOMIN. SEDE</strong> per risalire all’esattore.</div>
+      <div class="meta">Mostra le macchine in <strong>FERIE</strong> o <strong>MANUTENZIONE</strong> in base a <strong>M.S./FERIE</strong> (prioritario) e <strong>DESCR. STATO</strong>.</div>
     </div>
 
     <div class="card">
-      <h3>Macchine in ferie / manutenzione</h3>
+      <h3>Macchine in Ferie / Manutenzione</h3>
       <div style="overflow:auto">
         <table id="tbl">
           <thead>
@@ -122,7 +118,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
               <th>LOCALE</th>
               <th>AWP (CODEID)</th>
               <th>PDA</th>
-              <th>STATO</th>
+              <th>TIPO</th>
               <th>ULTIMA LETTURA</th>
               <th>COMUNE</th>
             </tr>
@@ -130,7 +126,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
           <tbody></tbody>
         </table>
       </div>
-      <div class="meta">Ordinamento: per tipo (Manutenzione → Ferie), poi per nome esattore, poi locale.</div>
+      <div class="meta">Ordine: esattore → tipo → locale → data.</div>
     </div>
   </main>
 
@@ -138,7 +134,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
 
   <div id="loader"><div class="spinner"></div></div>
 
-  <!-- Libreria XLSX (locale → CDN) -->
+  <!-- XLSX loader (locale → CDN) -->
   <script>
   (function(){
     const urls=['./libs/xlsx.full.min.js','https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js','https://unpkg.com/xlsx@0.20.2/dist/xlsx.full.min.js'];
@@ -149,39 +145,83 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
 
 <script>
 (function(){
+  /* ===== Helpers base ===== */
   const $=s=>document.querySelector(s);
   function showLoader(v){$('#loader').style.display=v?'flex':'none';}
-  function showError(msg){const box=$('#errorBox');box.textContent=msg;box.style.display='block';alert(msg);}
+  function showError(msg){const b=$('#errorBox');b.textContent=msg;b.style.display='block';alert(msg);}
   function applyTheme(t){document.body.className=t;}
   function initTheme(){const t=localStorage.getItem('awp_theme')||'theme-light';applyTheme(t);$('#themeSel').value=t;}
   $('#themeSel').addEventListener('change',e=>{applyTheme(e.target.value);localStorage.setItem('awp_theme',e.target.value);});
+
   function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
   function pick(r,names){for(const n of names){if(r[n]!=null&&r[n]!=='')return r[n];}return'';}
-  function pickCodeId(row){const norm=k=>k.toUpperCase().replace(/[^A-Z0-9]/g,'');const keys=Object.keys(row);let h=keys.find(k=>norm(k)==='CODEID');if(h)return String(row[h]??'').trim();h=keys.find(k=>/COD(ICE)?ID/i.test(k));if(h)return String(row[h]??'').trim();h=keys.find(k=>/(SERIALE|MATRICOLA|AWP)/i.test(k));return h?String(row[h]??'').trim():'';}
-  function parseDateIT(v){if(v==null||v==='')return null; if(typeof v==='number'||/^[0-9]+$/.test(String(v).trim())){const n=Number(v); if(!Number.isNaN(n)&&n>0&&n<2958465){const base=new Date(Date.UTC(1899,11,30));const d=new Date(base.getTime()+n*86400000);return new Date(d.getFullYear(),d.getMonth(),d.getDate());}} const s=String(v).trim().replace(/[\/\.]/g,'-'); const m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/); if(m){const[,gg,mm,yyyy]=m;return new Date(+yyyy,+mm-1,+gg);} const d=new Date(s); if(!isNaN(d)) return new Date(d.getFullYear(),d.getMonth(),d.getDate()); return null;}
+  function pickCodeId(row){
+    const norm=k=>k.toUpperCase().replace(/[^A-Z0-9]/g,''); const keys=Object.keys(row);
+    let h=keys.find(k=>norm(k)==='CODEID'); if(h) return String(row[h]??'').trim();
+    h=keys.find(k=>/COD(ICE)?ID/i.test(k)); if(h) return String(row[h]??'').trim();
+    h=keys.find(k=>/(SERIALE|MATRICOLA|AWP)/i.test(k)); return h?String(row[h]??'').trim():'';
+  }
+  function parseDateIT(v){
+    if(v==null||v==='')return null;
+    if(typeof v==='number'||/^[0-9]+$/.test(String(v).trim())){
+      const n=Number(v); if(!Number.isNaN(n)&&n>0&&n<2958465){
+        const base=new Date(Date.UTC(1899,11,30)); const d=new Date(base.getTime()+n*86400000);
+        return new Date(d.getFullYear(),d.getMonth(),d.getDate());
+      }
+    }
+    const s=String(v).trim().replace(/[\/\.]/g,'-');
+    const m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/);
+    if(m){const[,gg,mm,yyyy]=m;return new Date(+yyyy,+mm-1,+gg);}
+    const d=new Date(s); if(!isNaN(d)) return new Date(d.getFullYear(),d.getMonth(),d.getDate());
+    return null;
+  }
   function fmtDate(d){if(!d)return'';const gg=String(d.getDate()).padStart(2,'0');const mm=String(d.getMonth()+1).padStart(2,'0');return `${gg}-${mm}-${d.getFullYear()}`;}
 
+  // M.S. / FERIE + DESCR. STATO → categoria
+  function pickMSFerie(row){
+    const v=(row['M.S. / FERIE'] ?? row['M.S./ FERIE'] ?? row['M.S./FERIE'] ?? row['MS / FERIE'] ?? row['MS/FERIE'] ?? row['M.S.'] ?? '').toString().trim();
+    return v;
+  }
+  function classifyState(descrStato, msFerie){
+    const ms=(msFerie||'').toUpperCase();
+    if(/FERIE/.test(ms)) return 'FERIE';
+    if(/MANUT/.test(ms) || /M\.S\./.test(ms)) return 'MANUT';
+    const s=(descrStato||'').toUpperCase();
+    if(/BLOCCO\s*AMMINISTRATIVO/.test(s)) return 'FERIE';
+    if(/724\s*IN\s*CORSO/.test(s))       return 'MANUT';
+    return 'ATTIVA';
+  }
+
   async function fetchJSON(u,l){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${l||u} fallito (${r.status})`);return r.json();}
-  async function fetchXLSX_largest(u,l){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${l||u} fallito (${r.status})`);const ab=await r.arrayBuffer();const wb=XLSX.read(ab,{type:'array'});let best=null,rows=[],len=0;for(const n of wb.SheetNames){const ws=wb.Sheets[n];const arr=XLSX.utils.sheet_to_json(ws,{defval:null});if(arr.length>len){len=arr.length;rows=arr;best=n;}}return{rows, sheetName:best||wb.SheetNames[0]}}
+  async function fetchXLSX_largest(u,l){
+    const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error(`Caricamento ${l||u} fallito (${r.status})`);
+    const ab=await r.arrayBuffer(); const wb=XLSX.read(ab,{type:'array'});
+    let best=null,rows=[],len=0;
+    for(const n of wb.SheetNames){
+      const ws=wb.Sheets[n]; const arr=XLSX.utils.sheet_to_json(ws,{defval:null});
+      if(arr.length>len){len=arr.length;rows=arr;best=n;}
+    }
+    return {rows, sheetName:best||wb.SheetNames[0]};
+  }
 
-  let latestName='', sedeToEs=new Map(), esattori=[], rowsAll=[];
+  /* ===== Stato pagina ===== */
+  let rowsAll=[], esattori=[];
 
-  function render(){
-    const tipo=$('#selTipo').value; const esSel=($('#selEsattore').value||'').toUpperCase(); const q=($('#search').value||'').trim().toUpperCase();
-    let list=rowsAll;
-    if(tipo==='FERIE') list=list.filter(r=>r.TIPO==='FERIE');
-    else if(tipo==='MANUT') list=list.filter(r=>r.TIPO==='MANUT');
-    if(esSel) list=list.filter(r=>(r.ESATTORE||'—').toUpperCase()===esSel);
+  function buildFilteredList(){
+    const esSel=($('#selEsattore').value||'').toUpperCase();
+    const tipo=$('#selTipo').value;
+    const q=($('#search').value||'').trim().toUpperCase();
+    let list=rowsAll.filter(r=>(!esSel || r.ESATTORE===esSel) && (!tipo || r.TIPO===tipo));
     if(q) list=list.filter(r=>(r.SEDE||'').toUpperCase().includes(q) || (r.COMUNE||'').toUpperCase().includes(q) || (r.CODEID||'').toUpperCase().includes(q));
-
-    // ordina: MANUT → FERIE, poi esattore, poi locale
     list.sort((a,b)=>{
-      const ta=(a.TIPO==='MANUT')?0:1, tb=(b.TIPO==='MANUT')?0:1;
-      if(ta!==tb) return ta-tb;
-      const ea=(a.ESATTORE||'').localeCompare(b.ESATTORE||''); if(ea!==0) return ea;
-      return (a.SEDE||'').localeCompare(b.SEDE||'');
+      const d1=(a.ESATTORE||'').localeCompare(b.ESATTORE||''); if(d1) return d1;
+      const d2=(a.TIPO||'').localeCompare(b.TIPO||''); if(d2) return d2;
+      const d3=(a.SEDE||'').localeCompare(b.SEDE||''); if(d3) return d3;
+      return (b.DATA?b.DATA.getTime():0)-(a.DATA?a.DATA.getTime():0);
     });
-
+    return list;
+  }
+  function renderTable(list){
     const tb=$('#tbl tbody'); tb.innerHTML='';
     list.forEach(r=>{
       const tr=document.createElement('tr');
@@ -189,83 +229,83 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
                     <td>${r.SEDE||''}</td>
                     <td>${r.CODEID||''}</td>
                     <td>${r.PDA||''}</td>
-                    <td>${r.TIPO==='MANUT'?'724 in corso':'Blocco Amministrativo'}</td>
+                    <td>${r.TIPO}</td>
                     <td>${fmtDate(r.DATA)}</td>
                     <td>${r.COMUNE||''}</td>`;
       tb.appendChild(tr);
     });
-    $('#pillCount').textContent=`Selezione: ${list.length.toLocaleString('it-IT')} macchine`;
+    $('#pillCount').textContent='Totale: '+list.length.toLocaleString('it-IT');
   }
-
-  function downloadXLSX(){
-    const rows=[]; document.querySelectorAll('#tbl tbody tr').forEach(tr=>{
-      const tds=[...tr.children].map(td=>td.textContent); rows.push(tds);
-    });
-    const headers=['ESATTORE','LOCALE','AWP (CODEID)','PDA','STATO','ULTIMA LETTURA','COMUNE'];
-    const ws=XLSX.utils.aoa_to_sheet([headers,...rows]); const wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,ws,'Ferie_Manutenzione');
-    XLSX.writeFile(wb,`Ferie_Manutenzione.xlsx`);
+  function downloadXLSX(list){
+    const headers=['ESATTORE','LOCALE','AWP (CODEID)','PDA','TIPO','ULTIMA LETTURA','COMUNE'];
+    const data=list.map(r=>[r.ESATTORE||'', r.SEDE||'', r.CODEID||'', r.PDA||'', r.TIPO, fmtDate(r.DATA), r.COMUNE||'']);
+    const ws=XLSX.utils.aoa_to_sheet([headers,...data]);
+    const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Ferie_Manutenzione');
+    XLSX.writeFile(wb,'Ferie_Manutenzione.xlsx');
   }
 
   async function loadAll(){
     showLoader(true); $('#errorBox').style.display='none';
     try{
+      // manifest → ultimo
       const manifest=await fetchJSON('./Dati/manifest.json','manifest.json');
       if(!manifest.sinottici||!manifest.sinottici.length) throw new Error('manifest.json: lista sinottici vuota');
-      latestName=manifest.sinottici[manifest.sinottici.length-1]; $('#pillSin').textContent='Sinottico: '+latestName;
+      const latest=manifest.sinottici[manifest.sinottici.length-1];
+      $('#pillSin').textContent='Sinottico: '+latest;
 
+      // esattori
       try{ esattori=await fetchJSON('./Dati/esattori.json','esattori.json'); }catch(_){ esattori=[]; }
-      const selEs=$('#selEsattore'); selEs.innerHTML='<option value="">— Tutti —</option>'+esattori.map(e=>`<option value="${String(e).toUpperCase()}">${String(e).toUpperCase()}</option>`).join('');
+      $('#selEsattore').innerHTML='<option value="">— Tutti —</option>'+esattori.map(e=>`<option value="${String(e).toUpperCase()}">${String(e).toUpperCase()}</option>`).join('');
 
+      // PDV → sede→esattore
       const pdv=await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.xlsx','PDV-e-ESATTORI.xlsx');
-      sedeToEs=new Map(); for(const r of pdv.rows){ const sede=normalizeSede(r['DENOMIN. SEDE']); const es=(r['ESATTORE']??'').toString().trim().toUpperCase()||'—'; if(sede) sedeToEs.set(sede,es); }
+      const sedeToEs=new Map();
+      for(const r of pdv.rows){
+        const sede=normalizeSede(r['DENOMIN. SEDE']);
+        const es=(r['ESATTORE']??'').toString().trim().toUpperCase()||'—';
+        if(sede) sedeToEs.set(sede, es);
+      }
 
-      const sn=await fetchXLSX_largest('./Dati/'+latestName, latestName);
+      // Sinottico (foglio più grande) → CODEID più recente (includo MS)
+      const sn=await fetchXLSX_largest('./Dati/'+latest, latest);
       $('#pillFoglio').textContent='Foglio: '+sn.sheetName;
 
-      // mappa CODEID -> riga più recente
       const byCode=new Map();
       for(const row of sn.rows){
         const codeid=pickCodeId(row); if(!codeid) continue;
-        const sede=row['DENOMIN. SEDE'] ?? pick(row,['DENOMIN.SEDE','DENOMINAZIONE SEDE']);
-        const stato=String(row['DESCR.STATO'] ?? '').trim();
-        const data=parseDateIT(row['DATA ULTIMA LETTURA VAL.'] ?? pick(row,['DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
-        const comune=pick(row,['COMUNE','CITTA','LOCALITA','CITTÀ']);
-        const pda=pick(row,['PDA','COD.PDA','ID PDA','IDPDA','COD_PDA']);
-        const prev=byCode.get(codeid);
+        const sede  = row['DENOMIN. SEDE'] ?? pick(row,['DENOMIN.SEDE','DENOMINAZIONE SEDE']);
+        const stato = String(row['DESCR.STATO'] ?? row['STATO'] ?? '').trim();
+        const ms    = pickMSFerie(row);
+        const data  = parseDateIT(row['DATA ULTIMA LETTURA VAL.'] ?? pick(row,['DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
+        const comune= pick(row,['COMUNE','CITTA','LOCALITA','CITTÀ']);
+        const pda   = pick(row,['PDA','COD.PDA','ID PDA','IDPDA','COD_PDA']);
+        const prev  = byCode.get(codeid);
         if(!prev || (data && prev.data && data>prev.data) || (!prev?.data && data)){
-          byCode.set(codeid,{codeid,sede,stato,data,comune,pda});
+          byCode.set(codeid,{codeid,sede,stato,ms,data,comune,pda});
         }
       }
 
-      // costruisci righe ferie/manut
+      // Estrai solo FERIE e MANUT (in base alla classificazione nuova)
       const out=[];
-      for(const {codeid,sede,stato,data,comune,pda} of byCode.values()){
-        const isManut=/724\s*IN\s*CORSO/i.test(stato);
-        const isFerie=/BLOCCO\s*AMMINISTRATIVO/i.test(stato);
-        if(!(isManut||isFerie)) continue;
-        const es = sedeToEs.get(normalizeSede(sede)) ?? '—';
-        out.push({ ESATTORE:es, SEDE:sede, CODEID:codeid, PDA:pda, TIPO:isManut?'MANUT':'FERIE', DATA:data, COMUNE:comune });
+      for(const {codeid,sede,stato,ms,data,comune,pda} of byCode.values()){
+        const cat = classifyState(stato, ms);
+        if(cat!=='FERIE' && cat!=='MANUT') continue;
+        const es  = sedeToEs.get(normalizeSede(sede)) ?? '—';
+        out.push({ ESATTORE:es, SEDE:sede, CODEID:codeid, PDA:pda, TIPO:cat, DATA:data, COMUNE:comune });
       }
 
-      // KPI
-      const ferieCnt = out.filter(r=>r.TIPO==='FERIE').length;
-      const manCnt   = out.filter(r=>r.TIPO==='MANUT').length;
-      $('#kFerie').textContent=ferieCnt.toLocaleString('it-IT');
-      $('#kMan').textContent=manCnt.toLocaleString('it-IT');
-
-      rowsAll=out;
-      render();
+      rowsAll = out;
+      renderTable(buildFilteredList());
 
     }catch(e){ showError(e.message||'Errore sconosciuto'); }
     finally{ showLoader(false); }
   }
 
-  // UI
-  $('#btnApply').addEventListener('click',render);
-  $('#btnDownload').addEventListener('click',downloadXLSX);
-  $('#btnRefresh').addEventListener('click',loadAll);
-  $('#search').addEventListener('keydown',e=>{ if(e.key==='Enter') render(); });
+  // Eventi UI
+  $('#btnApply').addEventListener('click', ()=>{ renderTable(buildFilteredList()); });
+  $('#btnDownload').addEventListener('click', ()=>{ downloadXLSX(buildFilteredList()); });
+  $('#btnRefresh').addEventListener('click', loadAll);
+  $('#search').addEventListener('keydown', e=>{ if(e.key==='Enter') { renderTable(buildFilteredList()); } });
 
   // boot
   window.addEventListener('load', ()=>{
