@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AWP Manager — Letture</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f5f7fa; --fg:#1b1b1b; --muted:#5d6b7a; --card:#ffffff; --border:#dfe3ea;
+  --acc:#007bff; --ok:#2ea043; --warn:#f59e0b; --bad:#ef4444;
+  --table-head:#eef2f7; --shadow:0 10px 26px rgba(0,0,0,.08);
+}
+body.theme-light{}
+body.theme-dark{ --bg:#121417; --fg:#e4e7ec; --muted:#9aa3af; --card:#181b20; --border:#2a2f36; --acc:#3399ff; --table-head:#1c2128; --shadow:0 10px 30px rgba(0,0,0,.35) }
+body.theme-blue{ --bg:#e9f5ff; --fg:#002b4d; --muted:#335d7a; --card:#ffffff; --border:#cfe6fb; --acc:#0066cc; --table-head:#d9eeff; --shadow:0 12px 28px rgba(0,80,160,.15) }
+body.theme-contrast{ --bg:#000; --fg:#ff0; --muted:#ffe766; --card:#0b0b0b; --border:#333; --acc:#ff3333; --table-head:#111; --shadow:0 10px 26px rgba(255,255,0,.12) }
+
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
+
+/* NAVBAR */
+.navbar{
+  position:sticky; top:0; z-index:30;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:10px 16px; background:var(--card); border-bottom:1px solid var(--border);
+  backdrop-filter: blur(6px);
+}
+.brand{display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--fg)}
+.brand img{height:28px}
+.navlinks a{ color:var(--fg); text-decoration:none; margin:0 8px; padding:6px 10px; border-radius:8px }
+.navlinks a:hover{ background:var(--table-head) }
+.navlinks a[aria-current="page"]{ font-weight:700; text-decoration:underline }
+.right{display:flex; align-items:center; gap:8px}
+select,button{ background:var(--card); color:var(--fg); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-weight:600 }
+button.primary{ background:var(--acc); color:#fff; border-color:var(--acc) }
+.badge{ display:inline-block; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:800; border:2px solid var(--border); background:var(--card) }
+
+main{ padding:18px; max-width:1200px; margin:0 auto }
+.card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:var(--shadow); margin-bottom:14px }
+.card h3{ margin:0 0 10px; font-size:16px }
+.controls{ display:flex; flex-wrap:wrap; gap:10px; align-items:center }
+.pill{ display:inline-block; padding:3px 8px; border:1px solid var(--border); border-radius:999px; background:var(--card); margin-right:6px; font-size:12px; color:var(--muted) }
+
+table{ width:100%; border-collapse:collapse }
+th,td{ padding:10px 12px; border-bottom:1px solid var(--border) }
+th{ background:var(--table-head); text-align:left }
+tr:hover td{ background:rgba(0,0,0,.03) }
+td.bad{ color:var(--bad); font-weight:700 }
+
+.meta{ margin-top:6px; font-size:12px; color:var(--muted) }
+
+/* Loader + Error */
+#loader{ position:fixed; inset:0; background:rgba(0,0,0,.08); display:none; align-items:center; justify-content:center; z-index:40 }
+.spinner{ width:54px; height:54px; border-radius:50%; border:5px solid rgba(0,0,0,.15); border-top-color:var(--acc); animation:spin .9s linear infinite }
+@keyframes spin{ to{ transform:rotate(360deg) } }
+#errorBox{ max-width:1200px; margin:10px auto 0; background:#ffecec; border:1px solid #ffb3b3; color:#7a0000; padding:10px 14px; border-radius:10px; display:none; }
+
+footer{ padding:14px; text-align:center; color:var(--muted) }
+</style>
+</head>
+<body>
+  <div class="navbar">
+    <a class="brand" href="./dashboard.html"><img src="./logo-awp.svg" alt="AWP"><strong>AWP Manager</strong></a>
+    <nav class="navlinks">
+      <a href="./dashboard.html">Dashboard</a>
+      <a href="./letture.html" aria-current="page">Letture</a>
+      <a href="./manutenzione.html">Manutenzione</a>
+      <a href="./anagrafica.html">Anagrafica</a>
+    </nav>
+    <div class="right">
+      <label for="themeSel" style="font-size:13px;color:var(--muted)">Tema</label>
+      <select id="themeSel">
+        <option value="theme-light">☀️ Chiaro AWP</option>
+        <option value="theme-dark">🌙 Scuro AWP</option>
+        <option value="theme-blue">🌤️ Azzurro AWP</option>
+        <option value="theme-contrast">⚫ Alto Contrasto</option>
+      </select>
+      <button id="btnRefresh" class="primary">🔄 Aggiorna</button>
+    </div>
+  </div>
+
+  <div id="errorBox"></div>
+
+  <main>
+    <div class="card">
+      <h3>Filtri</h3>
+      <div class="controls">
+        <label>Esattore:
+          <select id="selEsattore">
+            <option value="">— Tutti —</option>
+          </select>
+        </label>
+        <label>Giorni arretrati:
+          <select id="selDays">
+            <option value="1">1 (ieri)</option>
+            <option value="2" selected>2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="7">7</option>
+            <option value="10">10</option>
+            <option value="custom">Personalizzato…</option>
+          </select>
+        </label>
+        <input type="number" id="daysCustom" min="1" step="1" placeholder="giorni" style="width:100px;display:none">
+        <button id="btnApply" class="primary">Applica</button>
+        <button id="btnDownload">⬇️ Scarica XLSX</button>
+        <button id="btnDownloadTxt">⬇️ Scarica TXT</button>
+        <button id="btnWhatsapp">🟢 Invia su WhatsApp</button>
+        <span class="pill" id="pillSin">Sinottico: —</span>
+        <span class="pill" id="pillFoglio">Foglio: —</span>
+        <span class="pill" id="pillCount">Selezione: —</span>
+      </div>
+      <div class="meta">
+        Mostra le macchine <strong>ATTIVE</strong> con <strong>mancata lettura ≥</strong> <strong id="metaDays">2</strong> giorni (esclude Ferie/Manutenzione/Blocchi). Join su <strong>DENOMIN. SEDE</strong>.  
+        Nella tabella è ora presente anche la colonna <strong>MODELLO</strong>.
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Macchine da leggere</h3>
+      <div style="overflow:auto">
+        <table id="tbl">
+          <thead>
+            <tr id="thead">
+              <th class="col-es">ESATTORE</th>
+              <th>LOCALE</th>
+              <th>AWP</th>
+              <th>MODELLO</th>
+              <th>PDA</th>
+              <th>GIORNI</th>
+              <th>COMUNE</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <div class="meta">Ordine: per esattore (se “Tutti”), poi per giorni arretrati (desc).</div>
+    </div>
+  </main>
+
+  <footer>© <span id="year"></span> AWP Manager — Letture</footer>
+
+  <div id="loader"><div class="spinner"></div></div>
+
+  <!-- Libreria XLSX (locale → CDN) -->
+  <script>
+  (function(){
+    const urls=['./libs/xlsx.full.min.js','https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js','https://unpkg.com/xlsx@0.20.2/dist/xlsx.full.min.js'];
+    function loadOne(u){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=u;s.async=false;s.onload=()=>res();s.onerror=()=>rej();document.head.appendChild(s);});}
+    (async()=>{for(const u of urls){try{await loadOne(u); if(window.XLSX) break;}catch(_){}} if(!window.XLSX) alert('Impossibile caricare la libreria XLSX');})();
+  })();
+  </script>
+
+<script>
+/* ======================= CORE SCRIPT ======================= */
+(function(){
+  const $=s=>document.querySelector(s);
+  const byId=id=>document.getElementById(id);
+  const loader=byId('loader'); const errBox=byId('errorBox');
+
+  function showLoader(v){ loader.style.display=v?'flex':'none'; }
+  function showError(msg){ errBox.textContent=msg; errBox.style.display='block'; alert(msg); }
+
+  function applyTheme(t){ document.body.className=t; }
+  function initTheme(){ const t=localStorage.getItem('awp_theme')||'theme-light'; applyTheme(t); $('#themeSel').value=t; }
+  $('#themeSel').addEventListener('change',e=>{ applyTheme(e.target.value); localStorage.setItem('awp_theme',e.target.value); });
+
+  /* ===== Helpers dati ===== */
+  function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
+  function pick(row, names){ for(const n of names){ if(row[n]!=null && row[n]!=='' ) return row[n]; } return ''; }
+  function pickCodeId(row){
+    const norm=k=>k.toUpperCase().replace(/[^A-Z0-9]/g,''); const keys=Object.keys(row);
+    let hit=keys.find(k=>norm(k)==='CODEID'); if(hit) return String(row[hit]??'').trim();
+    hit=keys.find(k=>/COD(ICE)?ID/i.test(k)); if(hit) return String(row[hit]??'').trim();
+    hit=keys.find(k=>/(SERIALE|MATRICOLA|AWP)/i.test(k)); return hit?String(row[hit]??'').trim():'';
+  }
+  function parseDateIT(v){
+    if(v==null||v==='')return null;
+    if(typeof v==='number'||/^[0-9]+$/.test(String(v).trim())){
+      const n=Number(v); if(!Number.isNaN(n)&&n>0&&n<2958465){const base=new Date(Date.UTC(1899,11,30));const d=new Date(base.getTime()+n*86400000);return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+    }
+    const s=String(v).trim().replace(/[\/\.]/g,'-');
+    const m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/);
+    if(m){const[,gg,mm,yyyy]=m;return new Date(+yyyy,+mm-1,+gg);}
+    const d=new Date(s); if(!isNaN(d)) return new Date(d.getFullYear(),d.getMonth(),d.getDate());
+    return null;
+  }
+  function daysDiffFromToday(d){ if(!d) return Infinity; const t=new Date(); t.setHours(0,0,0,0); const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return Math.floor((t-x)/86400000); }
+  function fmtDate(d){ if(!d) return ''; const gg=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); return `${gg}-${mm}-${d.getFullYear()}`; }
+
+  // Legge "M.S. / FERIE"
+  function pickMSFerie(row){
+    const v = (row['M.S. / FERIE'] ?? row['M.S./ FERIE'] ?? row['M.S./FERIE'] ?? row['MS / FERIE'] ?? row['MS/FERIE'] ?? row['M.S.'] ?? '').toString().trim();
+    return v;
+  }
+  // Classifica stato (prima M.S./FERIE, poi DESCR. STATO)
+  function classifyState(descrStato, msFerie){
+    const ms = (msFerie||'').toUpperCase();
+    if(/FERIE/.test(ms)) return 'FERIE';
+    if(/MANUT/.test(ms) || /M\.S\./.test(ms)) return 'MANUT';
+    const s = (descrStato||'').toUpperCase();
+    if(/BLOCCO\s*AMMINISTRATIVO/.test(s)) return 'FERIE';
+    if(/724\s*IN\s*CORSO/.test(s))       return 'MANUT';
+    if(/BLOCCO\s*DA\s*DA/.test(s))       return 'BLOCCO_DA_DA';
+    if(/\bBLOCCO\b/.test(s) || /\bBLOCCATA\b/.test(s)) return 'BLOCCO';
+    if(/\bATTIVA\b/.test(s))             return 'ATTIVA';
+    return 'ATTIVA';
+  }
+  function isActiveForEsattore(cat){ return cat==='ATTIVA'; }
+
+  async function fetchJSON(u,label){ const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error(`Caricamento ${label||u} fallito (${r.status})`); return r.json(); }
+  async function fetchXLSX_largest(u,label){
+    const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error(`Caricamento ${label||u} fallito (${r.status})`);
+    const ab=await r.arrayBuffer(); const wb=XLSX.read(ab,{type:'array'});
+    let best=null,rows=[],len=0; for(const n of wb.SheetNames){ const ws=wb.Sheets[n]; const arr=XLSX.utils.sheet_to_json(ws,{defval:null}); if(arr.length>len){len=arr.length;rows=arr;best=n;} }
+    return {rows, sheetName:best||wb.SheetNames[0]};
+  }
+
+  /* ===== Stato app ===== */
+  let latestName=''; let rowsActive=[]; let sedeToEs=new Map(); let esattori=[];
+
+  function readDaysSelection(){
+    const sel=$('#selDays').value;
+    if(sel==='custom'){ const n=parseInt($('#daysCustom').value,10); return isFinite(n)&&n>0?n:2; }
+    return parseInt(sel,10);
+  }
+  function pickPDA(row){ return pick(row,['PDA','COD.PDA','ID PDA','IDPDA','COD_PDA']); }
+  function pickComune(row){ return pick(row,['COMUNE','CITTA','LOCALITA',"CITTÀ"]); }
+  function pickModello(row){ return pick(row,['MODELLO','MOD','MODEL','MODEL NAME']); }
+
+  function buildFilteredList(){
+    const maxDays=readDaysSelection(); $('#metaDays').textContent=maxDays;
+    let list = rowsActive.filter(r => r.GIORNI >= maxDays); // arretrate di >= maxDays
+
+    const selEs = $('#selEsattore').value.trim().toUpperCase();
+    if(selEs){
+      list = list.filter(r => (r.ESATTORE||'—').toUpperCase()===selEs);
+      // nascondi colonna ESATTORE
+      document.querySelectorAll('.col-es').forEach(th=>th.style.display='none');
+    }else{
+      // mostra colonna ESATTORE
+      document.querySelectorAll('.col-es').forEach(th=>th.style.display='table-cell');
+    }
+
+    // Ordina: se tutti → per ESATTORE asc poi GIORNI desc; se uno → solo GIORNI desc
+    list.sort((a,b)=>{
+      if(!selEs){
+        const d=(a.ESATTORE||'').localeCompare(b.ESATTORE||'');
+        if(d!==0) return d;
+      }
+      return (isFinite(b.GIORNI)?b.GIORNI:-1) - (isFinite(a.GIORNI)?a.GIORNI:-1);
+    });
+
+    return list;
+  }
+
+  function renderTable(list){
+    const tb=$('#tbl tbody'); tb.innerHTML='';
+    list.forEach(r=>{
+      const tr=document.createElement('tr');
+      tr.innerHTML = `
+        <td class="col-es">${r.ESATTORE||'—'}</td>
+        <td>${r.SEDE||''}</td>
+        <td>${r.CODEID||''}</td>
+        <td>${r.MODELLO || ''}</td>
+        <td>${r.PDA||''}</td>
+        <td class="bad">${r.GIORNI===Infinity?'—':r.GIORNI}</td>
+        <td>${r.COMUNE||''}</td>
+      `;
+      if($('#selEsattore').value) tr.children[0].style.display='none';
+      tb.appendChild(tr);
+    });
+    $('#pillCount').textContent = `Selezione: ${list.length.toLocaleString('it-IT')} macchine`;
+  }
+
+  function downloadXLSX(list){
+    const headers = ['ESATTORE','LOCALE','AWP','MODELLO','PDA','GIORNI','COMUNE'];
+    const data = list.map(r=>[r.ESATTORE||'', r.SEDE||'', r.CODEID||'', r.MODELLO||'', r.PDA||'', r.GIORNI===Infinity?'':r.GIORNI, r.COMUNE||'']);
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Letture');
+    const selEs = $('#selEsattore').value || 'TUTTI';
+    const days = readDaysSelection();
+    const fname = `Letture-${selEs}-${days}gg.xlsx`;
+    XLSX.writeFile(wb, fname);
+  }
+
+  function generateText(list){
+    const selEs = ($('#selEsattore').value||'').trim().toUpperCase();
+    const days = readDaysSelection();
+    const header = selEs ? `LETTURE DA FARE — Esattore ${selEs} — ≥${days} gg\n` : `LETTURE DA FARE — Tutti — ≥${days} gg\n`;
+    const lines = list.map(r=>{
+      // formato compatto e leggibile per WhatsApp / txt
+      // ESATTORE; LOCALE; CODEID; MODELLO; PDA; GIORNI; COMUNE
+      const parts = [];
+      if(!selEs) parts.push(r.ESATTORE||'—');
+      parts.push(r.SEDE||'');
+      parts.push(r.CODEID||'');
+      parts.push(r.MODELLO||'');
+      parts.push('PDA:'+ (r.PDA||''));
+      parts.push((isFinite(r.GIORNI)?r.GIORNI:'—') + 'gg');
+      if(r.COMUNE) parts.push(r.COMUNE);
+      return '• ' + parts.join(' | ');
+    });
+    return header + lines.join('\n');
+  }
+
+  function downloadTXT(list){
+    const text = generateText(list);
+    const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const selEs = $('#selEsattore').value || 'TUTTI';
+    const days = readDaysSelection();
+    a.href = url;
+    a.download = `Letture-${selEs}-${days}gg.txt`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  async function sendWhatsapp(list){
+    const text = generateText(list);
+    const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+
+    // WhatsApp ha limiti pratici sull'URL (~2-3k). Se troppo lungo, copia negli appunti e avvisa.
+    if (url.length > 2000) {
+      try{
+        await navigator.clipboard.writeText(text);
+        alert('Il testo è stato copiato negli appunti (troppo lungo per l’URL WhatsApp). Incollalo manualmente nella chat.');
+      }catch(_){
+        // Fallback: apri un popup con il testo
+        const w = window.open('', '_blank');
+        if(w){ w.document.write('<pre style="white-space:pre-wrap;font-family:monospace">'+text.replace(/</g,'&lt;')+'</pre>'); }
+        else{ alert('Non è stato possibile copiare. Prova a selezionare e copiare manualmente.'); }
+      }
+      return;
+    }
+
+    window.open(url, '_blank');
+  }
+
+  async function loadAll(){
+    showLoader(true); errBox.style.display='none';
+    try{
+      // manifest → ultimo
+      const manifest = await fetchJSON('./Dati/manifest.json','manifest.json');
+      if(!manifest.sinottici || !manifest.sinottici.length) throw new Error('manifest.json: lista sinottici vuota');
+      latestName = manifest.sinottici[manifest.sinottici.length-1];
+      $('#pillSin').textContent='Sinottico: '+latestName;
+
+      // esattori
+      try{ esattori = await fetchJSON('./Dati/esattori.json','esattori.json'); }catch(_){ esattori=[]; }
+      const selEs = $('#selEsattore');
+      selEs.innerHTML = '<option value="">— Tutti —</option>' + esattori.map(e=>`<option value="${String(e).toUpperCase()}">${String(e).toUpperCase()}</option>`).join('');
+
+      // PDV → mappa sede→esattore
+      const pdv = await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.xlsx','PDV-e-ESATTORI.xlsx');
+      sedeToEs = new Map();
+      for(const r of pdv.rows){
+        const sede=normalizeSede(r['DENOMIN. SEDE']);
+        const es  =(r['ESATTORE']??'').toString().trim().toUpperCase()||'—';
+        if(sede) sedeToEs.set(sede, es);
+      }
+
+      // SINOTTICO (foglio più grande)
+      const sn = await fetchXLSX_largest('./Dati/'+latestName, latestName);
+      $('#pillFoglio').textContent='Foglio: '+sn.sheetName;
+
+      // Mappa CODEID→riga più recente (salvando anche M.S./FERIE e MODELLO)
+      const byCode=new Map();
+      for(const row of sn.rows){
+        const codeid=pickCodeId(row); if(!codeid) continue;
+        const sede = row['DENOMIN. SEDE'] ?? pick(row,['DENOMIN.SEDE','DENOMINAZIONE SEDE']);
+        const stato= String(row['DESCR.STATO'] ?? '').trim();
+        const ms   = pickMSFerie(row);
+        const data = parseDateIT(row['DATA ULTIMA LETTURA VAL.'] ?? pick(row,['DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
+        const comune= pickComune(row);
+        const pda   = pickPDA(row);
+        const modello = pickModello(row);
+        const prev=byCode.get(codeid);
+        if(!prev || (data && prev.data && data>prev.data) || (!prev?.data && data)){
+          byCode.set(codeid,{codeid,sede,stato,ms,data,comune,pda,modello});
+        }
+      }
+
+      // Normalizza + classifica + giorni
+      const all=[];
+      for(const {codeid,sede,stato,ms,data,comune,pda,modello} of byCode.values()){
+        const es     = sedeToEs.get(normalizeSede(sede)) ?? '—';
+        const cat    = classifyState(stato, ms);
+        const giorni = daysDiffFromToday(data);
+        all.push({ CODEID:codeid, SEDE:sede, ESATTORE:es, STATO:stato, MS:ms, CAT:cat, DATA:data, GIORNI:giorni, COMUNE:comune, PDA:pda, MODELLO:modello });
+      }
+
+      // Solo ATTIVE nella lista letture
+      rowsActive = all.filter(r => isActiveForEsattore(r.CAT));
+
+      // Applica filtri iniziali
+      renderTable(buildFilteredList());
+
+    }catch(e){ showError(e.message||'Errore sconosciuto'); }
+    finally{ showLoader(false); }
+  }
+
+  // UI handlers
+  $('#selDays').addEventListener('change', e=>{
+    const custom=e.target.value==='custom';
+    $('#daysCustom').style.display=custom?'inline-block':'none';
+  });
+  $('#btnApply').addEventListener('click', ()=>{
+    const list=buildFilteredList(); renderTable(list);
+  });
+  $('#btnDownload').addEventListener('click', ()=>{
+    const list=buildFilteredList(); downloadXLSX(list);
+  });
+  $('#btnDownloadTxt').addEventListener('click', ()=>{
+    const list=buildFilteredList(); downloadTXT(list);
+  });
+  $('#btnWhatsapp').addEventListener('click', async ()=>{
+    const list=buildFilteredList(); await sendWhatsapp(list);
+  });
+  $('#btnRefresh').addEventListener('click', loadAll);
+
+  // boot
+  window.addEventListener('load', ()=>{
+    byId('year').textContent=new Date().getFullYear();
+    initTheme();
+    loadAll();
+  });
+})();
+</script>
+</body>
+</html>
