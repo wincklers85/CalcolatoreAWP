@@ -32,7 +32,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,S
 .navlinks a:hover{ background:var(--table-head) }
 .navlinks a[aria-current="page"]{ font-weight:700; text-decoration:underline }
 .right{display:flex; align-items:center; gap:8px}
-select,button{ background:var(--card); color:var(--fg); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-weight:600 }
+select,button,input{ background:var(--card); color:var(--fg); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-weight:600 }
 button.primary{ background:var(--acc); color:#fff; border-color:var(--acc) }
 .badge{ display:inline-block; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:800; border:2px solid var(--border); background:var(--card) }
 
@@ -104,17 +104,21 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
           </select>
         </label>
         <input type="number" id="daysCustom" min="1" step="1" placeholder="giorni" style="width:100px;display:none">
+        <label style="display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="chkCompact" checked>
+          <span>Compatta (max 4 modelli/locale)</span>
+        </label>
         <button id="btnApply" class="primary">Applica</button>
-        <button id="btnDownload">⬇️ Scarica XLSX</button>
-        <button id="btnDownloadTxt">⬇️ Scarica TXT</button>
-        <button id="btnWhatsapp">🟢 Invia su WhatsApp</button>
+        <button id="btnDownload">⬇️ XLSX</button>
+        <button id="btnDownloadTxt">⬇️ TXT</button>
+        <button id="btnWhatsapp">🟢 WhatsApp</button>
         <span class="pill" id="pillSin">Sinottico: —</span>
         <span class="pill" id="pillFoglio">Foglio: —</span>
         <span class="pill" id="pillCount">Selezione: —</span>
       </div>
       <div class="meta">
         Mostra le macchine <strong>ATTIVE</strong> con <strong>mancata lettura ≥</strong> <strong id="metaDays">2</strong> giorni (esclude Ferie/Manutenzione/Blocchi). Join su <strong>DENOMIN. SEDE</strong>.  
-        Nella tabella è ora presente anche la colonna <strong>MODELLO</strong>.
+        Nella tabella è presente anche la colonna <strong>MODELLO</strong>.
       </div>
     </div>
 
@@ -287,28 +291,105 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     XLSX.writeFile(wb, fname);
   }
 
-  function generateText(list){
+  /* ==== WHATSAPP / TXT ==== */
+
+  // Crea mappe utili per capire "tutte da leggere" vs "alcune"
+  function buildGroupingMaps(allActiveRows, eligibleList) {
+    // activeCountBySede: quante AWP ATTIVE ha ogni locale (tutte, indipendentemente dai giorni)
+    const activeCountBySede = new Map();
+    for (const r of allActiveRows) {
+      const key = (r.ESATTORE||'—').toUpperCase() + '||' + (r.SEDE||'').toUpperCase();
+      activeCountBySede.set(key, (activeCountBySede.get(key)||0) + 1);
+    }
+
+    // eligibleBySede: per locale, la lista delle AWP da leggere (≥ N giorni)
+    const eligibleBySede = new Map();
+    for (const r of eligibleList) {
+      const keyEs = (r.ESATTORE||'—').toUpperCase();
+      const key = keyEs + '||' + (r.SEDE||'').toUpperCase();
+      if (!eligibleBySede.has(key)) eligibleBySede.set(key, { esattore:keyEs, sede:r.SEDE||'', models:new Set(), items:[] });
+      const entry = eligibleBySede.get(key);
+      entry.items.push(r);
+      // Modello: se non presente, usa CODEID come fallback
+      const name = (r.MODELLO && String(r.MODELLO).trim()) ? String(r.MODELLO).trim() : (r.CODEID||'');
+      if (name) entry.models.add(name);
+    }
+
+    return { activeCountBySede, eligibleBySede };
+  }
+
+  // Genera testo WhatsApp secondo le regole richieste
+  function generateWhatsappText(allActiveRows, eligibleList) {
     const selEs = ($('#selEsattore').value||'').trim().toUpperCase();
-    const days = readDaysSelection();
-    const header = selEs ? `LETTURE DA FARE — Esattore ${selEs} — ≥${days} gg\n` : `LETTURE DA FARE — Tutti — ≥${days} gg\n`;
-    const lines = list.map(r=>{
-      // formato compatto e leggibile per WhatsApp / txt
-      // ESATTORE; LOCALE; CODEID; MODELLO; PDA; GIORNI; COMUNE
-      const parts = [];
-      if(!selEs) parts.push(r.ESATTORE||'—');
-      parts.push(r.SEDE||'');
-      parts.push(r.CODEID||'');
-      parts.push(r.MODELLO||'');
-      parts.push('PDA:'+ (r.PDA||''));
-      parts.push((isFinite(r.GIORNI)?r.GIORNI:'—') + 'gg');
-      if(r.COMUNE) parts.push(r.COMUNE);
-      return '• ' + parts.join(' | ');
-    });
-    return header + lines.join('\n');
+    const { activeCountBySede, eligibleBySede } = buildGroupingMaps(allActiveRows, eligibleList);
+    const compact = $('#chkCompact').checked;
+
+    // Raggruppa per Esattore → array di righe (una per locale)
+    const byEs = new Map();
+
+    for (const [key, info] of eligibleBySede.entries()) {
+      const [esKey, sedeKey] = key.split('||');
+      const activeTot = activeCountBySede.get(key) || 0;     // quante AWP attive in quel locale
+      const eligTot = info.items.length;                     // quante da leggere (≥ N)
+      if (eligTot === 0) continue;
+
+      let line;
+      if (activeTot > 0 && eligTot === activeTot) {
+        // tutte le attive del locale sono da leggere
+        line = `${info.sede} - PDA`;
+      } else {
+        // solo alcune: elenca i modelli unici
+        let models = Array.from(info.models);
+        // compatta (max 4)
+        if (compact && models.length > 4) {
+          const rest = models.length - 4;
+          models = models.slice(0,4);
+          models.push(`+${rest}`);
+        }
+        line = `${info.sede} - ${models.join(', ')}`;
+      }
+
+      if (!byEs.has(esKey)) byEs.set(esKey, []);
+      byEs.get(esKey).push(line);
+    }
+
+    // Ordina per esattore e per locale
+    for (const [k, arr] of byEs) {
+      arr.sort((a,b)=>a.localeCompare(b, 'it', {sensitivity:'base'}));
+    }
+
+    // Costruisci il testo finale
+    let chunks = [];
+    if (selEs) {
+      // Un solo esattore selezionato
+      const lines = byEs.get(selEs) || [];
+      const header = `*${selEs}*`;
+      chunks.push(header);
+      chunks.push(...lines);
+    } else {
+      // Tutti gli esattori → più sezioni
+      const esList = Array.from(byEs.keys()).sort();
+      for (const es of esList) {
+        const lines = byEs.get(es)||[];
+        if (!lines.length) continue;
+        chunks.push(`*${es}*`);
+        chunks.push(...lines);
+        chunks.push(''); // riga vuota tra blocchi esattori
+      }
+      // togli eventuale ultima riga vuota
+      if (chunks[chunks.length-1]==='') chunks.pop();
+    }
+
+    // Nessun locale
+    if (chunks.length === 0) {
+      return (selEs?`*${selEs}*\n`:``) + 'Nessun locale con letture arretrate.';
+    }
+
+    return chunks.join('\n');
   }
 
   function downloadTXT(list){
-    const text = generateText(list);
+    const text = generateWhatsappText(rowsActive, list);
     const blob = new Blob([text], {type:'text/plain;charset=utf-8'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -321,23 +402,21 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
   }
 
   async function sendWhatsapp(list){
-    const text = generateText(list);
+    const text = generateWhatsappText(rowsActive, list);
     const url = 'https://wa.me/?text=' + encodeURIComponent(text);
 
-    // WhatsApp ha limiti pratici sull'URL (~2-3k). Se troppo lungo, copia negli appunti e avvisa.
+    // Se il messaggio è troppo lungo per l'URL, copia negli appunti come fallback
     if (url.length > 2000) {
       try{
         await navigator.clipboard.writeText(text);
-        alert('Il testo è stato copiato negli appunti (troppo lungo per l’URL WhatsApp). Incollalo manualmente nella chat.');
+        alert('Testo copiato negli appunti (messaggio lungo). Incollalo in WhatsApp.');
       }catch(_){
-        // Fallback: apri un popup con il testo
         const w = window.open('', '_blank');
         if(w){ w.document.write('<pre style="white-space:pre-wrap;font-family:monospace">'+text.replace(/</g,'&lt;')+'</pre>'); }
-        else{ alert('Non è stato possibile copiare. Prova a selezionare e copiare manualmente.'); }
+        else{ alert('Non è stato possibile copiare. Seleziona e copia manualmente.'); }
       }
       return;
     }
-
     window.open(url, '_blank');
   }
 
