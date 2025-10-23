@@ -2,54 +2,56 @@
 <html lang="it">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <title>AWP Manager — Letture</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#f5f7fa; --fg:#1b1b1b; --muted:#5d6b7a; --card:#ffffff; --border:#dfe3ea;
-  --acc:#007bff; --ok:#2ea043; --warn:#f59e0b; --bad:#ef4444;
+  --bg:#f6f8fb; --fg:#14161a; --muted:#6b7280; --card:#ffffff; --border:#e5e7eb;
+  --acc:#0d6efd; --ok:#2ea043; --warn:#f59e0b; --bad:#ef4444;
   --table-head:#eef2f7; --shadow:0 10px 26px rgba(0,0,0,.08);
 }
 body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
-body.theme-light{}
-body.theme-dark{ --bg:#121417; --fg:#e4e7ec; --muted:#9aa3af; --card:#181b20; --border:#2a2f36; --acc:#3399ff; --table-head:#1c2128; --shadow:0 10px 30px rgba(0,0,0,.35) }
-body.theme-blue{ --bg:#e9f5ff; --fg:#002b4d; --muted:#335d7a; --card:#ffffff; --border:#cfe6fb; --acc:#0066cc; --table-head:#d9eeff; --shadow:0 12px 28px rgba(0,80,160,.15) }
-body.theme-contrast{ --bg:#000; --fg:#ff0; --muted:#ffe766; --card:#0b0b0b; --border:#333; --acc:#ff3333; --table-head:#111; --shadow:0 10px 26px rgba(255,255,0,.12) }
+body.theme-dark{ --bg:#0f1216; --fg:#e4e7ec; --muted:#9aa3af; --card:#171b21; --border:#2a2f36; --acc:#3399ff; --table-head:#1e242c; --shadow:0 10px 30px rgba(0,0,0,.35)}
+body.theme-blue{ --bg:#e9f5ff; --fg:#0d2740; --muted:#436582; --card:#ffffff; --border:#cfe6fb; --acc:#0066cc; --table-head:#d9eeff }
+body.theme-contrast{ --bg:#000; --fg:#ff0; --muted:#ffd84d; --card:#0b0b0b; --border:#333; --acc:#ff3333; --table-head:#111 }
 
-.navbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--border)}
+.navbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--card);border-bottom:1px solid var(--border)}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fg)}
 .brand img{height:28px}
-.navlinks a{color:var(--fg);text-decoration:none;margin:0 8px;padding:6px 10px;border-radius:8px}
+.navlinks{display:flex;gap:6px;flex-wrap:wrap}
+.navlinks a{color:var(--fg);text-decoration:none;padding:6px 10px;border-radius:8px}
 .navlinks a[aria-current="page"]{font-weight:700;text-decoration:underline}
-.right{display:flex;align-items:center;gap:8px}
+.right{display:flex;align-items:center;gap:6px}
 select,button,input{background:var(--card);color:var(--fg);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-weight:600}
 button.primary{background:var(--acc);color:#fff;border-color:var(--acc)}
 
-main{padding:18px;max-width:1280px;margin:0 auto}
-.grid{display:grid;grid-template-columns:1.3fr .7fr;gap:14px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
-.card h3{margin:0 0 12px;font-size:16px}
-.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+main{padding:14px;max-width:1280px;margin:0 auto}
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--shadow);margin-bottom:14px}
+.card h3{margin:0 0 10px;font-size:16px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls > *{flex:0 0 auto}
+.controls select, .controls input{min-width:120px}
 .pill{display:inline-block;padding:3px 8px;border:1px solid var(--border);border-radius:999px;background:var(--card);margin-right:6px;font-size:12px;color:var(--muted)}
 
-.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
-.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px}
 .stat .label{color:var(--muted);font-size:12px}
 .stat .value{font-size:20px;font-weight:800}
 .stat.ok .value{color:var(--ok)}
 .stat.warn .value{color:var(--warn)}
 .stat.bad .value{color:var(--bad)}
 .flash{animation:flash 1.2s ease-in-out 1}
-@keyframes flash{0%{box-shadow:0 0 0 0 rgba(46,160,67,.5)}60%{box-shadow:0 0 0 12px rgba(46,160,67,0)}100%{box-shadow:none}}
+@keyframes flash{0%{box-shadow:0 0 0 0 rgba(46,160,67,.5)}60%{box-shadow:0 0 0 14px rgba(46,160,67,0)}100%{box-shadow:none}}
 
-table{width:100%;border-collapse:collapse}
+.table-wrap{overflow:auto;border-radius:12px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;min-width:780px}
 th,td{padding:10px 12px;border-bottom:1px solid var(--border)}
-th{background:var(--table-head);text-align:left}
+th{background:var(--table-head);text-align:left;position:sticky;top:0;z-index:1}
 tr:hover td{background:rgba(0,0,0,.03)}
 td.bad{color:var(--bad);font-weight:700}
 tr.clickable{cursor:pointer}
-
 .meta{margin-top:6px;font-size:12px;color:var(--muted)}
 
 #loader{position:fixed;inset:0;background:rgba(0,0,0,.08);display:none;align-items:center;justify-content:center;z-index:40}
@@ -60,17 +62,29 @@ footer{padding:14px;text-align:center;color:var(--muted)}
 
 /* Modal */
 .modal-back{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:60}
-.modal{width:min(900px,92vw);max-height:86vh;overflow:auto;background:var(--card);color:var(--fg);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:16px}
+.modal{width:min(980px,96vw);max-height:88vh;overflow:auto;background:var(--card);color:var(--fg);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:16px}
 .modal h3{margin:0 0 6px}
-.modal .muted{color:var(--muted);font-size:12px;margin-bottom:8px}
-.flex{display:flex;gap:10px;flex-wrap:wrap}
-.kv{display:grid;grid-template-columns:140px 1fr;gap:6px 12px;margin:10px 0}
+.modal .muted{color:var(--muted);font-size:12px;margin:6px 0 10px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}
+.kv .row{display:grid;grid-template-columns:220px 1fr;gap:8px}
 .kv b{font-weight:700}
-.tag{display:inline-block;border:1px solid var(--border);padding:4px 8px;border-radius:999px;margin-right:6px;margin-bottom:6px}
+.modal .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tag{display:inline-block;border:1px solid var(--border);padding:4px 8px;border-radius:999px}
 .timeline{border-left:3px solid var(--border);margin-left:8px;padding-left:12px}
-.tl-item{margin:10px 0}
-.tl-item .when{font-weight:700}
-.tl-item .meta{font-size:12px;color:var(--muted)}
+.tl-item{margin:10px 0}.tl-item .when{font-weight:700}.tl-item .meta{font-size:12px;color:var(--muted)}
+
+/* Responsive */
+@media (max-width: 1024px){
+  .grid{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width: 640px){
+  .navlinks{display:none}
+  .controls select,.controls input{min-width:0}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .hide-sm{display:none}
+  table{min-width:680px}
+}
 </style>
 </head>
 <body class="theme-light">
@@ -136,23 +150,23 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     <div class="grid">
       <div class="card">
         <h3>Macchine da leggere</h3>
-        <div style="overflow:auto">
+        <div class="table-wrap">
           <table id="tbl">
             <thead>
               <tr>
                 <th class="col-es">ESATTORE</th>
                 <th>LOCALE</th>
                 <th>AWP</th>
-                <th>MODELLO</th>
-                <th>PDA</th>
+                <th class="hide-sm">MODELLO</th>
+                <th class="hide-sm">PDA</th>
                 <th>GIORNI</th>
-                <th>COMUNE</th>
+                <th class="hide-sm">COMUNE</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
         </div>
-        <div class="meta">Clicca una riga per aprire la scheda con storico e dettagli.</div>
+        <div class="meta">Clicca una riga per aprire la scheda con **tutti** i dati e lo storico.</div>
       </div>
 
       <div class="card">
@@ -176,20 +190,27 @@ footer{padding:14px;text-align:center;color:var(--muted)}
   <!-- MODAL -->
   <div class="modal-back" id="mb">
     <div class="modal">
-      <div style="display:flex;justify-content:space-between;align-items:center">
-        <h3 id="mTitle">AWP</h3>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div>
+          <h3 id="mTitle">AWP</h3>
+          <div class="muted" id="mSubtitle">—</div>
+        </div>
         <button id="mClose">✖</button>
       </div>
-      <div class="muted" id="mSubtitle">—</div>
-      <div class="kv" id="mKV"></div>
-      <div class="flex" style="gap:8px;margin:8px 0 14px">
+
+      <div class="tags">
         <span class="tag" id="mTagEs">ESATTORE</span>
         <span class="tag" id="mTagSede">SEDE</span>
         <span class="tag" id="mTagComune">COMUNE</span>
       </div>
-      <h3>Storico letture</h3>
+
+      <h3 style="margin-top:14px">Dettagli</h3>
+      <div class="kv" id="mKV"><!-- rows --></div>
+
+      <h3 style="margin-top:14px">Storico letture</h3>
       <div class="timeline" id="mTL"><div class="tl-item">Caricamento storico…</div></div>
-      <div class="flex" style="margin-top:10px">
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
         <button id="mCsv">⬇️ Esporta CSV</button>
         <button id="mTxt">⬇️ Esporta TXT</button>
         <button id="mWA">🟢 WhatsApp (locale)</button>
@@ -212,12 +233,12 @@ footer{padding:14px;text-align:center;color:var(--muted)}
   const byId=id=>document.getElementById(id);
   const loader=byId('loader'); const errBox=byId('errorBox');
 
-  /* THEME */
+  /* Theme */
   function applyTheme(t){ document.body.className=t; }
   function initTheme(){ const t=localStorage.getItem('awp_theme')||'theme-light'; applyTheme(t); $('#themeSel').value=t; }
   $('#themeSel').addEventListener('change',e=>{ applyTheme(e.target.value); localStorage.setItem('awp_theme',e.target.value); });
 
-  /* HELPERS */
+  /* Helpers */
   function showLoader(v){ loader.style.display=v?'flex':'none'; }
   function showError(msg){ errBox.textContent=msg; errBox.style.display='block'; alert(msg); }
   function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
@@ -227,16 +248,35 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     k=ks.find(k=>/COD(ICE)?ID/i.test(k)); if(k) return String(row[k]??'').trim();
     k=ks.find(k=>/(SERIALE|MATRICOLA|AWP)/i.test(k)); return k?String(row[k]??'').trim():'';
   }
-  function parseDateIT(v){
+  function parseDateITDateTime(v){
     if(v==null||v==='')return null;
-    if(typeof v==='number'||/^[0-9]+$/.test(String(v).trim())){
-      const n=Number(v); if(n>0&&n<2958465){const base=new Date(Date.UTC(1899,11,30));const d=new Date(base.getTime()+n*86400000);return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+    // Excel seriale
+    if(typeof v==='number'||/^[0-9]+(\.[0-9]+)?$/.test(String(v).trim())){
+      const n=Number(v);
+      if(n>0&&n<2958465){
+        const base=new Date(Date.UTC(1899,11,30));
+        const ms = Math.round(n*24*60*60*1000);
+        const d = new Date(base.getTime()+ms);
+        return d; // UTC-like
+      }
     }
-    const s=String(v).trim().replace(/[\/\.]/g,'-'); const m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/);
-    if(m){const[,gg,mm,yyyy]=m;return new Date(+yyyy,+mm-1,+gg);} const d=new Date(s); if(!isNaN(d)) return new Date(d.getFullYear(),d.getMonth(),d.getDate()); return null;
+    // Formati: GG-MM-AAAA HH:MM(:SS)
+    const s=String(v).trim().replace(/[\/\.]/g,'-');
+    const m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if(m){
+      const[,gg,mm,yyyy,HH='0',MM='0',SS='0']=m;
+      return new Date(+yyyy,+mm-1,+gg,+HH,+MM,+SS);
+    }
+    const d=new Date(s); if(!isNaN(d)) return d;
+    return null;
+  }
+  function parseDateIT(v){ // solo data
+    const dt=parseDateITDateTime(v); if(!dt) return null;
+    return new Date(dt.getFullYear(),dt.getMonth(),dt.getDate());
   }
   function daysDiffFromToday(d){ if(!d) return Infinity; const t=new Date(); t.setHours(0,0,0,0); const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return Math.floor((t-x)/86400000); }
   function fmtDate(d){ if(!d) return ''; const g=String(d.getDate()).padStart(2,'0'); const m=String(d.getMonth()+1).padStart(2,'0'); return `${g}-${m}-${d.getFullYear()}`; }
+  function fmtDateTime(d){ if(!d) return ''; const dd=fmtDate(d); const h=String(d.getHours()).padStart(2,'0'); const mi=String(d.getMinutes()).padStart(2,'0'); const s=String(d.getSeconds()).padStart(2,'0'); return `${dd} ${h}:${mi}:${s}`; }
   function pickPDA(r){ return pick(r,['PDA','COD.PDA','ID PDA','IDPDA','COD_PDA']); }
   function pickComune(r){ return pick(r,['COMUNE','CITTA','LOCALITA',"CITTÀ"]); }
   function pickModello(r){ return pick(r,['MODELLO','MOD','MODEL','MODEL NAME']); }
@@ -251,8 +291,7 @@ footer{padding:14px;text-align:center;color:var(--muted)}
 
   /* STATE */
   let latestName=''; let rowsActive=[]; let sedeToEs=new Map(); let esattori=[];
-  let manifestList=[]; // per storico
-  const historyCache=new Map(); // CODEID -> array storico
+  let manifestList=[]; const historyCache=new Map();
 
   function readDaysSelection(){ const sel=$('#selDays').value; if(sel==='custom'){const n=parseInt($('#daysCustom').value,10); return isFinite(n)&&n>0?n:2;} return parseInt(sel,10); }
 
@@ -260,12 +299,8 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     const maxDays=readDaysSelection(); $('#metaDays').textContent=maxDays;
     let list = rowsActive.filter(r => r.GIORNI >= maxDays);
     const selEs = ($('#selEsattore').value||'').toUpperCase();
-    if(selEs){
-      list = list.filter(r => (r.ESATTORE||'—').toUpperCase()===selEs);
-      document.querySelectorAll('.col-es').forEach(th=>th.style.display='none');
-    }else{
-      document.querySelectorAll('.col-es').forEach(th=>th.style.display='table-cell');
-    }
+    if(selEs){ list = list.filter(r => (r.ESATTORE||'—').toUpperCase()===selEs); document.querySelectorAll('.col-es').forEach(th=>th.style.display='none'); }
+    else{ document.querySelectorAll('.col-es').forEach(th=>th.style.display='table-cell'); }
     list.sort((a,b)=>{ if(!selEs){const d=(a.ESATTORE||'').localeCompare(b.ESATTORE||''); if(d!==0) return d;} return (isFinite(b.GIORNI)?b.GIORNI:-1)-(isFinite(a.GIORNI)?a.GIORNI:-1); });
     return list;
   }
@@ -284,13 +319,8 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     $('#stAvg').textContent = isFinite(avg)?avg.toFixed(1):'—';
     $('#stMax').textContent = isFinite(max)?max:'—';
 
-    // piccolo “flash” verde quando aumentano gli "in regola"
-    const box = $('#stOkBox');
-    box.classList.remove('flash');
-    void box.offsetWidth; // reflow
-    if(ok>0) box.classList.add('flash');
+    const box = $('#stOkBox'); box.classList.remove('flash'); void box.offsetWidth; if(ok>0) box.classList.add('flash');
 
-    // meta per esattore
     const esSel = ($('#selEsattore').value||'').toUpperCase();
     if(esSel){
       const mineAll = rowsActive.filter(r=> (r.ESATTORE||'—').toUpperCase()===esSel);
@@ -309,8 +339,8 @@ footer{padding:14px;text-align:center;color:var(--muted)}
       tr.dataset.codeid=r.CODEID; tr.dataset.sede=r.SEDE||''; tr.dataset.esattore=r.ESATTORE||'';
       tr.innerHTML=`<td class="col-es">${r.ESATTORE||'—'}</td>
         <td>${r.SEDE||''}</td><td>${r.CODEID||''}</td>
-        <td>${r.MODELLO||''}</td><td>${r.PDA||''}</td>
-        <td class="bad">${isFinite(r.GIORNI)?r.GIORNI:'—'}</td><td>${r.COMUNE||''}</td>`;
+        <td class="hide-sm">${r.MODELLO||''}</td><td class="hide-sm">${r.PDA||''}</td>
+        <td class="bad">${isFinite(r.GIORNI)?r.GIORNI:'—'}</td><td class="hide-sm">${r.COMUNE||''}</td>`;
       if($('#selEsattore').value) tr.children[0].style.display='none';
       tr.addEventListener('click', ()=>openModal(r.CODEID, r));
       tb.appendChild(tr);
@@ -327,7 +357,7 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     XLSX.writeFile(wb,`Letture-${es}-${d}gg.xlsx`);
   }
 
-  /* ===== WHATSAPP / TXT ===== */
+  /* ===== WhatsApp / TXT ===== (invariato dal tuo setup precedente) */
   function buildGroupingMaps(allActiveRows, eligibleList){
     const activeCountBySede=new Map();
     for(const r of allActiveRows){
@@ -343,29 +373,25 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     }
     return {activeCountBySede,eligibleBySede};
   }
-
   function generateWhatsappText(allActiveRows, eligibleList){
     const selEs=($('#selEsattore').value||'').toUpperCase(); const compact=$('#chkCompact').checked;
     const {activeCountBySede,eligibleBySede}=buildGroupingMaps(allActiveRows,eligibleList);
     const byEs=new Map();
-
     for(const [key,info] of eligibleBySede.entries()){
       const [esKey]=key.split('||'); const activeTot=activeCountBySede.get(key)||0; const eligTot=info.items.length; if(eligTot===0) continue;
       let italicDate=''; const maxG=Math.max(...info.items.map(x=>isFinite(x.GIORNI)?x.GIORNI:0));
       if(maxG>3){ let latest=null; for(const it of info.items){ if(it.DATA && (!latest||it.DATA>latest)) latest=it.DATA; } if(latest) italicDate=` _${fmtDate(latest)}_`; }
       let line;
       if(activeTot>0 && eligTot===activeTot){ line=`${info.sede} - PDA${italicDate}`; }
-      else{ let models=Array.from(info.models); if(compact && models.length>4){ const extra=models.length-4; models=models.slice(0,4); models.push(`+${extra}`);} line=`${info.sede} - ${models.join(', ')}${italicDate}`; }
+      else{ let models=Array.from(info.models); if(compact && models.length>4){ const extra=models.length-4; models=models.slice(0,4); models.push(\`+\${extra}\`);} line=\`${info.sede} - \${models.join(', ')}\${italicDate}\`; }
       if(!byEs.has(esKey)) byEs.set(esKey,[]); byEs.get(esKey).push(line);
     }
     for(const [k,a] of byEs) a.sort((x,y)=>x.localeCompare(y,'it',{sensitivity:'base'}));
-
     const blocks=[]; 
-    if(selEs){ const lines=byEs.get(selEs)||[]; const header=`*${selEs}*`; blocks.push(header+'\n'); blocks.push(lines.length?lines.join('\n\n'):'Nessun locale con letture arretrate.'); }
-    else{ const keys=[...byEs.keys()].sort(); if(!keys.length) return 'Nessun locale con letture arretrate.'; for(const k of keys){ const lines=byEs.get(k)||[]; if(!lines.length) continue; blocks.push(`*${k}*`+'\n'); blocks.push(lines.join('\n\n')); blocks.push(''); } if(blocks[blocks.length-1]==='') blocks.pop(); }
+    if(selEs){ const lines=byEs.get(selEs)||[]; const header=\`*\${selEs}*\`; blocks.push(header+'\n'); blocks.push(lines.length?lines.join('\n\n'):'Nessun locale con letture arretrate.'); }
+    else{ const keys=[...byEs.keys()].sort(); if(!keys.length) return 'Nessun locale con letture arretrate.'; for(const k of keys){ const lines=byEs.get(k)||[]; if(!lines.length) continue; blocks.push(\`*\${k}*\`+'\n'); blocks.push(lines.join('\n\n')); blocks.push(''); } if(blocks[blocks.length-1]==='') blocks.pop(); }
     return blocks.join('\n');
   }
-
   function downloadTXT(list){
     const text=generateWhatsappText(rowsActive,list);
     const blob=new Blob([text],{type:'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob);
@@ -381,33 +407,51 @@ footer{padding:14px;text-align:center;color:var(--muted)}
   /* ===== MODAL & STORICO ===== */
   function openModal(codeid, row){
     $('#mTitle').textContent = row.CODEID;
-    $('#mSubtitle').textContent = (row.MODELLO||'') + (row.PDA?` • PDA ${row.PDA}`:'') + (row.DATA?` • Ultima: ${fmtDate(row.DATA)}`:'');
-    const kv=$('#mKV'); kv.innerHTML='';
-    kv.insertAdjacentHTML('beforeend', `<b>Esattore</b><span>${row.ESATTORE||'—'}</span>`);
-    kv.insertAdjacentHTML('beforeend', `<b>Locale</b><span>${row.SEDE||''}</span>`);
-    kv.insertAdjacentHTML('beforeend', `<b>Comune</b><span>${row.COMUNE||''}</span>`);
-    kv.insertAdjacentHTML('beforeend', `<b>Giorni</b><span>${isFinite(row.GIORNI)?row.GIORNI:'—'}</span>`);
-    kv.insertAdjacentHTML('beforeend', `<b>Stato</b><span>${row.STATO||'Attiva'}</span>`);
+    const ult = row.DATAULTVAL_DT ? ` • Ultima lettura: ${fmtDateTime(row.DATAULTVAL_DT)} (GMT)` : '';
+    $('#mSubtitle').textContent = `${row.MODELLO||''}${row.PDA?` • PDA ${row.PDA}`:''}${ult}`;
 
     $('#mTagEs').textContent = row.ESATTORE||'—';
     $('#mTagSede').textContent = row.SEDE||'';
     $('#mTagComune').textContent = row.COMUNE||'';
 
-    $('#mb').style.display='flex';
-    const tl=$('#mTL'); tl.innerHTML='<div class="tl-item">Carico storico…</div>';
+    const kv=$('#mKV'); kv.innerHTML='';
+    // 2 colonne responsivi: ogni riga è "etichetta : valore"
+    function add(label, value){ kv.insertAdjacentHTML('beforeend', `<div class="row"><b>${label}</b><span>${(value??'')!==''?value:'—'}</span></div>`); }
 
-    loadHistoryFor(codeid, row).then(hist=>{
+    add('CODEID', row.CODEID);
+    add('DATA ATTIVAZIONE', row.DATAATTIV ? fmtDate(row.DATAATTIV) : '');
+    add('GG MANCATO COLLEGAMENTO', row.GG_MANC_CONN ?? '');
+    add('GG DECADENZA (90=decade)', row.GG_DECAD ?? '');
+    add('DATA ULTIMA LETTURA VAL. (GMT)', row.DATAULTVAL_DT ? fmtDateTime(row.DATAULTVAL_DT) : '');
+    add('CNTTOTIN', row.CNTTOTIN ?? '');
+    add('CNTTOTOT', row.CNTTOTOT ?? '');
+    add('M.S. / FERIE', row.MS_FERIE ?? '');
+    add('MACADDRESS PDA', row.MAC_PDA ?? '');
+    add('CODICE SEDE', row.CODICE_SEDE ?? '');
+    add('CODICE PDV AAMS', row.CODICE_PDV ?? '');
+    add('DENOMIN. SEDE', row.SEDE ?? '');
+    add('INDIRIZZO', row.INDIRIZZO ?? '');
+    add('PROVINCIA', row.PROVINCIA ?? '');
+    add('COMUNE', row.COMUNE ?? '');
+    add('CODICE MODELLO', row.CODICE_MODELLO ?? '');
+    add('MODELLO', row.MODELLO ?? '');
+    add('% OUT', row.PCT_OUT ?? '');
+    add('E/M', row.EM ?? '');
+    add('INCASSO GIORNALIERO', row.INCASSO_GG ?? '');
+    add('MEDIA INCASSO GG ESERCIZIO', row.MEDIA_INC_GG ?? '');
+
+    $('#mb').style.display='flex';
+
+    const tl=$('#mTL'); tl.innerHTML='<div class="tl-item">Carico storico…</div>';
+    loadHistoryFor(codeid).then(hist=>{
       if(!hist.length){ tl.innerHTML='<div class="tl-item">Nessun dato storico disponibile.</div>'; return; }
       hist.sort((a,b)=>a.date-b.date);
       tl.innerHTML = hist.map(h=>(
-        `<div class="tl-item">
-          <div class="when">${fmtDate(h.date)}</div>
-          <div class="meta">${h.status||''} • ${h.model||''} ${h.pda?('• PDA '+h.pda):''} • ${h.sede||''}</div>
-        </div>`
+        `<div class="tl-item"><div class="when">${fmtDateTime(h.date)}</div><div class="meta">${h.status||''} • ${h.model||''} ${h.pda?('• PDA '+h.pda):''} • ${h.sede||''}</div></div>`
       )).join('');
-      // pulsanti export/whatsapp locale
-      $('#mCsv').onclick=()=>exportHistoryCSV(codeid, row, hist);
-      $('#mTxt').onclick=()=>exportHistoryTXT(codeid, row, hist);
+
+      $('#mCsv').onclick=()=>exportHistoryCSV(codeid, hist);
+      $('#mTxt').onclick=()=>exportHistoryTXT(codeid, hist);
       $('#mWA').onclick=()=>waLocale(row, hist);
     }).catch(e=>{
       tl.innerHTML='<div class="tl-item">Errore nel caricamento storico.</div>';
@@ -417,22 +461,21 @@ footer{padding:14px;text-align:center;color:var(--muted)}
   $('#mClose').addEventListener('click',()=>$('#mb').style.display='none');
   $('#mb').addEventListener('click',e=>{ if(e.target.id==='mb') $('#mb').style.display='none'; });
 
-  async function loadHistoryFor(codeid, baseRow){
+  async function loadHistoryFor(codeid){
     if(historyCache.has(codeid)) return historyCache.get(codeid);
     const hist=[];
-    for(const name of manifestList){ // in ordine cronologico
+    for(const name of manifestList){
       try{
         const sn=await fetchXLSX_largest('./Dati/'+name, name);
         for(const row of sn.rows){
           const cid=pickCodeId(row); if(!cid || cid!==codeid) continue;
           const status = String(pick(row,['DESCR. STATO','DESCR.STATO','STATO'])||'').trim();
-          // storicizziamo SOLO ATTIVA come richiesto in pagina, ma nello storico mostriamo lo status reale
-          const date  = parseDateIT(pick(row,['DATA ULTIMA LETTURA VAL.','DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
+          const date  = parseDateITDateTime(pick(row,['DATA ULTIMA LETTURA VAL.','DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
           const pda   = pickPDA(row);
           const model = pickModello(row);
           const sede  = pick(row,['DENOMIN. SEDE','DENOMIN.SEDE','DENOMINAZIONE SEDE']);
           if(date) hist.push({date, status, pda, model, sede});
-          break; // trovato nel foglio corrente
+          break;
         }
       }catch(e){ console.warn('Storico: errore su', name, e); }
     }
@@ -440,34 +483,34 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     return hist;
   }
 
-  function exportHistoryCSV(codeid, row, hist){
-    const header = ['DATA','STATO','MODELLO','PDA','SEDE'];
-    const data = hist.map(h=>[fmtDate(h.date), h.status||'', h.model||'', h.pda||'', h.sede||'']);
+  function exportHistoryCSV(codeid, hist){
+    const header = ['DATA-ORA (GMT)','STATO','MODELLO','PDA','SEDE'];
+    const data = hist.map(h=>[fmtDateTime(h.date), h.status||'', h.model||'', h.pda||'', h.sede||'']);
     const csv = [header.join(';')].concat(data.map(r=>r.join(';'))).join('\n');
     const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}); const url=URL.createObjectURL(blob);
     const a=document.createElement('a'); a.href=url; a.download=`Storico-${codeid}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   }
-  function exportHistoryTXT(codeid, row, hist){
-    const lines = hist.map(h=>`• ${fmtDate(h.date)} — ${h.status||''} — ${h.model||''} ${h.pda?('— PDA '+h.pda):''} — ${h.sede||''}`);
+  function exportHistoryTXT(codeid, hist){
+    const lines = hist.map(h=>`• ${fmtDateTime(h.date)} — ${h.status||''} — ${h.model||''} ${h.pda?('— PDA '+h.pda):''} — ${h.sede||''}`);
     const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});
     const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`Storico-${codeid}.txt`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
   }
   function waLocale(row, hist){
     const lines = [`*${row.SEDE||''}*`, `${row.CODEID} — ${row.MODELLO||''} ${row.PDA?('— PDA '+row.PDA):''}`, ''];
-    lines.push(...hist.slice(-5).map(h=>`• ${fmtDate(h.date)} — ${h.status||''}`)); // ultimi 5 eventi
-    const text = lines.join('\n');
-    const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+    lines.push(...hist.slice(-5).map(h=>`• ${fmtDateTime(h.date)} — ${h.status||''}`));
+    const text = lines.join('\n'); const url = 'https://wa.me/?text=' + encodeURIComponent(text);
     if(url.length>2000){ navigator.clipboard.writeText(text).then(()=>alert('Testo copiato negli appunti.')); return; }
     window.open(url,'_blank');
   }
 
-  /* ===== LOAD ===== */
+  /* ===== LOAD (con tutti i campi extra) ===== */
+  let manifestOnce=false;
   async function loadAll(){
     showLoader(true); errBox.style.display='none';
     try{
       const manifest=await fetchJSON('./Dati/manifest.json','manifest.json');
       if(!manifest.sinottici||!manifest.sinottici.length) throw new Error('manifest.json: lista sinottici vuota');
-      manifestList = manifest.sinottici.slice(); // ordine cronologico
+      manifestList = manifest.sinottici.slice();
       latestName = manifestList[manifestList.length-1];
       $('#pillSin').textContent='Sinottico: '+latestName;
 
@@ -475,33 +518,67 @@ footer{padding:14px;text-align:center;color:var(--muted)}
       $('#selEsattore').innerHTML='<option value="">— Tutti —</option>'+esattori.map(e=>`<option value="${String(e).toUpperCase()}">${String(e).toUpperCase()}</option>`).join('');
 
       const pdv=await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.xlsx','PDV-e-ESATTORI.xlsx'); 
-      sedeToEs=new Map();
+      const sedeToEs=new Map();
       for(const r of pdv.rows){ const sede=normalizeSede(r['DENOMIN. SEDE']); const es=(r['ESATTORE']??'').toString().trim().toUpperCase()||'—'; if(sede) sedeToEs.set(sede,es); }
 
       const sn=await fetchXLSX_largest('./Dati/'+latestName,latestName); $('#pillFoglio').textContent='Foglio: '+sn.sheetName;
 
-      // SOLO "Attiva" dalla colonna DESCR. STATO (o DESCR.STATO)
+      // SOLO "Attiva" da DESCR. STATO / DESCR.STATO; arricchisco con TUTTI i campi richiesti
       const byCode=new Map();
       for(const row of sn.rows){
         const codeid=pickCodeId(row); if(!codeid) continue;
         const descr = (pick(row,['DESCR. STATO','DESCR.STATO']) || '').toString().trim().toLowerCase();
-        if (descr.replace(/\s+/g,'') !== 'attiva') continue; // solo Attiva
+        if (descr.replace(/\s+/g,'') !== 'attiva') continue;
+
         const sede   = pick(row,['DENOMIN. SEDE','DENOMIN.SEDE','DENOMINAZIONE SEDE']);
-        const data   = parseDateIT( pick(row,['DATA ULTIMA LETTURA VAL.','DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']) );
+        const dataUltDT = parseDateITDateTime( pick(row,['DATA ULTIMA LETTURA VAL.','DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']) );
+        const dataUlt = dataUltDT ? new Date(dataUltDT.getFullYear(),dataUltDT.getMonth(),dataUltDT.getDate()) : null;
         const comune = pickComune(row);
         const pda    = pickPDA(row);
         const modello= pickModello(row);
+
+        // EXTRA FIELDS
+        const dataAttiv = parseDateIT( pick(row,['DATA ATTIVAZIONE','DATA ATT.','ATTIVAZIONE']) );
+        const ggManc    = pick(row,['GG MANCATO COLLEGAMENTO','GG MANC. COLLEGAMENTO','GG MANCATO COLL.']);
+        const ggDec     = pick(row,['GG DECADENZA','GG DEC.','DECADENZA']);
+        const cntIn     = pick(row,['CNTTOTIN','CONTATORI IN','CNT IN']);
+        const cntOut    = pick(row,['CNTTOTOT','CONTATORI OUT','CNT OUT']);
+        const msferie   = pick(row,['M.S. / FERIE','M.S./ FERIE','M.S./FERIE','MS / FERIE','MS/FERIE','M.S.']);
+        const macPda    = pick(row,['MACADDRESS PDA','MAC PDA','MAC PDA ADDRESS','MAC PDA']);
+        const codSede   = pick(row,['CODICE SEDE','COD. SEDE']);
+        const codPDV    = pick(row,['CODICE PDV AAMS','COD. PDV AAMS','PDV AAMS']);
+        const indirizzo = pick(row,['INDIRIZZO','IND.']);
+        const provincia = pick(row,['PROVINCIA','PROV.']);
+        const codMod    = pick(row,['CODICE MODELLO','COD. MODELLO','COD MODELLO']);
+        const pctOut    = pick(row,['% OUT','PAYOUT %','PAYOUT']);
+        const em        = pick(row,['E/M','EM','ES/MAG']);
+        const incGG     = pick(row,['INCASSO GIORNALIERO','INC. GIORNALIERO','INC. GG']);
+        const mediaInc  = pick(row,['MEDIA INCASSO GG ESERCIZIO','MEDIA INCASSO GG','MEDIA INC GG']);
+
         const prev=byCode.get(codeid);
-        if(!prev || (data && prev.data && data>prev.data) || (!prev?.data && data)){
-          byCode.set(codeid,{codeid,sede,descrStato:'Attiva',data,comune,pda,modello});
+        if(!prev || (dataUlt && prev.dataUlt && dataUlt>prev.dataUlt) || (!prev?.dataUlt && dataUlt)){
+          byCode.set(codeid,{
+            codeid, sede, dataUlt, dataUltDT, comune, pda, modello,
+            dataAttiv, ggManc, ggDec, cntIn, cntOut, msferie, macPda, codSede, codPDV,
+            indirizzo, provincia, codMod, pctOut, em, incGG, mediaInc
+          });
         }
       }
 
       const all=[];
-      for(const {codeid,sede,data,comune,pda,modello} of byCode.values()){
-        const es = sedeToEs.get(normalizeSede(sede)) ?? '—';
-        const giorni = daysDiffFromToday(data);
-        all.push({ CODEID:codeid, SEDE:sede, ESATTORE:es, STATO:'Attiva', DATA:data, GIORNI:giorni, COMUNE:comune, PDA:pda, MODELLO:modello });
+      for(const v of byCode.values()){
+        const es = sedeToEs.get(normalizeSede(v.sede)) ?? '—';
+        const giorni = daysDiffFromToday(v.dataUlt);
+        all.push({
+          CODEID:v.codeid, SEDE:v.sede, ESATTORE:es, STATO:'Attiva', 
+          DATA:v.dataUlt, DATAULTVAL_DT:v.dataUltDT, GIORNI:giorni,
+          COMUNE:v.comune, PDA:v.pda, MODELLO:v.modello,
+          // extra
+          DATAATTIV:v.dataAttiv, GG_MANC_CONN:v.ggManc, GG_DECAD:v.ggDec,
+          CNTTOTIN:v.cntIn, CNTTOTOT:v.cntOut, MS_FERIE:v.msferie, MAC_PDA:v.macPda,
+          CODICE_SEDE:v.codSede, CODICE_PDV:v.codPDV, INDIRIZZO:v.indirizzo, PROVINCIA:v.provincia,
+          CODICE_MODELLO:v.codMod, PCT_OUT:v.pctOut, EM:v.em, INCASSO_GG:v.incGG, MEDIA_INC_GG:v.mediaInc
+        });
       }
       rowsActive=all;
 
@@ -515,8 +592,8 @@ footer{padding:14px;text-align:center;color:var(--muted)}
   $('#selDays').addEventListener('change',e=>{ $('#daysCustom').style.display=(e.target.value==='custom')?'inline-block':'none'; });
   $('#btnApply').addEventListener('click',()=>{ renderTable(buildFilteredList()); });
   $('#btnDownload').addEventListener('click',()=>{ downloadXLSX(buildFilteredList()); });
-  $('#btnDownloadTxt').addEventListener('click',()=>{ downloadTXT(buildFilteredList()); });
-  $('#btnWhatsapp').addEventListener('click',async()=>{ await sendWhatsapp(buildFilteredList()); });
+  $('#btnDownloadTxt').addEventListener('click',()=>{ const list=buildFilteredList(); const text=generateWhatsappText(rowsActive,list); const blob=new Blob([text],{type:'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); const es=$('#selEsattore').value||'TUTTI'; const d=readDaysSelection(); a.href=url; a.download=`Letture-${es}-${d}gg.txt`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); });
+  $('#btnWhatsapp').addEventListener('click',async()=>{ await (async()=>{ const list=buildFilteredList(); const url='https://wa.me/?text='+encodeURIComponent(generateWhatsappText(rowsActive,list)); if(url.length>2000){ try{ await navigator.clipboard.writeText(generateWhatsappText(rowsActive,list)); alert('Testo copiato negli appunti. Incollalo in WhatsApp.'); }catch(_){ const w=window.open('','_blank'); if(w){w.document.write('<pre style="white-space:pre-wrap;font-family:monospace">'+generateWhatsappText(rowsActive,list).replace(/</g,'&lt;')+'</pre>');}} return;} window.open(url,'_blank'); })(); });
   $('#btnRefresh').addEventListener('click',loadAll);
 
   window.addEventListener('load',()=>{
