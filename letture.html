@@ -166,7 +166,7 @@ footer{padding:14px;text-align:center;color:var(--muted)}
             <tbody></tbody>
           </table>
         </div>
-        <div class="meta">Clicca una riga per aprire la scheda con **tutti** i dati e lo storico.</div>
+        <div class="meta">Clicca una riga per aprire la scheda con <strong>tutti</strong> i dati e lo storico.</div>
       </div>
 
       <div class="card">
@@ -218,7 +218,7 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     </div>
   </div>
 
-  <!-- XLSX -->
+  <!-- XLSX (locale -> CDN fallback) -->
   <script>
   (function(){
     const urls=['./libs/xlsx.full.min.js','https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js','https://unpkg.com/xlsx@0.20.2/dist/xlsx.full.min.js'];
@@ -233,53 +233,80 @@ footer{padding:14px;text-align:center;color:var(--muted)}
   const byId=id=>document.getElementById(id);
   const loader=byId('loader'); const errBox=byId('errorBox');
 
-  /* Theme */
+  /* ================== THEME ================== */
   function applyTheme(t){ document.body.className=t; }
   function initTheme(){ const t=localStorage.getItem('awp_theme')||'theme-light'; applyTheme(t); $('#themeSel').value=t; }
   $('#themeSel').addEventListener('change',e=>{ applyTheme(e.target.value); localStorage.setItem('awp_theme',e.target.value); });
 
-  /* Helpers */
-  function showLoader(v){ loader.style.display=v?'flex':'none'; }
-  function showError(msg){ errBox.textContent=msg; errBox.style.display='block'; alert(msg); }
-  function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
-  function pick(row, names){ for(const n of names){ if(row[n]!=null && row[n]!=='' ) return row[n]; } return ''; }
-  function pickCodeId(row){ const ks=Object.keys(row); const f=k=>k&&String(k).toUpperCase().replace(/[^A-Z0-9]/g,'');
-    let k=ks.find(k=>f(k)==='CODEID'); if(k) return String(row[k]??'').trim();
+  /* ================== HELPERS ROBUSTI ================== */
+  // KEYMAP robusta per intestazioni con spazi/punti/varianti
+  const KEYMAP = {
+    DESCR_STATO: ['DESCR. STATO','DESCR.STATO','STATO'],
+    DENOMIN_SEDE: ['DENOMIN. SEDE','DENOMIN.SEDE','DENOMINAZIONE SEDE'],
+    DATA_ULTIMA_LETTURA_VAL: ['DATA ULTIMA LETTURA VAL.','DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA'],
+    MODELLO: ['MODELLO','MOD','MODEL','MODEL NAME'],
+    PDA: ['PDA','COD.PDA','ID PDA','IDPDA','COD_PDA'],
+    COMUNE: ['COMUNE','CITTA','LOCALITA','CITTÀ'],
+    DATA_ATTIVAZIONE: ['DATA ATTIVAZIONE','DATA ATT.','ATTIVAZIONE'],
+    GG_MANCATO_COLLEGAMENTO: ['GG MANCATO COLLEGAMENTO','GG MANC. COLLEGAMENTO','GG MANCATO COLL.'],
+    GG_DECADENZA: ['GG DECADENZA','GG DEC.','DECADENZA'],
+    CNTTOTIN: ['CNTTOTIN','CONTATORI IN','CNT IN'],
+    CNTTOTOT: ['CNTTOTOT','CONTATORI OUT','CNT OUT'],
+    MS_FERIE: ['M.S. / FERIE','M.S./ FERIE','M.S./FERIE','MS / FERIE','MS/FERIE','M.S.'],
+    MAC_PDA: ['MACADDRESS PDA','MAC PDA','MAC PDA ADDRESS','MAC PDA'],
+    CODICE_SEDE: ['CODICE SEDE','COD. SEDE'],
+    CODICE_PDV: ['CODICE PDV AAMS','COD. PDV AAMS','PDV AAMS'],
+    INDIRIZZO: ['INDIRIZZO','IND.'],
+    PROVINCIA: ['PROVINCIA','PROV.'],
+    CODICE_MODELLO: ['CODICE MODELLO','COD. MODELLO','COD MODELLO'],
+    PCT_OUT: ['% OUT','PAYOUT %','PAYOUT'],
+    EM: ['E/M','EM','ES/MAG'],
+    INCASSO_GG: ['INCASSO GIORNALIERO','INC. GIORNALIERO','INC. GG'],
+    MEDIA_INC_GG: ['MEDIA INCASSO GG ESERCIZIO','MEDIA INCASSO GG','MEDIA INC GG']
+  };
+
+  function getField(row, logicalName){
+    const variants = KEYMAP[logicalName] || [logicalName];
+    for(const k of variants){
+      if (row[k] != null && row[k] !== '') return row[k];
+    }
+    const keys = Object.keys(row);
+    const wanted = variants.map(v=>String(v).toLowerCase().replace(/\s+/g,'').replace(/\./g,''));
+    for (const k of keys){
+      const nk = String(k).toLowerCase().replace(/\s+/g,'').replace(/\./g,'');
+      if (wanted.includes(nk) && row[k]!=null && row[k]!=='') return row[k];
+    }
+    return '';
+  }
+
+  function pickCodeId(row){
+    const ks=Object.keys(row);
+    const norm=k=>k&&String(k).toUpperCase().replace(/[^A-Z0-9]/g,'');
+    let k=ks.find(k=>norm(k)==='CODEID'); if(k) return String(row[k]??'').trim();
     k=ks.find(k=>/COD(ICE)?ID/i.test(k)); if(k) return String(row[k]??'').trim();
     k=ks.find(k=>/(SERIALE|MATRICOLA|AWP)/i.test(k)); return k?String(row[k]??'').trim():'';
   }
+
   function parseDateITDateTime(v){
     if(v==null||v==='')return null;
-    // Excel seriale
     if(typeof v==='number'||/^[0-9]+(\.[0-9]+)?$/.test(String(v).trim())){
       const n=Number(v);
       if(n>0&&n<2958465){
         const base=new Date(Date.UTC(1899,11,30));
-        const ms = Math.round(n*24*60*60*1000);
-        const d = new Date(base.getTime()+ms);
-        return d; // UTC-like
+        const ms=Math.round(n*24*60*60*1000);
+        return new Date(base.getTime()+ms);
       }
     }
-    // Formati: GG-MM-AAAA HH:MM(:SS)
     const s=String(v).trim().replace(/[\/\.]/g,'-');
     const m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-    if(m){
-      const[,gg,mm,yyyy,HH='0',MM='0',SS='0']=m;
-      return new Date(+yyyy,+mm-1,+gg,+HH,+MM,+SS);
-    }
+    if(m){const[,gg,mm,yyyy,HH='0',MM='0',SS='0']=m; return new Date(+yyyy,+mm-1,+gg,+HH,+MM,+SS);}
     const d=new Date(s); if(!isNaN(d)) return d;
     return null;
   }
-  function parseDateIT(v){ // solo data
-    const dt=parseDateITDateTime(v); if(!dt) return null;
-    return new Date(dt.getFullYear(),dt.getMonth(),dt.getDate());
-  }
+  function parseDateIT(v){ const dt=parseDateITDateTime(v); if(!dt) return null; return new Date(dt.getFullYear(),dt.getMonth(),dt.getDate()); }
   function daysDiffFromToday(d){ if(!d) return Infinity; const t=new Date(); t.setHours(0,0,0,0); const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return Math.floor((t-x)/86400000); }
   function fmtDate(d){ if(!d) return ''; const g=String(d.getDate()).padStart(2,'0'); const m=String(d.getMonth()+1).padStart(2,'0'); return `${g}-${m}-${d.getFullYear()}`; }
   function fmtDateTime(d){ if(!d) return ''; const dd=fmtDate(d); const h=String(d.getHours()).padStart(2,'0'); const mi=String(d.getMinutes()).padStart(2,'0'); const s=String(d.getSeconds()).padStart(2,'0'); return `${dd} ${h}:${mi}:${s}`; }
-  function pickPDA(r){ return pick(r,['PDA','COD.PDA','ID PDA','IDPDA','COD_PDA']); }
-  function pickComune(r){ return pick(r,['COMUNE','CITTA','LOCALITA',"CITTÀ"]); }
-  function pickModello(r){ return pick(r,['MODELLO','MOD','MODEL','MODEL NAME']); }
 
   async function fetchJSON(u,label){ const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error(`Caricamento ${label||u} fallito (${r.status})`); return r.json(); }
   async function fetchXLSX_largest(u,label){
@@ -288,8 +315,9 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     let best=null,rows=[],len=0; for(const n of wb.SheetNames){ const ws=wb.Sheets[n]; const arr=XLSX.utils.sheet_to_json(ws,{defval:null}); if(arr.length>len){len=arr.length;rows=arr;best=n;} }
     return {rows, sheetName:best||wb.SheetNames[0]};
   }
+  function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
 
-  /* STATE */
+  /* ================== STATE ================== */
   let latestName=''; let rowsActive=[]; let sedeToEs=new Map(); let esattori=[];
   let manifestList=[]; const historyCache=new Map();
 
@@ -357,7 +385,7 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     XLSX.writeFile(wb,`Letture-${es}-${d}gg.xlsx`);
   }
 
-  /* ===== WhatsApp / TXT ===== (invariato dal tuo setup precedente) */
+  /* ===== WHATSAPP / TXT ===== */
   function buildGroupingMaps(allActiveRows, eligibleList){
     const activeCountBySede=new Map();
     for(const r of allActiveRows){
@@ -404,7 +432,7 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     window.open(url,'_blank');
   }
 
-  /* ===== MODAL & STORICO ===== */
+  /* ================== MODAL & STORICO ================== */
   function openModal(codeid, row){
     $('#mTitle').textContent = row.CODEID;
     const ult = row.DATAULTVAL_DT ? ` • Ultima lettura: ${fmtDateTime(row.DATAULTVAL_DT)} (GMT)` : '';
@@ -415,8 +443,7 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     $('#mTagComune').textContent = row.COMUNE||'';
 
     const kv=$('#mKV'); kv.innerHTML='';
-    // 2 colonne responsivi: ogni riga è "etichetta : valore"
-    function add(label, value){ kv.insertAdjacentHTML('beforeend', `<div class="row"><b>${label}</b><span>${(value??'')!==''?value:'—'}</span></div>`); }
+    const add = (label, value)=> kv.insertAdjacentHTML('beforeend', `<div class="row"><b>${label}</b><span>${(value??'')!==''?value:'—'}</span></div>`);
 
     add('CODEID', row.CODEID);
     add('DATA ATTIVAZIONE', row.DATAATTIV ? fmtDate(row.DATAATTIV) : '');
@@ -469,11 +496,11 @@ footer{padding:14px;text-align:center;color:var(--muted)}
         const sn=await fetchXLSX_largest('./Dati/'+name, name);
         for(const row of sn.rows){
           const cid=pickCodeId(row); if(!cid || cid!==codeid) continue;
-          const status = String(pick(row,['DESCR. STATO','DESCR.STATO','STATO'])||'').trim();
-          const date  = parseDateITDateTime(pick(row,['DATA ULTIMA LETTURA VAL.','DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
-          const pda   = pickPDA(row);
-          const model = pickModello(row);
-          const sede  = pick(row,['DENOMIN. SEDE','DENOMIN.SEDE','DENOMINAZIONE SEDE']);
+          const status = String(getField(row,'DESCR_STATO')||'').trim();
+          const date  = parseDateITDateTime(getField(row,'DATA_ULTIMA_LETTURA_VAL'));
+          const pda   = getField(row,'PDA');
+          const model = getField(row,'MODELLO');
+          const sede  = getField(row,'DENOMIN_SEDE');
           if(date) hist.push({date, status, pda, model, sede});
           break;
         }
@@ -482,7 +509,6 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     historyCache.set(codeid, hist);
     return hist;
   }
-
   function exportHistoryCSV(codeid, hist){
     const header = ['DATA-ORA (GMT)','STATO','MODELLO','PDA','SEDE'];
     const data = hist.map(h=>[fmtDateTime(h.date), h.status||'', h.model||'', h.pda||'', h.sede||'']);
@@ -503,57 +529,72 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     window.open(url,'_blank');
   }
 
-  /* ===== LOAD (con tutti i campi extra) ===== */
-  let manifestOnce=false;
+  /* ================== LOAD TUTTO ================== */
   async function loadAll(){
     showLoader(true); errBox.style.display='none';
     try{
+      // manifest
       const manifest=await fetchJSON('./Dati/manifest.json','manifest.json');
       if(!manifest.sinottici||!manifest.sinottici.length) throw new Error('manifest.json: lista sinottici vuota');
       manifestList = manifest.sinottici.slice();
       latestName = manifestList[manifestList.length-1];
       $('#pillSin').textContent='Sinottico: '+latestName;
 
+      // esattori da file (se c'è)
       try{ esattori=await fetchJSON('./Dati/esattori.json','esattori.json'); }catch(_){ esattori=[]; }
+
+      // PDV -> mappa sede -> esattore
+      const pdv=await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.xlsx','PDV-e-ESATTORI.xlsx');
+      sedeToEs=new Map();
+      for(const r of pdv.rows){
+        const sede=normalizeSede(r['DENOMIN. SEDE']);
+        const es  =(r['ESATTORE']??'').toString().trim().toUpperCase()||'—';
+        if(sede) sedeToEs.set(sede,es);
+      }
+      // se esattori.json è vuoto, derivali dai PDV + fallback fisso
+      if(!esattori || !esattori.length){
+        const derived=new Set(Array.from(sedeToEs.values()).filter(Boolean));
+        ['ALESSANDRO','MATTIA','STEPHAN','MATTEO','LUCA','MAGAZZINO'].forEach(x=>derived.add(x));
+        esattori=Array.from(derived).sort();
+      }
+      // Popola select esattori
       $('#selEsattore').innerHTML='<option value="">— Tutti —</option>'+esattori.map(e=>`<option value="${String(e).toUpperCase()}">${String(e).toUpperCase()}</option>`).join('');
 
-      const pdv=await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.xlsx','PDV-e-ESATTORI.xlsx'); 
-      const sedeToEs=new Map();
-      for(const r of pdv.rows){ const sede=normalizeSede(r['DENOMIN. SEDE']); const es=(r['ESATTORE']??'').toString().trim().toUpperCase()||'—'; if(sede) sedeToEs.set(sede,es); }
+      // SINOTTICO ultimo (foglio più grande)
+      const sn=await fetchXLSX_largest('./Dati/'+latestName,latestName);
+      $('#pillFoglio').textContent='Foglio: '+sn.sheetName+' • righe: '+sn.rows.length;
 
-      const sn=await fetchXLSX_largest('./Dati/'+latestName,latestName); $('#pillFoglio').textContent='Foglio: '+sn.sheetName;
-
-      // SOLO "Attiva" da DESCR. STATO / DESCR.STATO; arricchisco con TUTTI i campi richiesti
+      // ---- Tieni SOLO "Attiva" (DESCR. STATO contiene 'attiva'), raccogli TUTTI i campi per la scheda ----
       const byCode=new Map();
       for(const row of sn.rows){
         const codeid=pickCodeId(row); if(!codeid) continue;
-        const descr = (pick(row,['DESCR. STATO','DESCR.STATO']) || '').toString().trim().toLowerCase();
-        if (descr.replace(/\s+/g,'') !== 'attiva') continue;
+        const descr = String(getField(row,'DESCR_STATO')||'').toLowerCase();
+        if (!descr.includes('attiva')) continue;
 
-        const sede   = pick(row,['DENOMIN. SEDE','DENOMIN.SEDE','DENOMINAZIONE SEDE']);
-        const dataUltDT = parseDateITDateTime( pick(row,['DATA ULTIMA LETTURA VAL.','DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']) );
-        const dataUlt = dataUltDT ? new Date(dataUltDT.getFullYear(),dataUltDT.getMonth(),dataUltDT.getDate()) : null;
-        const comune = pickComune(row);
-        const pda    = pickPDA(row);
-        const modello= pickModello(row);
+        const sede   = getField(row,'DENOMIN_SEDE');
+        const dataUltDT = parseDateITDateTime( getField(row,'DATA_ULTIMA_LETTURA_VAL') );
+        const dataUlt   = dataUltDT ? new Date(dataUltDT.getFullYear(),dataUltDT.getMonth(),dataUltDT.getDate()) : null;
+        const comune = getField(row,'COMUNE');
+        const pda    = getField(row,'PDA');
+        const modello= getField(row,'MODELLO');
 
-        // EXTRA FIELDS
-        const dataAttiv = parseDateIT( pick(row,['DATA ATTIVAZIONE','DATA ATT.','ATTIVAZIONE']) );
-        const ggManc    = pick(row,['GG MANCATO COLLEGAMENTO','GG MANC. COLLEGAMENTO','GG MANCATO COLL.']);
-        const ggDec     = pick(row,['GG DECADENZA','GG DEC.','DECADENZA']);
-        const cntIn     = pick(row,['CNTTOTIN','CONTATORI IN','CNT IN']);
-        const cntOut    = pick(row,['CNTTOTOT','CONTATORI OUT','CNT OUT']);
-        const msferie   = pick(row,['M.S. / FERIE','M.S./ FERIE','M.S./FERIE','MS / FERIE','MS/FERIE','M.S.']);
-        const macPda    = pick(row,['MACADDRESS PDA','MAC PDA','MAC PDA ADDRESS','MAC PDA']);
-        const codSede   = pick(row,['CODICE SEDE','COD. SEDE']);
-        const codPDV    = pick(row,['CODICE PDV AAMS','COD. PDV AAMS','PDV AAMS']);
-        const indirizzo = pick(row,['INDIRIZZO','IND.']);
-        const provincia = pick(row,['PROVINCIA','PROV.']);
-        const codMod    = pick(row,['CODICE MODELLO','COD. MODELLO','COD MODELLO']);
-        const pctOut    = pick(row,['% OUT','PAYOUT %','PAYOUT']);
-        const em        = pick(row,['E/M','EM','ES/MAG']);
-        const incGG     = pick(row,['INCASSO GIORNALIERO','INC. GIORNALIERO','INC. GG']);
-        const mediaInc  = pick(row,['MEDIA INCASSO GG ESERCIZIO','MEDIA INCASSO GG','MEDIA INC GG']);
+        // extra campi
+        const dataAttiv = parseDateIT( getField(row,'DATA_ATTIVAZIONE') );
+        const ggManc    = getField(row,'GG_MANCATO_COLLEGAMENTO');
+        const ggDec     = getField(row,'GG_DECADENZA');
+        const cntIn     = getField(row,'CNTTOTIN');
+        const cntOut    = getField(row,'CNTTOTOT');
+        const msferie   = getField(row,'MS_FERIE'); // solo visuale
+        const macPda    = getField(row,'MAC_PDA');
+        const codSede   = getField(row,'CODICE_SEDE');
+        const codPDV    = getField(row,'CODICE_PDV');
+        const indirizzo = getField(row,'INDIRIZZO');
+        const provincia = getField(row,'PROVINCIA');
+        const codMod    = getField(row,'CODICE_MODELLO');
+        const pctOut    = getField(row,'PCT_OUT');
+        const em        = getField(row,'EM');
+        const incGG     = getField(row,'INCASSO_GG');
+        const mediaInc  = getField(row,'MEDIA_INC_GG');
 
         const prev=byCode.get(codeid);
         if(!prev || (dataUlt && prev.dataUlt && dataUlt>prev.dataUlt) || (!prev?.dataUlt && dataUlt)){
@@ -584,16 +625,16 @@ footer{padding:14px;text-align:center;color:var(--muted)}
 
       renderTable( buildFilteredList() );
 
-    }catch(e){ showError(e.message||'Errore sconosciuto'); }
+    }catch(e){ errBox.textContent=e.message||'Errore sconosciuto'; errBox.style.display='block'; alert(e.message||'Errore'); }
     finally{ showLoader(false); }
   }
 
-  /* UI */
+  /* ================== UI BINDINGS ================== */
   $('#selDays').addEventListener('change',e=>{ $('#daysCustom').style.display=(e.target.value==='custom')?'inline-block':'none'; });
   $('#btnApply').addEventListener('click',()=>{ renderTable(buildFilteredList()); });
   $('#btnDownload').addEventListener('click',()=>{ downloadXLSX(buildFilteredList()); });
-  $('#btnDownloadTxt').addEventListener('click',()=>{ const list=buildFilteredList(); const text=generateWhatsappText(rowsActive,list); const blob=new Blob([text],{type:'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); const es=$('#selEsattore').value||'TUTTI'; const d=readDaysSelection(); a.href=url; a.download=`Letture-${es}-${d}gg.txt`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); });
-  $('#btnWhatsapp').addEventListener('click',async()=>{ await (async()=>{ const list=buildFilteredList(); const url='https://wa.me/?text='+encodeURIComponent(generateWhatsappText(rowsActive,list)); if(url.length>2000){ try{ await navigator.clipboard.writeText(generateWhatsappText(rowsActive,list)); alert('Testo copiato negli appunti. Incollalo in WhatsApp.'); }catch(_){ const w=window.open('','_blank'); if(w){w.document.write('<pre style="white-space:pre-wrap;font-family:monospace">'+generateWhatsappText(rowsActive,list).replace(/</g,'&lt;')+'</pre>');}} return;} window.open(url,'_blank'); })(); });
+  $('#btnDownloadTxt').addEventListener('click',()=>{ downloadTXT(buildFilteredList()); });
+  $('#btnWhatsapp').addEventListener('click',async()=>{ await sendWhatsapp(buildFilteredList()); });
   $('#btnRefresh').addEventListener('click',loadAll);
 
   window.addEventListener('load',()=>{
