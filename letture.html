@@ -34,7 +34,6 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,S
 .right{display:flex; align-items:center; gap:8px}
 select,button,input{ background:var(--card); color:var(--fg); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-weight:600 }
 button.primary{ background:var(--acc); color:#fff; border-color:var(--acc) }
-.badge{ display:inline-block; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:800; border:2px solid var(--border); background:var(--card) }
 
 main{ padding:18px; max-width:1200px; margin:0 auto }
 .card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:var(--shadow); margin-bottom:14px }
@@ -117,8 +116,8 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
         <span class="pill" id="pillCount">Selezione: —</span>
       </div>
       <div class="meta">
-        Mostra le macchine <strong>ATTIVE</strong> con <strong>mancata lettura ≥</strong> <strong id="metaDays">2</strong> giorni (esclude Ferie/Manutenzione/Blocchi). Join su <strong>DENOMIN. SEDE</strong>.  
-        Nella tabella è presente anche la colonna <strong>MODELLO</strong>.
+        Mostra le macchine con <strong>DESCR. STATO = "Attiva"</strong> e <strong>mancata lettura ≥</strong> <strong id="metaDays">2</strong> giorni.  
+        Join su <strong>DENOMIN. SEDE</strong>, colonna <strong>MODELLO</strong> inclusa.
       </div>
     </div>
 
@@ -199,20 +198,6 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     const v = (row['M.S. / FERIE'] ?? row['M.S./ FERIE'] ?? row['M.S./FERIE'] ?? row['MS / FERIE'] ?? row['MS/FERIE'] ?? row['M.S.'] ?? '').toString().trim();
     return v;
   }
-  // Classifica stato (prima M.S./FERIE, poi DESCR. STATO)
-  function classifyState(descrStato, msFerie){
-    const ms = (msFerie||'').toUpperCase();
-    if(/FERIE/.test(ms)) return 'FERIE';
-    if(/MANUT/.test(ms) || /M\.S\./.test(ms)) return 'MANUT';
-    const s = (descrStato||'').toUpperCase();
-    if(/BLOCCO\s*AMMINISTRATIVO/.test(s)) return 'FERIE';
-    if(/724\s*IN\s*CORSO/.test(s))       return 'MANUT';
-    if(/BLOCCO\s*DA\s*DA/.test(s))       return 'BLOCCO_DA_DA';
-    if(/\bBLOCCO\b/.test(s) || /\bBLOCCATA\b/.test(s)) return 'BLOCCO';
-    if(/\bATTIVA\b/.test(s))             return 'ATTIVA';
-    return 'ATTIVA';
-  }
-  function isActiveForEsattore(cat){ return cat==='ATTIVA'; }
 
   async function fetchJSON(u,label){ const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error(`Caricamento ${label||u} fallito (${r.status})`); return r.json(); }
   async function fetchXLSX_largest(u,label){
@@ -241,14 +226,11 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     const selEs = $('#selEsattore').value.trim().toUpperCase();
     if(selEs){
       list = list.filter(r => (r.ESATTORE||'—').toUpperCase()===selEs);
-      // nascondi colonna ESATTORE
       document.querySelectorAll('.col-es').forEach(th=>th.style.display='none');
     }else{
-      // mostra colonna ESATTORE
       document.querySelectorAll('.col-es').forEach(th=>th.style.display='table-cell');
     }
 
-    // Ordina: se tutti → per ESATTORE asc poi GIORNI desc; se uno → solo GIORNI desc
     list.sort((a,b)=>{
       if(!selEs){
         const d=(a.ESATTORE||'').localeCompare(b.ESATTORE||'');
@@ -292,100 +274,99 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
   }
 
   /* ==== WHATSAPP / TXT ==== */
-
-  // Crea mappe utili per capire "tutte da leggere" vs "alcune"
   function buildGroupingMaps(allActiveRows, eligibleList) {
-    // activeCountBySede: quante AWP ATTIVE ha ogni locale (tutte, indipendentemente dai giorni)
+    // Conta AWP attive per locale (solo DESCR.STATO = Attiva)
     const activeCountBySede = new Map();
     for (const r of allActiveRows) {
       const key = (r.ESATTORE||'—').toUpperCase() + '||' + (r.SEDE||'').toUpperCase();
       activeCountBySede.set(key, (activeCountBySede.get(key)||0) + 1);
     }
 
-    // eligibleBySede: per locale, la lista delle AWP da leggere (≥ N giorni)
+    // AWP da leggere (≥ N giorni) per locale
     const eligibleBySede = new Map();
     for (const r of eligibleList) {
-      const keyEs = (r.ESATTORE||'—').toUpperCase();
-      const key = keyEs + '||' + (r.SEDE||'').toUpperCase();
-      if (!eligibleBySede.has(key)) eligibleBySede.set(key, { esattore:keyEs, sede:r.SEDE||'', models:new Set(), items:[] });
+      const esKey = (r.ESATTORE||'—').toUpperCase();
+      const key = esKey + '||' + (r.SEDE||'').toUpperCase();
+      if (!eligibleBySede.has(key)) eligibleBySede.set(key, { esattore:esKey, sede:r.SEDE||'', models:new Set(), items:[] });
       const entry = eligibleBySede.get(key);
       entry.items.push(r);
-      // Modello: se non presente, usa CODEID come fallback
       const name = (r.MODELLO && String(r.MODELLO).trim()) ? String(r.MODELLO).trim() : (r.CODEID||'');
       if (name) entry.models.add(name);
     }
-
     return { activeCountBySede, eligibleBySede };
   }
 
-  // Genera testo WhatsApp secondo le regole richieste
   function generateWhatsappText(allActiveRows, eligibleList) {
     const selEs = ($('#selEsattore').value||'').trim().toUpperCase();
-    const { activeCountBySede, eligibleBySede } = buildGroupingMaps(allActiveRows, eligibleList);
     const compact = $('#chkCompact').checked;
+    const { activeCountBySede, eligibleBySede } = buildGroupingMaps(allActiveRows, eligibleList);
 
-    // Raggruppa per Esattore → array di righe (una per locale)
+    // Esattore → [righe locale]
     const byEs = new Map();
 
     for (const [key, info] of eligibleBySede.entries()) {
-      const [esKey, sedeKey] = key.split('||');
-      const activeTot = activeCountBySede.get(key) || 0;     // quante AWP attive in quel locale
-      const eligTot = info.items.length;                     // quante da leggere (≥ N)
+      const [esKey] = key.split('||');
+      const activeTot = activeCountBySede.get(key) || 0;
+      const eligTot = info.items.length;
       if (eligTot === 0) continue;
+
+      // se il locale ha macchine con giorni > 3, aggiungi data ultima lettura (più recente tra quelle da leggere) in corsivo
+      let italicDate = '';
+      const maxGiorni = Math.max(...info.items.map(x=>isFinite(x.GIORNI)?x.GIORNI:0));
+      if (maxGiorni > 3) {
+        // prendo la DATA più recente tra le AWP da leggere
+        let latest = null;
+        for (const it of info.items) {
+          if (it.DATA && (!latest || it.DATA > latest)) latest = it.DATA;
+        }
+        if (latest) italicDate = ` _${fmtDate(latest)}_`;
+      }
 
       let line;
       if (activeTot > 0 && eligTot === activeTot) {
-        // tutte le attive del locale sono da leggere
-        line = `${info.sede} - PDA`;
+        line = `${info.sede} - PDA${italicDate}`;
       } else {
-        // solo alcune: elenca i modelli unici
         let models = Array.from(info.models);
-        // compatta (max 4)
         if (compact && models.length > 4) {
           const rest = models.length - 4;
           models = models.slice(0,4);
           models.push(`+${rest}`);
         }
-        line = `${info.sede} - ${models.join(', ')}`;
+        line = `${info.sede} - ${models.join(', ')}${italicDate}`;
       }
 
       if (!byEs.has(esKey)) byEs.set(esKey, []);
       byEs.get(esKey).push(line);
     }
 
-    // Ordina per esattore e per locale
-    for (const [k, arr] of byEs) {
-      arr.sort((a,b)=>a.localeCompare(b, 'it', {sensitivity:'base'}));
-    }
+    // Ordino locali alfabeticamente per esattore
+    for (const [k, arr] of byEs) arr.sort((a,b)=>a.localeCompare(b, 'it', {sensitivity:'base'}));
 
-    // Costruisci il testo finale
-    let chunks = [];
+    // Costruisco testo finale con righe vuote tra i locali
+    const blocks = [];
     if (selEs) {
-      // Un solo esattore selezionato
       const lines = byEs.get(selEs) || [];
       const header = `*${selEs}*`;
-      chunks.push(header);
-      chunks.push(...lines);
+      if (lines.length) {
+        blocks.push(header + '\n');               // intestazione + riga vuota
+        blocks.push(lines.join('\n\n'));         // locale\n\nlocale...
+      } else {
+        blocks.push(header + '\n');
+        blocks.push('Nessun locale con letture arretrate.');
+      }
     } else {
-      // Tutti gli esattori → più sezioni
       const esList = Array.from(byEs.keys()).sort();
+      if (!esList.length) return 'Nessun locale con letture arretrate.';
       for (const es of esList) {
         const lines = byEs.get(es)||[];
         if (!lines.length) continue;
-        chunks.push(`*${es}*`);
-        chunks.push(...lines);
-        chunks.push(''); // riga vuota tra blocchi esattori
+        blocks.push(`*${es}*` + '\n');           // intestazione
+        blocks.push(lines.join('\n\n'));         // locali separati da riga vuota
+        blocks.push('');                         // riga vuota tra esattori
       }
-      // togli eventuale ultima riga vuota
-      if (chunks[chunks.length-1]==='') chunks.pop();
+      if (blocks[blocks.length-1]==='') blocks.pop();
     }
-
-    // Nessun locale
-    if (chunks.length === 0) {
-      return (selEs?`*${selEs}*\n`:``) + 'Nessun locale con letture arretrate.';
-    }
-
-    return chunks.join('\n');
+    return blocks.join('\n');
   }
 
   function downloadTXT(list){
@@ -404,8 +385,6 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
   async function sendWhatsapp(list){
     const text = generateWhatsappText(rowsActive, list);
     const url = 'https://wa.me/?text=' + encodeURIComponent(text);
-
-    // Se il messaggio è troppo lungo per l'URL, copia negli appunti come fallback
     if (url.length > 2000) {
       try{
         await navigator.clipboard.writeText(text);
@@ -447,34 +426,36 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
       const sn = await fetchXLSX_largest('./Dati/'+latestName, latestName);
       $('#pillFoglio').textContent='Foglio: '+sn.sheetName;
 
-      // Mappa CODEID→riga più recente (salvando anche M.S./FERIE e MODELLO)
+      // Mappa CODEID→riga più recente
       const byCode=new Map();
       for(const row of sn.rows){
         const codeid=pickCodeId(row); if(!codeid) continue;
         const sede = row['DENOMIN. SEDE'] ?? pick(row,['DENOMIN.SEDE','DENOMINAZIONE SEDE']);
-        const stato= String(row['DESCR.STATO'] ?? '').trim();
-        const ms   = pickMSFerie(row);
+        const descrStato = String(row['DESCR.STATO'] ?? '').trim();
         const data = parseDateIT(row['DATA ULTIMA LETTURA VAL.'] ?? pick(row,['DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
         const comune= pickComune(row);
         const pda   = pickPDA(row);
         const modello = pickModello(row);
+        const ms   = pickMSFerie(row); // non usata per filtrare, ma utile se servisse
+
         const prev=byCode.get(codeid);
         if(!prev || (data && prev.data && data>prev.data) || (!prev?.data && data)){
-          byCode.set(codeid,{codeid,sede,stato,ms,data,comune,pda,modello});
+          byCode.set(codeid,{codeid,sede,descrStato,ms,data,comune,pda,modello});
         }
       }
 
-      // Normalizza + classifica + giorni
+      // Normalizza e **tieni SOLO Attiva** nella colonna DESCR. STATO
       const all=[];
-      for(const {codeid,sede,stato,ms,data,comune,pda,modello} of byCode.values()){
-        const es     = sedeToEs.get(normalizeSede(sede)) ?? '—';
-        const cat    = classifyState(stato, ms);
+      for(const {codeid,sede,descrStato,ms,data,comune,pda,modello} of byCode.values()){
+        const es = sedeToEs.get(normalizeSede(sede)) ?? '—';
         const giorni = daysDiffFromToday(data);
-        all.push({ CODEID:codeid, SEDE:sede, ESATTORE:es, STATO:stato, MS:ms, CAT:cat, DATA:data, GIORNI:giorni, COMUNE:comune, PDA:pda, MODELLO:modello });
+        if (/^ATTIVA$/i.test(descrStato||'')) {
+          all.push({ CODEID:codeid, SEDE:sede, ESATTORE:es, STATO:descrStato, MS:ms, DATA:data, GIORNI:giorni, COMUNE:comune, PDA:pda, MODELLO:modello });
+        }
       }
 
-      // Solo ATTIVE nella lista letture
-      rowsActive = all.filter(r => isActiveForEsattore(r.CAT));
+      // rowsActive = solo Attive
+      rowsActive = all;
 
       // Applica filtri iniziali
       renderTable(buildFilteredList());
