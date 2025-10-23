@@ -16,6 +16,7 @@ body.theme-light{}
 body.theme-dark{ --bg:#121417; --fg:#e4e7ec; --muted:#9aa3af; --card:#181b20; --border:#2a2f36; --acc:#3399ff; --table-head:#1c2128; --shadow:0 10px 30px rgba(0,0,0,.35) }
 body.theme-blue{ --bg:#e9f5ff; --fg:#002b4d; --muted:#335d7a; --card:#ffffff; --border:#cfe6fb; --acc:#0066cc; --table-head:#d9eeff; --shadow:0 12px 28px rgba(0,80,160,.15) }
 body.theme-contrast{ --bg:#000; --fg:#ff0; --muted:#ffe766; --card:#0b0b0b; --border:#333; --acc:#ff3333; --table-head:#111; --shadow:0 10px 26px rgba(255,255,0,.12) }
+
 .navbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--border)}
 .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fg)}
 .brand img{height:28px}
@@ -24,22 +25,52 @@ body.theme-contrast{ --bg:#000; --fg:#ff0; --muted:#ffe766; --card:#0b0b0b; --bo
 .right{display:flex;align-items:center;gap:8px}
 select,button,input{background:var(--card);color:var(--fg);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-weight:600}
 button.primary{background:var(--acc);color:#fff;border-color:var(--acc)}
-main{padding:18px;max-width:1200px;margin:0 auto}
+
+main{padding:18px;max-width:1280px;margin:0 auto}
+.grid{display:grid;grid-template-columns:1.3fr .7fr;gap:14px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow);margin-bottom:14px}
-.card h3{margin:0 0 10px;font-size:16px}
+.card h3{margin:0 0 12px;font-size:16px}
 .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .pill{display:inline-block;padding:3px 8px;border:1px solid var(--border);border-radius:999px;background:var(--card);margin-right:6px;font-size:12px;color:var(--muted)}
+
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
+.stat .label{color:var(--muted);font-size:12px}
+.stat .value{font-size:20px;font-weight:800}
+.stat.ok .value{color:var(--ok)}
+.stat.warn .value{color:var(--warn)}
+.stat.bad .value{color:var(--bad)}
+.flash{animation:flash 1.2s ease-in-out 1}
+@keyframes flash{0%{box-shadow:0 0 0 0 rgba(46,160,67,.5)}60%{box-shadow:0 0 0 12px rgba(46,160,67,0)}100%{box-shadow:none}}
+
 table{width:100%;border-collapse:collapse}
 th,td{padding:10px 12px;border-bottom:1px solid var(--border)}
 th{background:var(--table-head);text-align:left}
 tr:hover td{background:rgba(0,0,0,.03)}
 td.bad{color:var(--bad);font-weight:700}
+tr.clickable{cursor:pointer}
+
 .meta{margin-top:6px;font-size:12px;color:var(--muted)}
+
 #loader{position:fixed;inset:0;background:rgba(0,0,0,.08);display:none;align-items:center;justify-content:center;z-index:40}
 .spinner{width:54px;height:54px;border-radius:50%;border:5px solid rgba(0,0,0,.15);border-top-color:var(--acc);animation:spin .9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-#errorBox{max-width:1200px;margin:10px auto 0;background:#ffecec;border:1px solid #ffb3b3;color:#7a0000;padding:10px 14px;border-radius:10px;display:none}
+#errorBox{max-width:1280px;margin:10px auto 0;background:#ffecec;border:1px solid #ffb3b3;color:#7a0000;padding:10px 14px;border-radius:10px;display:none}
 footer{padding:14px;text-align:center;color:var(--muted)}
+
+/* Modal */
+.modal-back{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:60}
+.modal{width:min(900px,92vw);max-height:86vh;overflow:auto;background:var(--card);color:var(--fg);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:16px}
+.modal h3{margin:0 0 6px}
+.modal .muted{color:var(--muted);font-size:12px;margin-bottom:8px}
+.flex{display:flex;gap:10px;flex-wrap:wrap}
+.kv{display:grid;grid-template-columns:140px 1fr;gap:6px 12px;margin:10px 0}
+.kv b{font-weight:700}
+.tag{display:inline-block;border:1px solid var(--border);padding:4px 8px;border-radius:999px;margin-right:6px;margin-bottom:6px}
+.timeline{border-left:3px solid var(--border);margin-left:8px;padding-left:12px}
+.tl-item{margin:10px 0}
+.tl-item .when{font-weight:700}
+.tl-item .meta{font-size:12px;color:var(--muted)}
 </style>
 </head>
 <body class="theme-light">
@@ -102,25 +133,39 @@ footer{padding:14px;text-align:center;color:var(--muted)}
       </div>
     </div>
 
-    <div class="card">
-      <h3>Macchine da leggere</h3>
-      <div style="overflow:auto">
-        <table id="tbl">
-          <thead>
-            <tr>
-              <th class="col-es">ESATTORE</th>
-              <th>LOCALE</th>
-              <th>AWP</th>
-              <th>MODELLO</th>
-              <th>PDA</th>
-              <th>GIORNI</th>
-              <th>COMUNE</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
+    <div class="grid">
+      <div class="card">
+        <h3>Macchine da leggere</h3>
+        <div style="overflow:auto">
+          <table id="tbl">
+            <thead>
+              <tr>
+                <th class="col-es">ESATTORE</th>
+                <th>LOCALE</th>
+                <th>AWP</th>
+                <th>MODELLO</th>
+                <th>PDA</th>
+                <th>GIORNI</th>
+                <th>COMUNE</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="meta">Clicca una riga per aprire la scheda con storico e dettagli.</div>
       </div>
-      <div class="meta">Ordine: per esattore (se “Tutti”), poi per giorni arretrati (desc).</div>
+
+      <div class="card">
+        <h3>Statistiche</h3>
+        <div class="stats">
+          <div class="stat"><div class="label">Totale attive</div><div class="value" id="stTot">—</div></div>
+          <div class="stat bad"><div class="label">Da leggere (≥N)</div><div class="value" id="stArretr">—</div></div>
+          <div class="stat ok" id="stOkBox"><div class="label">In regola (&lt; N)</div><div class="value" id="stOk">—</div></div>
+          <div class="stat warn"><div class="label">Media giorni</div><div class="value" id="stAvg">—</div></div>
+          <div class="stat"><div class="label">Max giorni</div><div class="value" id="stMax">—</div></div>
+        </div>
+        <div class="meta" id="stEsMeta" style="margin-top:8px"></div>
+      </div>
     </div>
   </main>
 
@@ -128,7 +173,31 @@ footer{padding:14px;text-align:center;color:var(--muted)}
 
   <div id="loader"><div class="spinner"></div></div>
 
-  <!-- Libreria XLSX (prima locale, poi CDN fallback) -->
+  <!-- MODAL -->
+  <div class="modal-back" id="mb">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <h3 id="mTitle">AWP</h3>
+        <button id="mClose">✖</button>
+      </div>
+      <div class="muted" id="mSubtitle">—</div>
+      <div class="kv" id="mKV"></div>
+      <div class="flex" style="gap:8px;margin:8px 0 14px">
+        <span class="tag" id="mTagEs">ESATTORE</span>
+        <span class="tag" id="mTagSede">SEDE</span>
+        <span class="tag" id="mTagComune">COMUNE</span>
+      </div>
+      <h3>Storico letture</h3>
+      <div class="timeline" id="mTL"><div class="tl-item">Caricamento storico…</div></div>
+      <div class="flex" style="margin-top:10px">
+        <button id="mCsv">⬇️ Esporta CSV</button>
+        <button id="mTxt">⬇️ Esporta TXT</button>
+        <button id="mWA">🟢 WhatsApp (locale)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- XLSX -->
   <script>
   (function(){
     const urls=['./libs/xlsx.full.min.js','https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js','https://unpkg.com/xlsx@0.20.2/dist/xlsx.full.min.js'];
@@ -143,13 +212,14 @@ footer{padding:14px;text-align:center;color:var(--muted)}
   const byId=id=>document.getElementById(id);
   const loader=byId('loader'); const errBox=byId('errorBox');
 
-  function showLoader(v){ loader.style.display=v?'flex':'none'; }
-  function showError(msg){ errBox.textContent=msg; errBox.style.display='block'; alert(msg); }
-
+  /* THEME */
   function applyTheme(t){ document.body.className=t; }
   function initTheme(){ const t=localStorage.getItem('awp_theme')||'theme-light'; applyTheme(t); $('#themeSel').value=t; }
   $('#themeSel').addEventListener('change',e=>{ applyTheme(e.target.value); localStorage.setItem('awp_theme',e.target.value); });
 
+  /* HELPERS */
+  function showLoader(v){ loader.style.display=v?'flex':'none'; }
+  function showError(msg){ errBox.textContent=msg; errBox.style.display='block'; alert(msg); }
   function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
   function pick(row, names){ for(const n of names){ if(row[n]!=null && row[n]!=='' ) return row[n]; } return ''; }
   function pickCodeId(row){ const ks=Object.keys(row); const f=k=>k&&String(k).toUpperCase().replace(/[^A-Z0-9]/g,'');
@@ -179,7 +249,10 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     return {rows, sheetName:best||wb.SheetNames[0]};
   }
 
+  /* STATE */
   let latestName=''; let rowsActive=[]; let sedeToEs=new Map(); let esattori=[];
+  let manifestList=[]; // per storico
+  const historyCache=new Map(); // CODEID -> array storico
 
   function readDaysSelection(){ const sel=$('#selDays').value; if(sel==='custom'){const n=parseInt($('#daysCustom').value,10); return isFinite(n)&&n>0?n:2;} return parseInt(sel,10); }
 
@@ -187,35 +260,74 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     const maxDays=readDaysSelection(); $('#metaDays').textContent=maxDays;
     let list = rowsActive.filter(r => r.GIORNI >= maxDays);
     const selEs = ($('#selEsattore').value||'').toUpperCase();
-    if(selEs){ list = list.filter(r => (r.ESATTORE||'—').toUpperCase()===selEs); document.querySelectorAll('.col-es').forEach(th=>th.style.display='none'); }
-    else{ document.querySelectorAll('.col-es').forEach(th=>th.style.display='table-cell'); }
+    if(selEs){
+      list = list.filter(r => (r.ESATTORE||'—').toUpperCase()===selEs);
+      document.querySelectorAll('.col-es').forEach(th=>th.style.display='none');
+    }else{
+      document.querySelectorAll('.col-es').forEach(th=>th.style.display='table-cell');
+    }
     list.sort((a,b)=>{ if(!selEs){const d=(a.ESATTORE||'').localeCompare(b.ESATTORE||''); if(d!==0) return d;} return (isFinite(b.GIORNI)?b.GIORNI:-1)-(isFinite(a.GIORNI)?a.GIORNI:-1); });
     return list;
+  }
+
+  function updateStats(list){
+    const N = readDaysSelection();
+    const tot = rowsActive.length;
+    const arretr = list.length;
+    const ok = Math.max(tot - arretr, 0);
+    const avg = rowsActive.length ? (rowsActive.reduce((s,r)=>s+(isFinite(r.GIORNI)?r.GIORNI:0),0)/rowsActive.length) : 0;
+    const max = rowsActive.length ? Math.max(...rowsActive.map(r=>isFinite(r.GIORNI)?r.GIORNI:0)) : 0;
+
+    $('#stTot').textContent = tot.toLocaleString('it-IT');
+    $('#stArretr').textContent = arretr.toLocaleString('it-IT');
+    $('#stOk').textContent = ok.toLocaleString('it-IT');
+    $('#stAvg').textContent = isFinite(avg)?avg.toFixed(1):'—';
+    $('#stMax').textContent = isFinite(max)?max:'—';
+
+    // piccolo “flash” verde quando aumentano gli "in regola"
+    const box = $('#stOkBox');
+    box.classList.remove('flash');
+    void box.offsetWidth; // reflow
+    if(ok>0) box.classList.add('flash');
+
+    // meta per esattore
+    const esSel = ($('#selEsattore').value||'').toUpperCase();
+    if(esSel){
+      const mineAll = rowsActive.filter(r=> (r.ESATTORE||'—').toUpperCase()===esSel);
+      const mineAr  = list.filter(r=> (r.ESATTORE||'—').toUpperCase()===esSel);
+      const mineOk  = Math.max(mineAll.length - mineAr.length,0);
+      $('#stEsMeta').textContent = `Esattore ${esSel}: attive ${mineAll.length}, da leggere ${mineAr.length} (≥${N}), in regola ${mineOk}.`;
+    }else{
+      $('#stEsMeta').textContent = '—';
+    }
   }
 
   function renderTable(list){
     const tb=$('#tbl tbody'); tb.innerHTML='';
     for(const r of list){
-      const tr=document.createElement('tr');
+      const tr=document.createElement('tr'); tr.className='clickable';
+      tr.dataset.codeid=r.CODEID; tr.dataset.sede=r.SEDE||''; tr.dataset.esattore=r.ESATTORE||'';
       tr.innerHTML=`<td class="col-es">${r.ESATTORE||'—'}</td>
-        <div></div><td>${r.SEDE||''}</td><td>${r.CODEID||''}</td>
+        <td>${r.SEDE||''}</td><td>${r.CODEID||''}</td>
         <td>${r.MODELLO||''}</td><td>${r.PDA||''}</td>
         <td class="bad">${isFinite(r.GIORNI)?r.GIORNI:'—'}</td><td>${r.COMUNE||''}</td>`;
       if($('#selEsattore').value) tr.children[0].style.display='none';
+      tr.addEventListener('click', ()=>openModal(r.CODEID, r));
       tb.appendChild(tr);
     }
-    $('#pillCount').textContent=`Selezione: ${list.length.toLocaleString('it-IT')} macchine`;
+    $('#pillCount').textContent = `Selezione: ${list.length.toLocaleString('it-IT')} macchine`;
+    updateStats(list);
   }
 
   function downloadXLSX(list){
     const headers=['ESATTORE','LOCALE','AWP','MODELLO','PDA','GIORNI','COMUNE'];
     const data=list.map(r=>[r.ESATTORE||'',r.SEDE||'',r.CODEID||'',r.MODELLO||'',r.PDA||'',isFinite(r.GIORNI)?r.GIORNI:'',r.COMUNE||'']);
-    const ws=XLSX.utils.aoa_to_sheet([].concat([headers],data)); const wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,ws,'Letture'); const selEs=$('#selEsattore').value||'TUTTI'; const days=readDaysSelection();
-    XLSX.writeFile(wb,`Letture-${selEs}-${days}gg.xlsx`);
+    const ws=XLSX.utils.aoa_to_sheet([headers, ...data]); const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Letture'); const es=$('#selEsattore').value||'TUTTI'; const d=readDaysSelection();
+    XLSX.writeFile(wb,`Letture-${es}-${d}gg.xlsx`);
   }
 
-  /* ----------- WhatsApp / TXT ----------- */
+  /* ===== WHATSAPP / TXT ===== */
   function buildGroupingMaps(allActiveRows, eligibleList){
     const activeCountBySede=new Map();
     for(const r of allActiveRows){
@@ -266,12 +378,98 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     window.open(url,'_blank');
   }
 
+  /* ===== MODAL & STORICO ===== */
+  function openModal(codeid, row){
+    $('#mTitle').textContent = row.CODEID;
+    $('#mSubtitle').textContent = (row.MODELLO||'') + (row.PDA?` • PDA ${row.PDA}`:'') + (row.DATA?` • Ultima: ${fmtDate(row.DATA)}`:'');
+    const kv=$('#mKV'); kv.innerHTML='';
+    kv.insertAdjacentHTML('beforeend', `<b>Esattore</b><span>${row.ESATTORE||'—'}</span>`);
+    kv.insertAdjacentHTML('beforeend', `<b>Locale</b><span>${row.SEDE||''}</span>`);
+    kv.insertAdjacentHTML('beforeend', `<b>Comune</b><span>${row.COMUNE||''}</span>`);
+    kv.insertAdjacentHTML('beforeend', `<b>Giorni</b><span>${isFinite(row.GIORNI)?row.GIORNI:'—'}</span>`);
+    kv.insertAdjacentHTML('beforeend', `<b>Stato</b><span>${row.STATO||'Attiva'}</span>`);
+
+    $('#mTagEs').textContent = row.ESATTORE||'—';
+    $('#mTagSede').textContent = row.SEDE||'';
+    $('#mTagComune').textContent = row.COMUNE||'';
+
+    $('#mb').style.display='flex';
+    const tl=$('#mTL'); tl.innerHTML='<div class="tl-item">Carico storico…</div>';
+
+    loadHistoryFor(codeid, row).then(hist=>{
+      if(!hist.length){ tl.innerHTML='<div class="tl-item">Nessun dato storico disponibile.</div>'; return; }
+      hist.sort((a,b)=>a.date-b.date);
+      tl.innerHTML = hist.map(h=>(
+        `<div class="tl-item">
+          <div class="when">${fmtDate(h.date)}</div>
+          <div class="meta">${h.status||''} • ${h.model||''} ${h.pda?('• PDA '+h.pda):''} • ${h.sede||''}</div>
+        </div>`
+      )).join('');
+      // pulsanti export/whatsapp locale
+      $('#mCsv').onclick=()=>exportHistoryCSV(codeid, row, hist);
+      $('#mTxt').onclick=()=>exportHistoryTXT(codeid, row, hist);
+      $('#mWA').onclick=()=>waLocale(row, hist);
+    }).catch(e=>{
+      tl.innerHTML='<div class="tl-item">Errore nel caricamento storico.</div>';
+      console.error(e);
+    });
+  }
+  $('#mClose').addEventListener('click',()=>$('#mb').style.display='none');
+  $('#mb').addEventListener('click',e=>{ if(e.target.id==='mb') $('#mb').style.display='none'; });
+
+  async function loadHistoryFor(codeid, baseRow){
+    if(historyCache.has(codeid)) return historyCache.get(codeid);
+    const hist=[];
+    for(const name of manifestList){ // in ordine cronologico
+      try{
+        const sn=await fetchXLSX_largest('./Dati/'+name, name);
+        for(const row of sn.rows){
+          const cid=pickCodeId(row); if(!cid || cid!==codeid) continue;
+          const status = String(pick(row,['DESCR. STATO','DESCR.STATO','STATO'])||'').trim();
+          // storicizziamo SOLO ATTIVA come richiesto in pagina, ma nello storico mostriamo lo status reale
+          const date  = parseDateIT(pick(row,['DATA ULTIMA LETTURA VAL.','DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
+          const pda   = pickPDA(row);
+          const model = pickModello(row);
+          const sede  = pick(row,['DENOMIN. SEDE','DENOMIN.SEDE','DENOMINAZIONE SEDE']);
+          if(date) hist.push({date, status, pda, model, sede});
+          break; // trovato nel foglio corrente
+        }
+      }catch(e){ console.warn('Storico: errore su', name, e); }
+    }
+    historyCache.set(codeid, hist);
+    return hist;
+  }
+
+  function exportHistoryCSV(codeid, row, hist){
+    const header = ['DATA','STATO','MODELLO','PDA','SEDE'];
+    const data = hist.map(h=>[fmtDate(h.date), h.status||'', h.model||'', h.pda||'', h.sede||'']);
+    const csv = [header.join(';')].concat(data.map(r=>r.join(';'))).join('\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}); const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`Storico-${codeid}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+  function exportHistoryTXT(codeid, row, hist){
+    const lines = hist.map(h=>`• ${fmtDate(h.date)} — ${h.status||''} — ${h.model||''} ${h.pda?('— PDA '+h.pda):''} — ${h.sede||''}`);
+    const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});
+    const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`Storico-${codeid}.txt`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+  function waLocale(row, hist){
+    const lines = [`*${row.SEDE||''}*`, `${row.CODEID} — ${row.MODELLO||''} ${row.PDA?('— PDA '+row.PDA):''}`, ''];
+    lines.push(...hist.slice(-5).map(h=>`• ${fmtDate(h.date)} — ${h.status||''}`)); // ultimi 5 eventi
+    const text = lines.join('\n');
+    const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+    if(url.length>2000){ navigator.clipboard.writeText(text).then(()=>alert('Testo copiato negli appunti.')); return; }
+    window.open(url,'_blank');
+  }
+
+  /* ===== LOAD ===== */
   async function loadAll(){
     showLoader(true); errBox.style.display='none';
     try{
       const manifest=await fetchJSON('./Dati/manifest.json','manifest.json');
       if(!manifest.sinottici||!manifest.sinottici.length) throw new Error('manifest.json: lista sinottici vuota');
-      latestName=manifest.sinottici[manifest.sinottici.length-1]; $('#pillSin').textContent='Sinottico: '+latestName;
+      manifestList = manifest.sinottici.slice(); // ordine cronologico
+      latestName = manifestList[manifestList.length-1];
+      $('#pillSin').textContent='Sinottico: '+latestName;
 
       try{ esattori=await fetchJSON('./Dati/esattori.json','esattori.json'); }catch(_){ esattori=[]; }
       $('#selEsattore').innerHTML='<option value="">— Tutti —</option>'+esattori.map(e=>`<option value="${String(e).toUpperCase()}">${String(e).toUpperCase()}</option>`).join('');
@@ -282,29 +480,28 @@ footer{padding:14px;text-align:center;color:var(--muted)}
 
       const sn=await fetchXLSX_largest('./Dati/'+latestName,latestName); $('#pillFoglio').textContent='Foglio: '+sn.sheetName;
 
-      // ---- SOLO DESCR. STATO (colonna C) = "Attiva" (case-insensitive, spazi ignorati) ----
+      // SOLO "Attiva" dalla colonna DESCR. STATO (o DESCR.STATO)
       const byCode=new Map();
       for(const row of sn.rows){
         const codeid=pickCodeId(row); if(!codeid) continue;
         const descr = (pick(row,['DESCR. STATO','DESCR.STATO']) || '').toString().trim().toLowerCase();
-        if (descr.replace(/\s+/g,'') !== 'attiva') continue; // scarta tutto ciò che non è "Attiva"
+        if (descr.replace(/\s+/g,'') !== 'attiva') continue; // solo Attiva
         const sede   = pick(row,['DENOMIN. SEDE','DENOMIN.SEDE','DENOMINAZIONE SEDE']);
         const data   = parseDateIT( pick(row,['DATA ULTIMA LETTURA VAL.','DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']) );
         const comune = pickComune(row);
         const pda    = pickPDA(row);
         const modello= pickModello(row);
-
         const prev=byCode.get(codeid);
         if(!prev || (data && prev.data && data>prev.data) || (!prev?.data && data)){
-          byCode.set(codeid,{codeid,sede,descrStato: 'Attiva', data, comune, pda, modello});
+          byCode.set(codeid,{codeid,sede,descrStato:'Attiva',data,comune,pda,modello});
         }
       }
 
       const all=[];
-      for(const {codeid,sede,descrStato,data,comune,pda,modello} of byCode.values()){
+      for(const {codeid,sede,data,comune,pda,modello} of byCode.values()){
         const es = sedeToEs.get(normalizeSede(sede)) ?? '—';
         const giorni = daysDiffFromToday(data);
-        all.push({ CODEID:codeid, SEDE:sede, ESATTORE:es, STATO:descrStato, DATA:data, GIORNI:giorni, COMUNE:comune, PDA:pda, MODELLO:modello });
+        all.push({ CODEID:codeid, SEDE:sede, ESATTORE:es, STATO:'Attiva', DATA:data, GIORNI:giorni, COMUNE:comune, PDA:pda, MODELLO:modello });
       }
       rowsActive=all;
 
@@ -314,15 +511,20 @@ footer{padding:14px;text-align:center;color:var(--muted)}
     finally{ showLoader(false); }
   }
 
+  /* UI */
   $('#selDays').addEventListener('change',e=>{ $('#daysCustom').style.display=(e.target.value==='custom')?'inline-block':'none'; });
   $('#btnApply').addEventListener('click',()=>{ renderTable(buildFilteredList()); });
   $('#btnDownload').addEventListener('click',()=>{ downloadXLSX(buildFilteredList()); });
   $('#btnDownloadTxt').addEventListener('click',()=>{ downloadTXT(buildFilteredList()); });
   $('#btnWhatsapp').addEventListener('click',async()=>{ await sendWhatsapp(buildFilteredList()); });
-  $('#btnRefresh').addEventListener('click',load);
+  $('#btnRefresh').addEventListener('click',loadAll);
 
-  function load(){ loadAll(); }
-  window.addEventListener('load',()=>{ byId('year').textContent=new Date().getFullYear(); initTheme(); loadAll(); });
+  window.addEventListener('load',()=>{
+    byId('year').textContent=new Date().getFullYear();
+    const t=localStorage.getItem('awp_theme')||'theme-light';
+    document.body.className=t; $('#themeSel').value=t;
+    loadAll();
+  });
 })();
 </script>
 </body>
