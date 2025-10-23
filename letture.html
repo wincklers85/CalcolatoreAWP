@@ -1,316 +1,658 @@
 <!doctype html>
 <html lang="it">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"/>
-<title>AWP Manager — Letture (Safe Mode)</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>AWP Manager — Letture</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f7f8fb;--fg:#111;--mut:#667085;--card:#fff;--border:#e5e7eb;--acc:#0d6efd;--bad:#ef4444;--ok:#16a34a;--warn:#f59e0b;--thead:#eef2f7}
+:root{
+  --bg:#f6f8fb; --fg:#14161a; --muted:#6b7280; --card:#ffffff; --border:#e5e7eb;
+  --acc:#0d6efd; --ok:#2ea043; --warn:#f59e0b; --bad:#ef4444;
+  --table-head:#eef2f7; --shadow:0 10px 26px rgba(0,0,0,.08);
+}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
-.nav{position:sticky;top:0;z-index:20;display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--card);border-bottom:1px solid var(--border);padding:10px 12px}
-.nav .brand{display:flex;gap:8px;align-items:center;font-weight:800}
-main{max-width:1200px;margin:0 auto;padding:14px}
-.controls{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+body.theme-dark{ --bg:#0f1216; --fg:#e4e7ec; --muted:#9aa3af; --card:#171b21; --border:#2a2f36; --acc:#3399ff; --table-head:#1e242c; --shadow:0 10px 30px rgba(0,0,0,.35)}
+body.theme-blue{ --bg:#e9f5ff; --fg:#0d2740; --muted:#436582; --card:#ffffff; --border:#cfe6fb; --acc:#0066cc; --table-head:#d9eeff }
+body.theme-contrast{ --bg:#000; --fg:#ff0; --muted:#ffd84d; --card:#0b0b0b; --border:#333; --acc:#ff3333; --table-head:#111 }
+
+.navbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:var(--card);border-bottom:1px solid var(--border)}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--fg)}
+.brand img{height:28px}
+.navlinks{display:flex;gap:6px;flex-wrap:wrap}
+.navlinks a{color:var(--fg);text-decoration:none;padding:6px 10px;border-radius:8px}
+.navlinks a[aria-current="page"]{font-weight:700;text-decoration:underline}
+.right{display:flex;align-items:center;gap:6px}
 select,button,input{background:var(--card);color:var(--fg);border:1px solid var(--border);border-radius:10px;padding:8px 12px;font-weight:600}
 button.primary{background:var(--acc);color:#fff;border-color:var(--acc)}
-.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px;margin-bottom:12px}
-.pills{display:flex;gap:6px;flex-wrap:wrap}
-.pill{font-size:12px;color:#334155;border:1px solid var(--border);padding:3px 8px;border-radius:999px;background:#fff}
-#debug{display:none}
-#debug pre{white-space:pre-wrap;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:#fff9f9;border:1px dashed #fca5a5;border-radius:8px;padding:8px;color:#7a0000}
-.err{display:none;background:#fff1f1;border:1px solid #ffb3b3;border-radius:10px;padding:10px;color:#7a0000;margin-bottom:10px}
-.table-wrap{overflow:auto;border:1px solid var(--border);border-radius:12px}
-table{border-collapse:collapse;min-width:820px;width:100%}
-th,td{padding:10px;border-bottom:1px solid var(--border)}
-th{background:var(--thead);text-align:left;position:sticky;top:0;z-index:1}
-td.days{color:var(--bad);font-weight:800}
-.meta{font-size:12px;color:var(--mut)}
-.spinner{width:52px;height:52px;border:4px solid #e5e7eb;border-top-color:var(--acc);border-radius:50%;animation:spin .9s linear infinite;margin:20px auto}
+
+main{padding:14px;max-width:1280px;margin:0 auto}
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--shadow);margin-bottom:14px}
+.card h3{margin:0 0 10px;font-size:16px}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.controls > *{flex:0 0 auto}
+.controls select, .controls input{min-width:120px}
+.pill{display:inline-block;padding:3px 8px;border:1px solid var(--border);border-radius:999px;background:var(--card);margin-right:6px;font-size:12px;color:var(--muted)}
+
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px}
+.stat .label{color:var(--muted);font-size:12px}
+.stat .value{font-size:20px;font-weight:800}
+.stat.ok .value{color:var(--ok)}
+.stat.warn .value{color:var(--warn)}
+.stat.bad .value{color:var(--bad)}
+.flash{animation:flash 1.2s ease-in-out 1}
+@keyframes flash{0%{box-shadow:0 0 0 0 rgba(46,160,67,.5)}60%{box-shadow:0 0 0 14px rgba(46,160,67,0)}100%{box-shadow:none}}
+
+.table-wrap{overflow:auto;border-radius:12px;border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;min-width:780px}
+th,td{padding:10px 12px;border-bottom:1px solid var(--border)}
+th{background:var(--table-head);text-align:left;position:sticky;top:0;z-index:1}
+tr:hover td{background:rgba(0,0,0,.03)}
+td.bad{color:var(--bad);font-weight:700}
+tr.clickable{cursor:pointer}
+.meta{margin-top:6px;font-size:12px;color:var(--muted)}
+
+#loader{position:fixed;inset:0;background:rgba(0,0,0,.08);display:none;align-items:center;justify-content:center;z-index:40}
+.spinner{width:54px;height:54px;border-radius:50%;border:5px solid rgba(0,0,0,.15);border-top-color:var(--acc);animation:spin .9s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
-@media(max-width:700px){table{min-width:680px}}
+#errorBox{max-width:1280px;margin:10px auto 0;background:#ffecec;border:1px solid #ffb3b3;color:#7a0000;padding:10px 14px;border-radius:10px;display:none}
+footer{padding:14px;text-align:center;color:var(--muted)}
+
+/* Modal */
+.modal-back{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:60}
+.modal{width:min(980px,96vw);max-height:88vh;overflow:auto;background:var(--card);color:var(--fg);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:16px}
+.modal h3{margin:0 0 6px}
+.modal .muted{color:var(--muted);font-size:12px;margin:6px 0 10px}
+.kv{display:grid;grid-template-columns:1fr 1fr;gap:8px 14px}
+.kv .row{display:grid;grid-template-columns:220px 1fr;gap:8px}
+.kv b{font-weight:700}
+.modal .tags{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tag{display:inline-block;border:1px solid var(--border);padding:4px 8px;border-radius:999px}
+.timeline{border-left:3px solid var(--border);margin-left:8px;padding-left:12px}
+.tl-item{margin:10px 0}.tl-item .when{font-weight:700}.tl-item .meta{font-size:12px;color:var(--muted)}
+
+/* Responsive */
+@media (max-width: 1024px){
+  .grid{grid-template-columns:1fr}
+  .stats{grid-template-columns:repeat(3,1fr)}
+}
+@media (max-width: 640px){
+  .navlinks{display:none}
+  .controls select,.controls input{min-width:0}
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .hide-sm{display:none}
+  table{min-width:680px}
+}
 </style>
 </head>
-<body>
-<div class="nav">
-  <div class="brand">📟 <span>AWP Manager — Letture</span></div>
-  <div style="display:flex;gap:8px;align-items:center">
-    <label style="font-size:13px;display:flex;gap:6px;align-items:center">
-      <input type="checkbox" id="toggleDebug"> Debug
-    </label>
-    <button id="btnRefresh" class="primary">🔄 Aggiorna</button>
-  </div>
-</div>
-
-<main>
-  <div class="err" id="errBox"></div>
-
-  <div class="card">
-    <div class="controls">
-      <label>Esattore:
-        <select id="selEs"><option value="">— Tutti —</option></select>
-      </label>
-      <label>Giorni arretrati:
-        <select id="selDays">
-          <option value="1">1</option>
-          <option value="2" selected>2</option>
-          <option value="3">3</option>
-          <option value="4">4</option>
-          <option value="5">5</option>
-          <option value="7">7</option>
-        </select>
-      </label>
-      <button id="btnApply" class="primary">Applica</button>
-      <button id="btnXlsx">⬇️ XLSX</button>
-      <button id="btnTxt">⬇️ TXT</button>
-      <button id="btnWA">🟢 WhatsApp</button>
+<body class="theme-light">
+  <div class="navbar">
+    <a class="brand" href="./dashboard.html"><img src="./logo-awp.svg" alt="AWP"><strong>AWP Manager</strong></a>
+    <nav class="navlinks">
+      <a href="./dashboard.html">Dashboard</a>
+      <a href="./letture.html" aria-current="page">Letture</a>
+      <a href="./manutenzione.html">Manutenzione</a>
+      <a href="./anagrafica.html">Anagrafica</a>
+    </nav>
+    <div class="right">
+      <label for="themeSel" style="font-size:13px;color:var(--muted)">Tema</label>
+      <select id="themeSel">
+        <option value="theme-light">☀️ Chiaro AWP</option>
+        <option value="theme-dark">🌙 Scuro AWP</option>
+        <option value="theme-blue">🌤️ Azzurro AWP</option>
+        <option value="theme-contrast">⚫ Alto Contrasto</option>
+      </select>
+      <button id="btnRefresh" class="primary">🔄 Aggiorna</button>
     </div>
-    <div class="pills">
-      <span class="pill" id="pManifest">manifest: —</span>
-      <span class="pill" id="pLatest">ultimo xlsx: —</span>
-      <span class="pill" id="pPdv">PDV righe: —</span>
-      <span class="pill" id="pRows">Sinottico righe: —</span>
-      <span class="pill" id="pActive">Attive: —</span>
-      <span class="pill" id="pSel">Selezione: —</span>
+  </div>
+
+  <div id="errorBox"></div>
+
+  <main>
+    <div class="card">
+      <h3>Filtri</h3>
+      <div class="controls">
+        <label>Esattore:
+          <select id="selEsattore"><option value="">— Tutti —</option></select>
+        </label>
+        <label>Giorni arretrati:
+          <select id="selDays">
+            <option value="1">1 (ieri)</option>
+            <option value="2" selected>2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="7">7</option>
+            <option value="10">10</option>
+            <option value="custom">Personalizzato…</option>
+          </select>
+        </label>
+        <input type="number" id="daysCustom" min="1" step="1" placeholder="giorni" style="width:100px;display:none">
+        <label style="display:flex;align-items:center;gap:6px">
+          <input type="checkbox" id="chkCompact" checked>
+          <span>Compatta (max 4 modelli/locale)</span>
+        </label>
+        <button id="btnApply" class="primary">Applica</button>
+        <button id="btnDownload">⬇️ XLSX</button>
+        <button id="btnDownloadTxt">⬇️ TXT</button>
+        <button id="btnWhatsapp">🟢 WhatsApp</button>
+        <span class="pill" id="pillSin">Sinottici nel manifest: —</span>
+        <span class="pill" id="pillFoglio">Foglio: —</span>
+        <span class="pill" id="pillCount">Selezione: —</span>
+      </div>
+      <div class="meta">
+        Mostra solo righe con <strong>DESCR. STATO = "Attiva"</strong> e <strong>mancata lettura ≥</strong> <strong id="metaDays">2</strong> giorni. Join su <strong>DENOMIN. SEDE</strong>.
+      </div>
     </div>
-    <div class="meta">Filtro: <b>DESCR. STATO = Attiva</b> • Join su <b>DENOMIN. SEDE</b> → <b>ESATTORE</b> • Data: <b>DATA ULTIMA LETTURA VAL.</b> (GG-MM-AAAA HH:MM:SS) → giorni</div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Macchine da leggere</h3>
+        <div class="table-wrap">
+          <table id="tbl">
+            <thead>
+              <tr>
+                <th class="col-es">ESATTORE</th>
+                <th>LOCALE</th>
+                <th>AWP</th>
+                <th class="hide-sm">MODELLO</th>
+                <th class="hide-sm">PDA</th>
+                <th>GIORNI</th>
+                <th class="hide-sm">COMUNE</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="meta">Clicca una riga per aprire la scheda con <strong>tutti</strong> i dati e lo storico.</div>
+      </div>
+
+      <div class="card">
+        <h3>Statistiche</h3>
+        <div class="stats">
+          <div class="stat"><div class="label">Totale attive</div><div class="value" id="stTot">—</div></div>
+          <div class="stat bad"><div class="label">Da leggere (≥N)</div><div class="value" id="stArretr">—</div></div>
+          <div class="stat ok" id="stOkBox"><div class="label">In regola (&lt; N)</div><div class="value" id="stOk">—</div></div>
+          <div class="stat warn"><div class="label">Media giorni</div><div class="value" id="stAvg">—</div></div>
+          <div class="stat"><div class="label">Max giorni</div><div class="value" id="stMax">—</div></div>
+        </div>
+        <div class="meta" id="stEsMeta" style="margin-top:8px"></div>
+      </div>
+    </div>
+  </main>
+
+  <footer>© <span id="year"></span> AWP Manager — Letture</footer>
+
+  <div id="loader"><div class="spinner"></div></div>
+
+  <!-- MODAL -->
+  <div class="modal-back" id="mb">
+    <div class="modal">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px">
+        <div>
+          <h3 id="mTitle">AWP</h3>
+          <div class="muted" id="mSubtitle">—</div>
+        </div>
+        <button id="mClose">✖</button>
+      </div>
+
+      <div class="tags">
+        <span class="tag" id="mTagEs">ESATTORE</span>
+        <span class="tag" id="mTagSede">SEDE</span>
+        <span class="tag" id="mTagComune">COMUNE</span>
+      </div>
+
+      <h3 style="margin-top:14px">Dettagli</h3>
+      <div class="kv" id="mKV"><!-- rows --></div>
+
+      <h3 style="margin-top:14px">Storico letture</h3>
+      <div class="timeline" id="mTL"><div class="tl-item">Caricamento storico…</div></div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+        <button id="mCsv">⬇️ Esporta CSV</button>
+        <button id="mTxt">⬇️ Esporta TXT</button>
+        <button id="mWA">🟢 WhatsApp (locale)</button>
+      </div>
+    </div>
   </div>
 
-  <div id="debug" class="card">
-    <h3>Debug</h3>
-    <pre id="dbg"></pre>
-  </div>
+  <!-- XLSX (locale -> CDN fallback) -->
+  <script>
+  (function(){
+    const urls=['./libs/xlsx.full.min.js','https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js','https://unpkg.com/xlsx@0.20.2/dist/xlsx.full.min.js'];
+    function loadOne(u){return new Promise((ok,ko)=>{const s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=ko;document.head.appendChild(s);});}
+    (async()=>{for(const u of urls){try{await loadOne(u);if(window.XLSX)break;}catch(_){}} if(!window.XLSX) alert('Impossibile caricare la libreria XLSX');})();
+  })();
+  </script>
 
-  <div class="card table-wrap" id="tblWrap" style="display:none">
-    <table id="tbl">
-      <thead>
-        <tr><th>ESATTORE</th><th>LOCALE</th><th>AWP</th><th>MODELLO</th><th>PDA</th><th>GIORNI</th><th>COMUNE</th></tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-  </div>
-
-  <div id="loading" style="text-align:center"><div class="spinner"></div><div class="meta">Carico file…</div></div>
-</main>
-
-<!-- SheetJS: locale + fallback -->
 <script>
-(async()=>{
-  const urls=['./libs/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js','https://unpkg.com/xlsx@0.20.2/dist/xlsx.full.min.js'];
-  for(const u of urls){
-    try{ await new Promise((ok,ko)=>{const s=document.createElement('script');s.src=u;s.onload=ok;s.onerror=ko;document.head.appendChild(s);}); if(window.XLSX) break; }catch(_){}
-  }
-  if(!window.XLSX){ alert('Impossibile caricare la libreria XLSX'); }
-})();
-</script>
+(function(){
+  const $=s=>document.querySelector(s);
+  const byId=id=>document.getElementById(id);
+  const loader=byId('loader'); const errBox=byId('errorBox');
 
-<script>
-const $=s=>document.querySelector(s);
-const errBox=$('#errBox'); const dbg=$('#dbg');
-const state={manifestList:[], latestName:'', sedeToEs:new Map(), esattori:[], rows:[], active:[], filtered:[]};
+  /* THEME */
+  function applyTheme(t){ document.body.className=t; }
+  function initTheme(){ const t=localStorage.getItem('awp_theme')||'theme-light'; applyTheme(t); $('#themeSel').value=t; }
+  $('#themeSel').addEventListener('change',e=>{ applyTheme(e.target.value); localStorage.setItem('awp_theme',e.target.value); });
 
-function showErr(msg){errBox.textContent=msg;errBox.style.display='block';log('ERROR',msg);}
-function clearErr(){errBox.textContent='';errBox.style.display='none';}
-function log(tag,...args){dbg.textContent += `[${tag}] `+args.map(a=>typeof a==='string'?a:JSON.stringify(a,null,2)).join(' ')+'\n';}
-
-function normKey(k){return String(k).toLowerCase().replace(/\s+/g,'').replace(/\./g,'');}
-function getField(row, names){
-  const variants=Array.isArray(names)?names:[names];
-  for(const n of variants){ if(row[n]!=null && row[n]!=='') return row[n]; }
-  // fallback: normalizzato
-  const keys=Object.keys(row); const wanted=variants.map(v=>normKey(v));
-  for(const k of keys){ if(wanted.includes(normKey(k)) && row[k]!=null && row[k]!=='') return row[k]; }
-  return '';
-}
-function pickCodeId(row){
-  const ks=Object.keys(row); const N=k=>k&&String(k).toUpperCase().replace(/[^A-Z0-9]/g,'');
-  let k=ks.find(k=>N(k)==='CODEID'); if(k) return String(row[k]??'').trim();
-  k=ks.find(k=>/COD(ICE)?ID/i.test(k)); if(k) return String(row[k]??'').trim();
-  k=ks.find(k=>/(SERIALE|MATRICOLA|AWP)/i.test(k)); return k?String(row[k]??'').trim():'';
-}
-function parseDateITDateTime(v){
-  if(v==null||v==='')return null;
-  if(typeof v==='number'||/^[0-9]+(\.[0-9]+)?$/.test(String(v).trim())){
-    const n=Number(v); if(n>0&&n<2958465){ const base=new Date(Date.UTC(1899,11,30)); const ms=Math.round(n*86400000); return new Date(base.getTime()+ms); }
-  }
-  const s=String(v).trim().replace(/[\/\.]/g,'-');
-  const m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if(m){const[,gg,mm,yy,HH='0',MM='0',SS='0']=m; return new Date(+yy,+mm-1,+gg,+HH,+MM,+SS);}
-  const d=new Date(s); if(!isNaN(d)) return d;
-  return null;
-}
-function daysFromToday(d){ if(!d) return Infinity; const t=new Date(); t.setHours(0,0,0,0); const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return Math.floor((t-x)/86400000); }
-function fmtDate(d){ if(!d) return ''; return String(d.getDate()).padStart(2,'0')+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+d.getFullYear(); }
-
-async function getJSON(u){const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error(u+' '+r.status); return r.json();}
-async function getXLSX(u){
-  const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error(u+' '+r.status);
-  const ab=await r.arrayBuffer(); const wb=XLSX.read(ab,{type:'array'});
-  // prendi il foglio con più righe
-  let best=null, rows=[], len=0, heads={};
-  for(const n of wb.SheetNames){
-    const ws=wb.Sheets[n];
-    const arr=XLSX.utils.sheet_to_json(ws,{defval:null});
-    if(arr.length>len){ len=arr.length; rows=arr; best=n; }
-  }
-  // headers (unione chiavi prime 20 righe)
-  const sample = rows.slice(0,20).reduce((s,r)=>{Object.keys(r).forEach(k=>s.add(k));return s;},new Set());
-  heads = Array.from(sample);
-  return {rows, sheetName:best||wb.SheetNames[0], headers:heads};
-}
-
-function chooseLatestXlsx(list){
-  const onlyXlsx=list.filter(n=>/\.xlsx$/i.test(n));
-  if(!onlyXlsx.length) return null;
-  const parseTs=(name)=>{
-    const m=String(name).match(/Sinottico-(\d{4})-(\d{2})-(\d{2})(?:-(\d{2}):?(\d{2}))?\.xlsx$/i);
-    if(!m) return 0; const [,_Y,_M,_D,_h='00',_m='00']=m; return new Date(+_Y,+_M-1,+_D,+_h,+_m,0).getTime();
+  /* HELPERS: intestazioni robuste e date */
+  const KEYMAP = {
+    DESCR_STATO: ['DESCR. STATO','DESCR.STATO','STATO'],
+    DENOMIN_SEDE: ['DENOMIN. SEDE','DENOMIN.SEDE','DENOMINAZIONE SEDE'],
+    DATA_ULTIMA_LETTURA_VAL: ['DATA ULTIMA LETTURA VAL.','DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA'],
+    MODELLO: ['MODELLO','MOD','MODEL','MODEL NAME'],
+    PDA: ['PDA','COD.PDA','ID PDA','IDPDA','COD_PDA'],
+    COMUNE: ['COMUNE','CITTA','LOCALITA','CITTÀ'],
+    DATA_ATTIVAZIONE: ['DATA ATTIVAZIONE','DATA ATT.','ATTIVAZIONE'],
+    GG_MANCATO_COLLEGAMENTO: ['GG MANCATO COLLEGAMENTO','GG MANC. COLLEGAMENTO','GG MANCATO COLL.'],
+    GG_DECADENZA: ['GG DECADENZA','GG DEC.','DECADENZA'],
+    CNTTOTIN: ['CNTTOTIN','CONTATORI IN','CNT IN'],
+    CNTTOTOT: ['CNTTOTOT','CONTATORI OUT','CNT OUT'],
+    MS_FERIE: ['M.S. / FERIE','M.S./ FERIE','M.S./FERIE','MS / FERIE','MS/FERIE','M.S.'],
+    MAC_PDA: ['MACADDRESS PDA','MAC PDA','MAC PDA ADDRESS','MAC PDA'],
+    CODICE_SEDE: ['CODICE SEDE','COD. SEDE'],
+    CODICE_PDV: ['CODICE PDV AAMS','COD. PDV AAMS','PDV AAMS'],
+    INDIRIZZO: ['INDIRIZZO','IND.'],
+    PROVINCIA: ['PROVINCIA','PROV.'],
+    CODICE_MODELLO: ['CODICE MODELLO','COD. MODELLO','COD MODELLO'],
+    PCT_OUT: ['% OUT','PAYOUT %','PAYOUT'],
+    EM: ['E/M','EM','ES/MAG'],
+    INCASSO_GG: ['INCASSO GIORNALIERO','INC. GIORNALIERO','INC. GG'],
+    MEDIA_INC_GG: ['MEDIA INCASSO GG ESERCIZIO','MEDIA INCASSO GG','MEDIA INC GG']
   };
-  onlyXlsx.sort((a,b)=>(parseTs(a)||0)-(parseTs(b)||0));
-  return onlyXlsx[onlyXlsx.length-1];
-}
-
-function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
-
-function populateEsattoriSelect(list){
-  const sel=$('#selEs'); sel.innerHTML='<option value="">— Tutti —</option>'+list.map(e=>`<option value="${e}">${e}</option>`).join('');
-}
-
-function renderTable(rows){
-  const tb=$('#tbl tbody'); tb.innerHTML='';
-  for(const r of rows){
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${r.ESATTORE||'—'}</td><td>${r.SEDE||''}</td><td>${r.CODEID||''}</td><td>${r.MODELLO||''}</td><td>${r.PDA||''}</td><td class="days">${r.GIORNI}</td><td>${r.COMUNE||''}</td>`;
-    tb.appendChild(tr);
+  function getField(row, logicalName){
+    const variants = KEYMAP[logicalName] || [logicalName];
+    for(const k of variants){ if (row[k]!=null && row[k]!=='') return row[k]; }
+    const keys = Object.keys(row);
+    const wanted = variants.map(v=>String(v).toLowerCase().replace(/\s+/g,'').replace(/\./g,''));
+    for (const k of keys){
+      const nk = String(k).toLowerCase().replace(/\s+/g,'').replace(/\./g,'');
+      if (wanted.includes(nk) && row[k]!=null && row[k]!=='') return row[k];
+    }
+    return '';
   }
-  $('#tblWrap').style.display='block';
-  $('#pSel').textContent='Selezione: '+rows.length;
-}
+  function pickCodeId(row){
+    const ks=Object.keys(row), norm=k=>k&&String(k).toUpperCase().replace(/[^A-Z0-9]/g,'');
+    let k=ks.find(k=>norm(k)==='CODEID'); if(k) return String(row[k]??'').trim();
+    k=ks.find(k=>/COD(ICE)?ID/i.test(k)); if(k) return String(row[k]??'').trim();
+    k=ks.find(k=>/(SERIALE|MATRICOLA|AWP)/i.test(k)); return k?String(row[k]??'').trim():'';
+  }
+  function parseDateITDateTime(v){
+    if(v==null||v==='')return null;
+    if(typeof v==='number'||/^[0-9]+(\.[0-9]+)?$/.test(String(v).trim())){
+      const n=Number(v); if(n>0&&n<2958465){ const base=new Date(Date.UTC(1899,11,30)); const ms=Math.round(n*24*60*60*1000); return new Date(base.getTime()+ms); }
+    }
+    const s=String(v).trim().replace(/[\/\.]/g,'-');
+    const m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if(m){const[,gg,mm,yyyy,HH='0',MM='0',SS='0']=m; return new Date(+yyyy,+mm-1,+gg,+HH,+MM,+SS);}
+    const d=new Date(s); if(!isNaN(d)) return d;
+    return null;
+  }
+  function parseDateIT(v){ const dt=parseDateITDateTime(v); if(!dt) return null; return new Date(dt.getFullYear(),dt.getMonth(),dt.getDate()); }
+  function daysDiffFromToday(d){ if(!d) return Infinity; const t=new Date(); t.setHours(0,0,0,0); const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return Math.floor((t-x)/86400000); }
+  function fmtDate(d){ if(!d) return ''; const g=String(d.getDate()).padStart(2,'0'); const m=String(d.getMonth()+1).padStart(2,'0'); return `${g}-${m}-${d.getFullYear()}`; }
+  function fmtDateTime(d){ if(!d) return ''; const dd=fmtDate(d); const h=String(d.getHours()).padStart(2,'0'); const mi=String(d.getMinutes()).padStart(2,'0'); const s=String(d.getSeconds()).padStart(2,'0'); return `${dd} ${h}:${mi}:${s}`; }
 
-function filterApply(){
-  const N=Number($('#selDays').value||2);
-  const es=($('#selEs').value||'').toUpperCase();
-  let list=state.active.filter(r=>r.GIORNI>=N);
-  if(es) list=list.filter(r=>(r.ESATTORE||'').toUpperCase()===es);
-  // ordina esattore > giorni DESC
-  list.sort((a,b)=>{const d=(a.ESATTORE||'').localeCompare(b.ESATTORE||''); if(d!==0)return d; return (b.GIORNI||0)-(a.GIORNI||0);});
-  state.filtered=list;
-  renderTable(list);
-}
+  async function fetchJSON(u,label){ const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error(`Caricamento ${label||u} fallito (${r.status})`); return r.json(); }
+  async function fetchXLSX_largest(u,label){
+    const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error(`Caricamento ${label||u} fallito (${r.status})`);
+    const ab=await r.arrayBuffer(); const wb=XLSX.read(ab,{type:'array'});
+    let best=null,rows=[],len=0; for(const n of wb.SheetNames){ const ws=wb.Sheets[n]; const arr=XLSX.utils.sheet_to_json(ws,{defval:null}); if(arr.length>len){len=arr.length;rows=arr;best=n;} }
+    return {rows, sheetName:best||wb.SheetNames[0]};
+  }
+  function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
 
-/* ===== MAIN LOAD ===== */
-async function loadAll(){
-  clearErr(); $('#loading').style.display='block'; $('#tblWrap').style.display='none'; $('#debug').style.display=$('#toggleDebug').checked?'block':'none'; dbg.textContent='';
-  try{
-    // 1) manifest
-    const manifest=await getJSON('./Dati/manifest.json');
-    const list=Array.isArray(manifest.sinottici)?manifest.sinottici:[];
-    $('#pManifest').textContent='manifest: '+list.length+' file';
-    log('manifest',list);
-    const latest=chooseLatestXlsx(list);
-    if(!latest) throw new Error('Nessun .xlsx nel manifest. Esporta da Numbers a .xlsx e aggiorna manifest.json');
-    state.manifestList=list.filter(n=>/\.xlsx$/i.test(n)); state.latestName=latest;
-    $('#pLatest').textContent='ultimo xlsx: '+latest;
+  /* ===== manifest: prendi SOLO .xlsx più recente ===== */
+  function parseSinoTs(name){
+    // accetta: Sinottico-YYYY-MM-DD.xlsx | Sinottico-YYYY-MM-DD-HHMM.xlsx | Sinottico-YYYY-MM-DD-HH:MM.xlsx
+    const m = String(name).match(/Sinottico-(\d{4})-(\d{2})-(\d{2})(?:-(\d{2}):?(\d{2}))?\.xlsx$/i);
+    if(!m) return null; const [,_Y,_M,_D,_h='00',_m='00']=m; return new Date(+_Y,+_M-1,+_D,+_h,+_m,0).getTime();
+  }
 
-    // 2) PDV & ESATTORI
-    let pdv; 
+  /* STATE */
+  let latestName=''; let rowsActive=[]; let sedeToEs=new Map(); let esattori=[];
+  let manifestList=[]; const historyCache=new Map();
+
+  function readDaysSelection(){ const sel=$('#selDays').value; if(sel==='custom'){const n=parseInt($('#daysCustom').value,10); return isFinite(n)&&n>0?n:2;} return parseInt(sel,10); }
+
+  function buildFilteredList(){
+    const maxDays=readDaysSelection(); $('#metaDays').textContent=maxDays;
+    let list = rowsActive.filter(r => r.GIORNI >= maxDays);
+    const selEs = ($('#selEsattore').value||'').toUpperCase();
+    if(selEs){ list = list.filter(r => (r.ESATTORE||'—').toUpperCase()===selEs); document.querySelectorAll('.col-es').forEach(th=>th.style.display='none'); }
+    else{ document.querySelectorAll('.col-es').forEach(th=>th.style.display='table-cell'); }
+    list.sort((a,b)=>{ if(!selEs){const d=(a.ESATTORE||'').localeCompare(b.ESATTORE||''); if(d!==0) return d;} return (isFinite(b.GIORNI)?b.GIORNI:-1)-(isFinite(a.GIORNI)?a.GIORNI:-1); });
+    return list;
+  }
+
+  function updateStats(list){
+    const N = readDaysSelection();
+    const tot = rowsActive.length;
+    const arretr = list.length;
+    const ok = Math.max(tot - arretr, 0);
+    const avg = rowsActive.length ? (rowsActive.reduce((s,r)=>s+(isFinite(r.GIORNI)?r.GIORNI:0),0)/rowsActive.length) : 0;
+    const max = rowsActive.length ? Math.max(...rowsActive.map(r=>isFinite(r.GIORNI)?r.GIORNI:0)) : 0;
+
+    $('#stTot').textContent = tot.toLocaleString('it-IT');
+    $('#stArretr').textContent = arretr.toLocaleString('it-IT');
+    $('#stOk').textContent = ok.toLocaleString('it-IT');
+    $('#stAvg').textContent = isFinite(avg)?avg.toFixed(1):'—';
+    $('#stMax').textContent = isFinite(max)?max:'—';
+
+    const box = $('#stOkBox'); box.classList.remove('flash'); void box.offsetWidth; if(ok>0) box.classList.add('flash');
+
+    const esSel = ($('#selEsattore').value||'').toUpperCase();
+    if(esSel){
+      const mineAll = rowsActive.filter(r=> (r.ESATTORE||'—').toUpperCase()===esSel);
+      const mineAr  = list.filter(r=> (r.ESATTORE||'—').toUpperCase()===esSel);
+      const mineOk  = Math.max(mineAll.length - mineAr.length,0);
+      $('#stEsMeta').textContent = `Esattore ${esSel}: attive ${mineAll.length}, da leggere ${mineAr.length} (≥${N}), in regola ${mineOk}.`;
+    }else{
+      $('#stEsMeta').textContent = '—';
+    }
+  }
+
+  function renderTable(list){
+    const tb=$('#tbl tbody'); tb.innerHTML='';
+    for(const r of list){
+      const tr=document.createElement('tr'); tr.className='clickable';
+      tr.dataset.codeid=r.CODEID; tr.dataset.sede=r.SEDE||''; tr.dataset.esattore=r.ESATTORE||'';
+      tr.innerHTML=`<td class="col-es">${r.ESATTORE||'—'}</td>
+        <td>${r.SEDE||''}</td><td>${r.CODEID||''}</td>
+        <td class="hide-sm">${r.MODELLO||''}</td><td class="hide-sm">${r.PDA||''}</td>
+        <td class="bad">${isFinite(r.GIORNI)?r.GIORNI:'—'}</td><td class="hide-sm">${r.COMUNE||''}</td>`;
+      if($('#selEsattore').value) tr.children[0].style.display='none';
+      tr.addEventListener('click', ()=>openModal(r.CODEID, r));
+      tb.appendChild(tr);
+    }
+    $('#pillCount').textContent = `Selezione: ${list.length.toLocaleString('it-IT')} macchine`;
+    updateStats(list);
+  }
+
+  function downloadXLSX(list){
+    const headers=['ESATTORE','LOCALE','AWP','MODELLO','PDA','GIORNI','COMUNE'];
+    const data=list.map(r=>[r.ESATTORE||'',r.SEDE||'',r.CODEID||'',r.MODELLO||'',r.PDA||'',isFinite(r.GIORNI)?r.GIORNI:'',r.COMUNE||'']);
+    const ws=XLSX.utils.aoa_to_sheet([headers, ...data]); const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'Letture'); const es=$('#selEsattore').value||'TUTTI'; const d=readDaysSelection();
+    XLSX.writeFile(wb,`Letture-${es}-${d}gg.xlsx`);
+  }
+
+  /* WhatsApp / TXT (come prima) */
+  function buildGroupingMaps(allActiveRows, eligibleList){
+    const activeCountBySede=new Map();
+    for(const r of allActiveRows){
+      const key=(r.ESATTORE||'—').toUpperCase()+'||'+(r.SEDE||'').toUpperCase();
+      activeCountBySede.set(key,(activeCountBySede.get(key)||0)+1);
+    }
+    const eligibleBySede=new Map();
+    for(const r of eligibleList){
+      const esKey=(r.ESATTORE||'—').toUpperCase(); const key=esKey+'||'+(r.SEDE||'').toUpperCase();
+      if(!eligibleBySede.has(key)) eligibleBySede.set(key,{esattore:esKey,sede:r.SEDE||'',models:new Set(),items:[]});
+      const e=eligibleBySede.get(key); e.items.push(r);
+      const name=(r.MODELLO&&String(r.MODELLO).trim())?String(r.MODELLO).trim():(r.CODEID||''); if(name) e.models.add(name);
+    }
+    return {activeCountBySede,eligibleBySede};
+  }
+  function generateWhatsappText(allActiveRows, eligibleList){
+    const selEs=($('#selEsattore').value||'').toUpperCase(); const compact=$('#chkCompact').checked;
+    const {activeCountBySede,eligibleBySede}=buildGroupingMaps(allActiveRows,eligibleList);
+    const byEs=new Map();
+    for(const [key,info] of eligibleBySede.entries()){
+      const [esKey]=key.split('||'); const activeTot=activeCountBySede.get(key)||0; const eligTot=info.items.length; if(eligTot===0) continue;
+      let italicDate=''; const maxG=Math.max(...info.items.map(x=>isFinite(x.GIORNI)?x.GIORNI:0));
+      if(maxG>3){ let latest=null; for(const it of info.items){ if(it.DATA && (!latest||it.DATA>latest)) latest=it.DATA; } if(latest) italicDate=` _${fmtDate(latest)}_`; }
+      let line;
+      if(activeTot>0 && eligTot===activeTot){ line=`${info.sede} - PDA${italicDate}`; }
+      else{ let models=Array.from(info.models); if(compact && models.length>4){ const extra=models.length-4; models=models.slice(0,4); models.push(\`+\${extra}\`);} line=\`${info.sede} - \${models.join(', ')}\${italicDate}\`; }
+      if(!byEs.has(esKey)) byEs.set(esKey,[]); byEs.get(esKey).push(line);
+    }
+    for(const [k,a] of byEs) a.sort((x,y)=>x.localeCompare(y,'it',{sensitivity:'base'}));
+    const blocks=[]; 
+    if(selEs){ const lines=byEs.get(selEs)||[]; const header=\`*\${selEs}*\`; blocks.push(header+'\n'); blocks.push(lines.length?lines.join('\n\n'):'Nessun locale con letture arretrate.'); }
+    else{ const keys=[...byEs.keys()].sort(); if(!keys.length) return 'Nessun locale con letture arretrate.'; for(const k of keys){ const lines=byEs.get(k)||[]; if(!lines.length) continue; blocks.push(\`*\${k}*\`+'\n'); blocks.push(lines.join('\n\n')); blocks.push(''); } if(blocks[blocks.length-1]==='') blocks.pop(); }
+    return blocks.join('\n');
+  }
+  function downloadTXT(list){
+    const text=generateWhatsappText(rowsActive,list);
+    const blob=new Blob([text],{type:'text/plain;charset=utf-8'}); const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); const es=$('#selEsattore').value||'TUTTI'; const d=readDaysSelection();
+    a.href=url; a.download=`Letture-${es}-${d}gg.txt`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+  async function sendWhatsapp(list){
+    const text=generateWhatsappText(rowsActive,list); const url='https://wa.me/?text='+encodeURIComponent(text);
+    if(url.length>2000){ try{ await navigator.clipboard.writeText(text); alert('Testo copiato negli appunti. Incollalo in WhatsApp.'); }catch(_){ const w=window.open('','_blank'); if(w){w.document.write('<pre style="white-space:pre-wrap;font-family:monospace">'+text.replace(/</g,'&lt;')+'</pre>');}} return;}
+    window.open(url,'_blank');
+  }
+
+  /* MODAL & STORICO (invariato) */
+  function openModal(codeid, row){
+    $('#mTitle').textContent = row.CODEID;
+    const ult = row.DATAULTVAL_DT ? ` • Ultima lettura: ${fmtDateTime(row.DATAULTVAL_DT)} (GMT)` : '';
+    $('#mSubtitle').textContent = `${row.MODELLO||''}${row.PDA?` • PDA ${row.PDA}`:''}${ult}`;
+
+    $('#mTagEs').textContent = row.ESATTORE||'—';
+    $('#mTagSede').textContent = row.SEDE||'';
+    $('#mTagComune').textContent = row.COMUNE||'';
+
+    const kv=$('#mKV'); kv.innerHTML='';
+    const add=(label,value)=> kv.insertAdjacentHTML('beforeend', `<div class="row"><b>${label}</b><span>${(value??'')!==''?value:'—'}</span></div>`);
+
+    add('CODEID', row.CODEID);
+    add('DATA ATTIVAZIONE', row.DATAATTIV ? fmtDate(row.DATAATTIV) : '');
+    add('GG MANCATO COLLEGAMENTO', row.GG_MANC_CONN ?? '');
+    add('GG DECADENZA (90=decade)', row.GG_DECAD ?? '');
+    add('DATA ULTIMA LETTURA VAL. (GMT)', row.DATAULTVAL_DT ? fmtDateTime(row.DATAULTVAL_DT) : '');
+    add('CNTTOTIN', row.CNTTOTIN ?? '');
+    add('CNTTOTOT', row.CNTTOTOT ?? '');
+    add('M.S. / FERIE', row.MS_FERIE ?? '');
+    add('MACADDRESS PDA', row.MAC_PDA ?? '');
+    add('CODICE SEDE', row.CODICE_SEDE ?? '');
+    add('CODICE PDV AAMS', row.CODICE_PDV ?? '');
+    add('DENOMIN. SEDE', row.SEDE ?? '');
+    add('INDIRIZZO', row.INDIRIZZO ?? '');
+    add('PROVINCIA', row.PROVINCIA ?? '');
+    add('COMUNE', row.COMUNE ?? '');
+    add('CODICE MODELLO', row.CODICE_MODELLO ?? '');
+    add('MODELLO', row.MODELLO ?? '');
+    add('% OUT', row.PCT_OUT ?? '');
+    add('E/M', row.EM ?? '');
+    add('INCASSO GIORNALIERO', row.INCASSO_GG ?? '');
+    add('MEDIA INCASSO GG ESERCIZIO', row.MEDIA_INC_GG ?? '');
+
+    $('#mb').style.display='flex';
+
+    const tl=$('#mTL'); tl.innerHTML='<div class="tl-item">Carico storico…</div>';
+    loadHistoryFor(codeid).then(hist=>{
+      if(!hist.length){ tl.innerHTML='<div class="tl-item">Nessun dato storico disponibile.</div>'; return; }
+      hist.sort((a,b)=>a.date-b.date);
+      tl.innerHTML = hist.map(h=>(
+        `<div class="tl-item"><div class="when">${fmtDateTime(h.date)}</div><div class="meta">${h.status||''} • ${h.model||''} ${h.pda?('• PDA '+h.pda):''} • ${h.sede||''}</div></div>`
+      )).join('');
+
+      $('#mCsv').onclick=()=>exportHistoryCSV(codeid, hist);
+      $('#mTxt').onclick=()=>exportHistoryTXT(codeid, hist);
+      $('#mWA').onclick=()=>waLocale(row, hist);
+    }).catch(e=>{
+      tl.innerHTML='<div class="tl-item">Errore nel caricamento storico.</div>';
+      console.error(e);
+    });
+  }
+  $('#mClose').addEventListener('click',()=>$('#mb').style.display='none');
+  $('#mb').addEventListener('click',e=>{ if(e.target.id==='mb') $('#mb').style.display='none'; });
+
+  async function loadHistoryFor(codeid){
+    if(historyCache.has(codeid)) return historyCache.get(codeid);
+    const hist=[];
+    for(const name of manifestList){
+      try{
+        const sn=await fetchXLSX_largest('./Dati/'+name, name);
+        for(const row of sn.rows){
+          const cid=pickCodeId(row); if(!cid || cid!==codeid) continue;
+          const status = String(getField(row,'DESCR_STATO')||'').trim();
+          const date  = parseDateITDateTime(getField(row,'DATA_ULTIMA_LETTURA_VAL'));
+          const pda   = getField(row,'PDA');
+          const model = getField(row,'MODELLO');
+          const sede  = getField(row,'DENOMIN_SEDE');
+          if(date) hist.push({date, status, pda, model, sede});
+          break;
+        }
+      }catch(e){ console.warn('Storico: errore su', name, e); }
+    }
+    historyCache.set(codeid, hist);
+    return hist;
+  }
+  function exportHistoryCSV(codeid, hist){
+    const header = ['DATA-ORA (GMT)','STATO','MODELLO','PDA','SEDE'];
+    const data = hist.map(h=>[fmtDateTime(h.date), h.status||'', h.model||'', h.pda||'', h.sede||'']);
+    const csv = [header.join(';')].concat(data.map(r=>r.join(';'))).join('\n');
+    const blob=new Blob([csv],{type:'text/csv;charset=utf-8'}); const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`Storico-${codeid}.csv`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+  function exportHistoryTXT(codeid, hist){
+    const lines = hist.map(h=>`• ${fmtDateTime(h.date)} — ${h.status||''} — ${h.model||''} ${h.pda?('— PDA '+h.pda):''} — ${h.sede||''}`);
+    const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});
+    const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`Storico-${codeid}.txt`; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+  function waLocale(row, hist){
+    const lines = [`*${row.SEDE||''}*`, `${row.CODEID} — ${row.MODELLO||''} ${row.PDA?('— PDA '+row.PDA):''}`, ''];
+    lines.push(...hist.slice(-5).map(h=>`• ${fmtDateTime(h.date)} — ${h.status||''}`));
+    const text = lines.join('\n'); const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+    if(url.length>2000){ navigator.clipboard.writeText(text).then(()=>alert('Testo copiato negli appunti.')); return; }
+    window.open(url,'_blank');
+  }
+
+  /* ============== LOAD TUTTO (con filtro .xlsx e fallback esattori) ============== */
+  async function loadAll(){
+    errBox.style.display='none'; errBox.textContent=''; $('#pillFoglio').textContent='Foglio: —';
+    const showErr = (msg)=>{ errBox.textContent=msg; errBox.style.display='block'; alert(msg); };
+
+    loader.style.display='flex';
     try{
-      pdv=await getXLSX('./Dati/PDV-e-ESATTORI.xlsx');
+      // 1) Manifest: prendi solo .xlsx e scegli il più recente
+      const manifest=await fetchJSON('./Dati/manifest.json','manifest.json');
+      const allNames = Array.isArray(manifest.sinottici)? manifest.sinottici : [];
+      const xlsxOnly = allNames.filter(n=>/\.xlsx$/i.test(n));
+      $('#pillSin').textContent = `Sinottici nel manifest: ${allNames.length} (xlsx: ${xlsxOnly.length})`;
+      if(!xlsxOnly.length){
+        throw new Error('Nel manifest non ci sono file .xlsx. Esporta il Sinottico da Numbers in .xlsx e aggiungilo a manifest.json');
+      }
+      xlsxOnly.sort((a,b)=> (parseSinoTs(a)||0) - (parseSinoTs(b)||0) );
+      manifestList = xlsxOnly.slice(); // per storico
+      latestName = manifestList[manifestList.length-1];
+
+      // 2) Esattori da file (se disponibile)
+      try{ esattori=await fetchJSON('./Dati/esattori.json','esattori.json'); }catch(_){ esattori=[]; }
+
+      // 3) PDV -> mappa sede -> esattore
+      let pdvRows=[];
+      try{
+        const pdv=await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.xlsx','PDV-e-ESATTORI.xlsx');
+        pdvRows=pdv.rows||[];
+      }catch(_){
+        // continueremo con fallback
+      }
+      sedeToEs=new Map();
+      for(const r of pdvRows){
+        const sede=normalizeSede(r['DENOMIN. SEDE']);
+        const es  =(r['ESATTORE']??'').toString().trim().toUpperCase()||'—';
+        if(sede) sedeToEs.set(sede,es);
+      }
+      // se esattori.json è vuoto, derivali da PDV + fallback fisso
+      if(!esattori || !esattori.length){
+        const derived=new Set(Array.from(sedeToEs.values()).filter(Boolean));
+        ['ALESSANDRO','MATTIA','STEPHAN','MATTEO','LUCA','MAGAZZINO'].forEach(x=>derived.add(x));
+        esattori=Array.from(derived).sort();
+      }
+      $('#selEsattore').innerHTML='<option value="">— Tutti —</option>'+esattori.map(e=>`<option value="${String(e).toUpperCase()}">${String(e).toUpperCase()}</option>`).join('');
+
+      // 4) Carica l’ULTIMO sinottico .xlsx (foglio più grande)
+      const sn=await fetchXLSX_largest('./Dati/'+latestName,latestName);
+      $('#pillFoglio').textContent='Foglio: '+sn.sheetName+' • righe: '+sn.rows.length;
+
+      // 5) Filtra SOLO "Attiva" e costruisci righe + extra per scheda
+      const byCode=new Map();
+      for(const row of sn.rows){
+        const codeid=pickCodeId(row); if(!codeid) continue;
+        const descr = String(getField(row,'DESCR_STATO')||'').toLowerCase();
+        if (!descr.includes('attiva')) continue;
+
+        const sede   = getField(row,'DENOMIN_SEDE');
+        const dataUltDT = parseDateITDateTime( getField(row,'DATA_ULTIMA_LETTURA_VAL') );
+        const dataUlt   = dataUltDT ? new Date(dataUltDT.getFullYear(),dataUltDT.getMonth(),dataUltDT.getDate()) : null;
+        const comune = getField(row,'COMUNE');
+        const pda    = getField(row,'PDA');
+        const modello= getField(row,'MODELLO');
+
+        const dataAttiv = parseDateIT( getField(row,'DATA_ATTIVAZIONE') );
+        const ggManc    = getField(row,'GG_MANCATO_COLLEGAMENTO');
+        const ggDec     = getField(row,'GG_DECADENZA');
+        const cntIn     = getField(row,'CNTTOTIN');
+        const cntOut    = getField(row,'CNTTOTOT');
+        const msferie   = getField(row,'MS_FERIE');
+        const macPda    = getField(row,'MAC_PDA');
+        const codSede   = getField(row,'CODICE_SEDE');
+        const codPDV    = getField(row,'CODICE_PDV');
+        const indirizzo = getField(row,'INDIRIZZO');
+        const provincia = getField(row,'PROVINCIA');
+        const codMod    = getField(row,'CODICE_MODELLO');
+        const pctOut    = getField(row,'PCT_OUT');
+        const em        = getField(row,'EM');
+        const incGG     = getField(row,'INCASSO_GG');
+        const mediaInc  = getField(row,'MEDIA_INC_GG');
+
+        const prev=byCode.get(codeid);
+        if(!prev || (dataUlt && prev.dataUlt && dataUlt>prev.dataUlt) || (!prev?.dataUlt && dataUlt)){
+          byCode.set(codeid,{
+            codeid, sede, dataUlt, dataUltDT, comune, pda, modello,
+            dataAttiv, ggManc, ggDec, cntIn, cntOut, msferie, macPda, codSede, codPDV,
+            indirizzo, provincia, codMod, pctOut, em, incGG, mediaInc
+          });
+        }
+      }
+
+      const all=[];
+      for(const v of byCode.values()){
+        const es = sedeToEs.get(normalizeSede(v.sede)) ?? '—';
+        const giorni = daysDiffFromToday(v.dataUlt);
+        all.push({
+          CODEID:v.codeid, SEDE:v.sede, ESATTORE:es, STATO:'Attiva', 
+          DATA:v.dataUlt, DATAULTVAL_DT:v.dataUltDT, GIORNI:giorni,
+          COMUNE:v.comune, PDA:v.pda, MODELLO:v.modello,
+          DATAATTIV:v.dataAttiv, GG_MANC_CONN:v.ggManc, GG_DECAD:v.ggDec,
+          CNTTOTIN:v.cntIn, CNTTOTOT:v.cntOut, MS_FERIE:v.msferie, MAC_PDA:v.macPda,
+          CODICE_SEDE:v.codSede, CODICE_PDV:v.codPDV, INDIRIZZO:v.indirizzo, PROVINCIA:v.provincia,
+          CODICE_MODELLO:v.codMod, PCT_OUT:v.pctOut, EM:v.em, INCASSO_GG:v.incGG, MEDIA_INC_GG:v.mediaInc
+        });
+      }
+      rowsActive=all;
+
+      renderTable( buildFilteredList() );
+
     }catch(e){
-      log('pdv','errore',String(e));
-      pdv={rows:[],headers:[]};
+      showErr(e.message||'Errore sconosciuto (controlla che i file siano .xlsx e i percorsi corretti in /Dati/ )');
+    }finally{
+      loader.style.display='none';
     }
-    $('#pPdv').textContent='PDV righe: '+pdv.rows.length;
-    log('pdv headers',pdv.headers);
-
-    const sedeToEs=new Map();
-    for(const r of pdv.rows){
-      const sede = r['DENOMIN. SEDE'] ?? r['DENOMIN.SEDE'] ?? r['DENOMINAZIONE SEDE'];
-      const es   = (r['ESATTORE']??'').toString().trim().toUpperCase();
-      if(sede){ sedeToEs.set(normalizeSede(sede), es||'—'); }
-    }
-    state.sedeToEs=sedeToEs;
-
-    let esattori = Array.from(new Set(Array.from(sedeToEs.values()).filter(Boolean)));
-    try{
-      const esjson=await getJSON('./Dati/esattori.json');
-      if(Array.isArray(esjson)&&esjson.length){ esattori = Array.from(new Set(esjson.map(x=>String(x).toUpperCase()))); }
-    }catch(_){}
-    if(!esattori.length){ esattori=['ALESSANDRO','MATTIA','STEPHAN','MATTEO','LUCA','MAGAZZINO']; }
-    state.esattori=esattori.sort();
-    populateEsattoriSelect(state.esattori);
-    log('esattori',state.esattori);
-
-    // 3) SINOTTICO (ultimo)
-    const sn = await getXLSX('./Dati/'+latest);
-    $('#pRows').textContent='Sinottico righe: '+sn.rows.length;
-    log('sinottico sheet',sn.sheetName);
-    log('sinottico headers (sample)',sn.headers);
-
-    // 4) COSTRUISCI RIGHE ATTIVE
-    const active=[];
-    let countAll=0, countAttive=0;
-    for(const row of sn.rows){
-      countAll++;
-      const status = (getField(row,['DESCR. STATO','DESCR.STATO','STATO'])||'').toString().toLowerCase();
-      if(!status.includes('attiva')) continue;
-      countAttive++;
-
-      const codeid = pickCodeId(row);
-      const sede   = getField(row,['DENOMIN. SEDE','DENOMIN.SEDE','DENOMINAZIONE SEDE']);
-      const modello= getField(row,'MODELLO');
-      const pda    = getField(row,['PDA','COD.PDA','IDPDA']);
-      const comune = getField(row,['COMUNE','CITTA','CITTÀ','LOCALITA']);
-
-      const dUltDT = parseDateITDateTime( getField(row, ['DATA ULTIMA LETTURA VAL.','DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']) );
-      const dUlt   = dUltDT ? new Date(dUltDT.getFullYear(),dUltDT.getMonth(),dUltDT.getDate()) : null;
-      const giorni = daysFromToday(dUlt);
-
-      const es = state.sedeToEs.get(normalizeSede(sede)) ?? '—';
-
-      active.push({ESATTORE:es, SEDE:sede, CODEID:codeid, MODELLO:modello, PDA:pda, GIORNI:giorni, COMUNE:comune, DATA:dUlt});
-    }
-    state.rows=sn.rows; state.active=active;
-    $('#pActive').textContent='Attive: '+countAttive+' / '+countAll;
-
-    // 5) APPLICA FILTRO E RENDI
-    filterApply();
-
-  }catch(e){
-    showErr(e.message||String(e));
-  }finally{
-    $('#loading').style.display='none';
   }
-}
 
-/* ===== EXPORTS ===== */
-function exportXLSX(){
-  if(!window.XLSX){ alert('XLSX non disponibile'); return; }
-  const headers=['ESATTORE','LOCALE','AWP','MODELLO','PDA','GIORNI','COMUNE'];
-  const data=state.filtered.map(r=>[r.ESATTORE||'',r.SEDE||'',r.CODEID||'',r.MODELLO||'',r.PDA||'',isFinite(r.GIORNI)?r.GIORNI:'',r.COMUNE||'']);
-  const ws=XLSX.utils.aoa_to_sheet([headers,...data]); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Letture');
-  XLSX.writeFile(wb,'Letture.xlsx');
-}
-function exportTXT(){
-  const lines=state.filtered.map(r=>`${r.SEDE} - ${r.MODELLO||r.CODEID}${r.GIORNI>3?` _${fmtDate(r.DATA)}_`:''}`);
-  const blob=new Blob([lines.join('\n')],{type:'text/plain;charset=utf-8'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='Letture.txt'; a.click(); URL.revokeObjectURL(a.href);
-}
-function openWA(){
-  const text = state.filtered.map(r=>`${r.SEDE} - ${r.MODELLO||r.CODEID}${r.GIORNI>3?` _${fmtDate(r.DATA)}_`:''}`).join('\n\n');
-  const url='https://wa.me/?text='+encodeURIComponent(text||'');
-  window.open(url,'_blank');
-}
+  /* UI */
+  $('#selDays').addEventListener('change',e=>{ $('#daysCustom').style.display=(e.target.value==='custom')?'inline-block':'none'; });
+  $('#btnApply').addEventListener('click',()=>{ renderTable(buildFilteredList()); });
+  $('#btnDownload').addEventListener('click',()=>{ downloadXLSX(buildFilteredList()); });
+  $('#btnDownloadTxt').addEventListener('click',()=>{ downloadTXT(buildFilteredList()); });
+  $('#btnWhatsapp').addEventListener('click',async()=>{ await sendWhatsapp(buildFilteredList()); });
+  $('#btnRefresh').addEventListener('click',loadAll);
 
-/* ===== UI ===== */
-$('#btnRefresh').onclick=loadAll;
-$('#btnApply').onclick=filterApply;
-$('#btnXlsx').onclick=exportXLSX;
-$('#btnTxt').onclick=exportTXT;
-$('#btnWA').onclick=openWA;
-$('#toggleDebug').onchange=()=>{$('#debug').style.display=$('#toggleDebug').checked?'block':'none';};
-
-window.addEventListener('load',loadAll);
+  window.addEventListener('load',()=>{
+    byId('year').textContent=new Date().getFullYear();
+    const t=localStorage.getItem('awp_theme')||'theme-light';
+    document.body.className=t; $('#themeSel').value=t;
+    loadAll();
+  });
+})();
 </script>
 </body>
 </html>
