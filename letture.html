@@ -116,8 +116,8 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
         <span class="pill" id="pillCount">Selezione: —</span>
       </div>
       <div class="meta">
-        Mostra le macchine con <strong>DESCR. STATO = "Attiva"</strong> e <strong>mancata lettura ≥</strong> <strong id="metaDays">2</strong> giorni.  
-        Join su <strong>DENOMIN. SEDE</strong>, colonna <strong>MODELLO</strong> inclusa.
+        Mostra le macchine con <strong>DESCR. STATO</strong> che contiene <strong>“Attiva”</strong> e <strong>mancata lettura ≥</strong> <strong id="metaDays">2</strong> giorni.  
+        Join su <strong>DENOMIN. SEDE</strong>; colonna <strong>MODELLO</strong> inclusa.
       </div>
     </div>
 
@@ -170,7 +170,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
   function initTheme(){ const t=localStorage.getItem('awp_theme')||'theme-light'; applyTheme(t); $('#themeSel').value=t; }
   $('#themeSel').addEventListener('change',e=>{ applyTheme(e.target.value); localStorage.setItem('awp_theme',e.target.value); });
 
-  /* ===== Helpers dati ===== */
+  /* ===== Helpers ===== */
   function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
   function pick(row, names){ for(const n of names){ if(row[n]!=null && row[n]!=='' ) return row[n]; } return ''; }
   function pickCodeId(row){
@@ -193,12 +193,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
   function daysDiffFromToday(d){ if(!d) return Infinity; const t=new Date(); t.setHours(0,0,0,0); const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return Math.floor((t-x)/86400000); }
   function fmtDate(d){ if(!d) return ''; const gg=String(d.getDate()).padStart(2,'0'); const mm=String(d.getMonth()+1).padStart(2,'0'); return `${gg}-${mm}-${d.getFullYear()}`; }
 
-  // Legge "M.S. / FERIE"
-  function pickMSFerie(row){
-    const v = (row['M.S. / FERIE'] ?? row['M.S./ FERIE'] ?? row['M.S./FERIE'] ?? row['MS / FERIE'] ?? row['MS/FERIE'] ?? row['M.S.'] ?? '').toString().trim();
-    return v;
-  }
-
+  function pickMSFerie(row){ return (row['M.S. / FERIE'] ?? row['M.S./ FERIE'] ?? row['M.S./FERIE'] ?? row['MS / FERIE'] ?? row['MS/FERIE'] ?? row['M.S.'] ?? '').toString().trim(); }
   async function fetchJSON(u,label){ const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error(`Caricamento ${label||u} fallito (${r.status})`); return r.json(); }
   async function fetchXLSX_largest(u,label){
     const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error(`Caricamento ${label||u} fallito (${r.status})`);
@@ -221,7 +216,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
 
   function buildFilteredList(){
     const maxDays=readDaysSelection(); $('#metaDays').textContent=maxDays;
-    let list = rowsActive.filter(r => r.GIORNI >= maxDays); // arretrate di >= maxDays
+    let list = rowsActive.filter(r => r.GIORNI >= maxDays);
 
     const selEs = $('#selEsattore').value.trim().toUpperCase();
     if(selEs){
@@ -269,20 +264,17 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     XLSX.utils.book_append_sheet(wb, ws, 'Letture');
     const selEs = $('#selEsattore').value || 'TUTTI';
     const days = readDaysSelection();
-    const fname = `Letture-${selEs}-${days}gg.xlsx`;
-    XLSX.writeFile(wb, fname);
+    XLSX.writeFile(wb, `Letture-${selEs}-${days}gg.xlsx`);
   }
 
   /* ==== WHATSAPP / TXT ==== */
   function buildGroupingMaps(allActiveRows, eligibleList) {
-    // Conta AWP attive per locale (solo DESCR.STATO = Attiva)
     const activeCountBySede = new Map();
     for (const r of allActiveRows) {
       const key = (r.ESATTORE||'—').toUpperCase() + '||' + (r.SEDE||'').toUpperCase();
       activeCountBySede.set(key, (activeCountBySede.get(key)||0) + 1);
     }
 
-    // AWP da leggere (≥ N giorni) per locale
     const eligibleBySede = new Map();
     for (const r of eligibleList) {
       const esKey = (r.ESATTORE||'—').toUpperCase();
@@ -301,7 +293,6 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     const compact = $('#chkCompact').checked;
     const { activeCountBySede, eligibleBySede } = buildGroupingMaps(allActiveRows, eligibleList);
 
-    // Esattore → [righe locale]
     const byEs = new Map();
 
     for (const [key, info] of eligibleBySede.entries()) {
@@ -310,11 +301,10 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
       const eligTot = info.items.length;
       if (eligTot === 0) continue;
 
-      // se il locale ha macchine con giorni > 3, aggiungi data ultima lettura (più recente tra quelle da leggere) in corsivo
+      // se in quel locale c'è almeno una macchina con giorni >3, aggiungo data (più recente tra quelle da leggere)
       let italicDate = '';
       const maxGiorni = Math.max(...info.items.map(x=>isFinite(x.GIORNI)?x.GIORNI:0));
       if (maxGiorni > 3) {
-        // prendo la DATA più recente tra le AWP da leggere
         let latest = null;
         for (const it of info.items) {
           if (it.DATA && (!latest || it.DATA > latest)) latest = it.DATA;
@@ -339,17 +329,15 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
       byEs.get(esKey).push(line);
     }
 
-    // Ordino locali alfabeticamente per esattore
     for (const [k, arr] of byEs) arr.sort((a,b)=>a.localeCompare(b, 'it', {sensitivity:'base'}));
 
-    // Costruisco testo finale con righe vuote tra i locali
     const blocks = [];
     if (selEs) {
       const lines = byEs.get(selEs) || [];
       const header = `*${selEs}*`;
       if (lines.length) {
-        blocks.push(header + '\n');               // intestazione + riga vuota
-        blocks.push(lines.join('\n\n'));         // locale\n\nlocale...
+        blocks.push(header + '\n');           // intestazione + riga vuota
+        blocks.push(lines.join('\n\n'));     // righe locali separate da riga vuota
       } else {
         blocks.push(header + '\n');
         blocks.push('Nessun locale con letture arretrate.');
@@ -360,9 +348,9 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
       for (const es of esList) {
         const lines = byEs.get(es)||[];
         if (!lines.length) continue;
-        blocks.push(`*${es}*` + '\n');           // intestazione
-        blocks.push(lines.join('\n\n'));         // locali separati da riga vuota
-        blocks.push('');                         // riga vuota tra esattori
+        blocks.push(`*${es}*` + '\n');
+        blocks.push(lines.join('\n\n'));
+        blocks.push('');
       }
       if (blocks[blocks.length-1]==='') blocks.pop();
     }
@@ -436,7 +424,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
         const comune= pickComune(row);
         const pda   = pickPDA(row);
         const modello = pickModello(row);
-        const ms   = pickMSFerie(row); // non usata per filtrare, ma utile se servisse
+        const ms   = pickMSFerie(row);
 
         const prev=byCode.get(codeid);
         if(!prev || (data && prev.data && data>prev.data) || (!prev?.data && data)){
@@ -444,46 +432,33 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
         }
       }
 
-      // Normalizza e **tieni SOLO Attiva** nella colonna DESCR. STATO
+      // Normalizza e **tieni SOLO righe con DESCR.STATO contenente "Attiva"**
       const all=[];
       for(const {codeid,sede,descrStato,ms,data,comune,pda,modello} of byCode.values()){
+        if (!((descrStato||'').toLowerCase().includes('attiva'))) continue;
         const es = sedeToEs.get(normalizeSede(sede)) ?? '—';
         const giorni = daysDiffFromToday(data);
-        if (/^ATTIVA$/i.test(descrStato||'')) {
-          all.push({ CODEID:codeid, SEDE:sede, ESATTORE:es, STATO:descrStato, MS:ms, DATA:data, GIORNI:giorni, COMUNE:comune, PDA:pda, MODELLO:modello });
-        }
+        all.push({ CODEID:codeid, SEDE:sede, ESATTORE:es, STATO:descrStato, MS:ms, DATA:data, GIORNI:giorni, COMUNE:comune, PDA:pda, MODELLO:modello });
       }
 
-      // rowsActive = solo Attive
-      rowsActive = all;
+      rowsActive = all; // solo attive
 
-      // Applica filtri iniziali
       renderTable(buildFilteredList());
 
     }catch(e){ showError(e.message||'Errore sconosciuto'); }
     finally{ showLoader(false); }
   }
 
-  // UI handlers
+  // UI
   $('#selDays').addEventListener('change', e=>{
-    const custom=e.target.value==='custom';
-    $('#daysCustom').style.display=custom?'inline-block':'none';
+    $('#daysCustom').style.display = (e.target.value==='custom') ? 'inline-block' : 'none';
   });
-  $('#btnApply').addEventListener('click', ()=>{
-    const list=buildFilteredList(); renderTable(list);
-  });
-  $('#btnDownload').addEventListener('click', ()=>{
-    const list=buildFilteredList(); downloadXLSX(list);
-  });
-  $('#btnDownloadTxt').addEventListener('click', ()=>{
-    const list=buildFilteredList(); downloadTXT(list);
-  });
-  $('#btnWhatsapp').addEventListener('click', async ()=>{
-    const list=buildFilteredList(); await sendWhatsapp(list);
-  });
+  $('#btnApply').addEventListener('click', ()=>{ renderTable(buildFilteredList()); });
+  $('#btnDownload').addEventListener('click', ()=>{ downloadXLSX(buildFilteredList()); });
+  $('#btnDownloadTxt').addEventListener('click', ()=>{ downloadTXT(buildFilteredList()); });
+  $('#btnWhatsapp').addEventListener('click', async ()=>{ await sendWhatsapp(buildFilteredList()); });
   $('#btnRefresh').addEventListener('click', loadAll);
 
-  // boot
   window.addEventListener('load', ()=>{
     byId('year').textContent=new Date().getFullYear();
     initTheme();
