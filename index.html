@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AWP Analyzer Pro — v3.0</title>
 
-<!-- Librerie -->
+<!-- Fonts + XLSX -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
@@ -68,7 +68,7 @@ button {
 button:hover { opacity:.9; }
 small.version { display:block; margin-top:15px; color:var(--muted); }
 
-/* === Barra caricamento === */
+/* === Caricamento === */
 #progressBarContainer {
   position:fixed; bottom:0; left:0; right:0; height:6px; background:#ddd;
 }
@@ -111,6 +111,7 @@ footer { text-align:center; padding:10px; font-size:12px; color:var(--muted); }
         <option value="windows">Windows 95</option>
       </select>
     </div>
+    <div id="loginError" style="color:red;margin-top:8px;"></div>
   </div>
 </div>
 
@@ -126,40 +127,40 @@ footer { text-align:center; padding:10px; font-size:12px; color:var(--muted); }
       <h2>Stato caricamento dati</h2>
       <div id="loadStatus">In attesa dei file...</div>
     </div>
+
     <div class="card">
-      <h2>Grafico generale (in arrivo nel Blocco 3)</h2>
+      <h2>Grafico generale (arriva nel BLOCCO 3)</h2>
       <canvas id="mainChart" width="900" height="320"></canvas>
     </div>
   </main>
 
-  <footer>
-    AWP Analyzer Pro v3.0 — © 2025 Stephan Winckler
-  </footer>
+  <footer>AWP Analyzer Pro v3.0 — ©2025 Stephan Winckler</footer>
 </div>
 
 <div id="progressBarContainer"><div id="progressBar"></div></div>
 
 <script>
-/* ======== BLOCCO 1 JS ======== */
-
-/* === LOGIN con users.json === */
+/* ============ LOGIN con Dati/users.json ============ */
 async function doLogin() {
   const u = username.value.trim().toLowerCase();
   const pin = password.value.trim();
 
   try {
-    const res = await fetch('users.json', {cache:'no-store'});
-    if(!res.ok) throw new Error("Impossibile leggere users.json");
+    const res = await fetch('Dati/users.json', {cache:'no-store'});
+    if (!res.ok) throw new Error(`Impossibile leggere Dati/users.json (HTTP ${res.status})`);
+
     const users = await res.json();
-
     const user = users.find(x => x.user.toLowerCase() === u && x.pin === pin);
-    if (!user) { alert("Credenziali non valide"); return; }
 
-    // Controllo scadenza
+    if (!user) {
+      loginError.textContent = "Credenziali non valide";
+      return;
+    }
+
     if (user.expires) {
       const exp = new Date(user.expires);
       if (exp < new Date()) {
-        alert(`Abbonamento scaduto il ${user.expires}`);
+        loginError.textContent = "Abbonamento scaduto: " + user.expires;
         return;
       }
     }
@@ -169,21 +170,20 @@ async function doLogin() {
     startApp(user.user, user.level);
 
   } catch(err) {
-    alert("Errore durante il login: "+err);
+    loginError.textContent = "Errore: " + err.message;
   }
 }
+btnLogin.onclick = doLogin;
 
-document.getElementById('btnLogin').onclick = doLogin;
-
-/* === Avvio app === */
-function startApp(u, level="Base") {
+/* ============ Avvio app ============ */
+function startApp(u, level="Base"){
   loginScreen.style.display='none';
   dashboard.style.display='block';
   userInfo.textContent = `${u} (${level})`;
   loadManifestAndFiles();
 }
 
-/* === Cambio tema === */
+/* ============ Tema ============ */
 themeSelect.onchange = e=>{
   document.body.className='theme-'+e.target.value;
   localStorage.setItem('awp_theme', e.target.value);
@@ -191,53 +191,53 @@ themeSelect.onchange = e=>{
 const savedTheme = localStorage.getItem('awp_theme');
 if(savedTheme) document.body.className='theme-'+savedTheme;
 
-/* === Barra di progresso === */
-function setProgress(p){
-  document.getElementById('progressBar').style.width=p+'%';
+/* ============ Progress bar ============ */
+function setProgress(v){
+  progressBar.style.width = v+"%";
 }
 
-/* === Caricamento progressivo sinottici dal manifest === */
+/* ============ Caricamento sinottici ============ */
 async function loadManifestAndFiles(){
-  const loadDiv = document.getElementById('loadStatus');
+  const div = document.getElementById('loadStatus');
   setProgress(0);
-  try {
-    const res = await fetch('manifest.json',{cache:'no-store'});
-    const files = await res.json();
-    const total = files.length;
-    let loaded = 0;
-    const allData=[];
 
-    for(const f of files){
-      loadDiv.innerHTML = `Caricamento <b>${f}</b> (${++loaded}/${total})...`;
-      const part = await readSheetUniversal('Dati/'+f);
-      allData.push(...part);
-      setProgress(Math.round(loaded/total*100));
-      await new Promise(r=>setTimeout(r,100)); // effetto fluido
+  try {
+    const res = await fetch('Dati/manifest.json',{cache:'no-store'});
+    const files = await res.json();
+
+    let done = 0;
+    const total = files.length;
+    const all = [];
+
+    for(const f of files) {
+      div.innerHTML = `Carico <b>${f}</b> (${done+1}/${total})...`;
+      const part = await readXLS(`Dati/${f}`);
+      all.push(...part);
+      done++;
+      setProgress(Math.round(done/total*100));
+      await new Promise(r=>setTimeout(r,100));
     }
 
-    loadDiv.innerHTML = `<b>${allData.length}</b> righe caricate da ${total} file.`;
-    setProgress(100);
-    // In seguito qui verrà chiamato il motore predittivo (Blocco 2)
-
-  } catch(err) {
-    loadDiv.innerHTML = "Errore caricamento manifest: " + err;
+    div.innerHTML = `Caricate ${all.length} righe da ${total} file ✔`;
+  } catch(e) {
+    div.innerHTML = "Errore: " + e.message;
   }
 }
 
-/* === Lettore XLS/XLSX universale === */
-async function readSheetUniversal(url){
+/* ============ Lettore Excel ============ */
+async function readXLS(url){
   const res = await fetch(url);
-  if(!res.ok) throw new Error("Impossibile leggere "+url);
+  if(!res.ok) throw new Error("File mancante: " + url);
   const buf = await res.arrayBuffer();
   const wb = XLSX.read(buf,{type:'array'});
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  return XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});
+  return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:'',raw:false});
 }
 
-/* === Autologin === */
+/* ============ Auto-login ============ */
 const lastUser = localStorage.getItem('awp_user');
-if(lastUser){ startApp(lastUser, localStorage.getItem('awp_level')||"Base"); }
-
+if(lastUser){
+  startApp(lastUser, localStorage.getItem('awp_level') || "Base");
+}
 </script>
 </body>
 </html>
