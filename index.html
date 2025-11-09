@@ -1212,7 +1212,441 @@ if (!navigator.onLine) {
     offlineBanner.style.display = "block";
   }
 }
-  
+  /* === BLOCCO 10 — Algoritmo Predittivo Reale (AI/ML) === */
+
+// Carica TensorFlow.js per il modello predittivo
+const tfScript = document.createElement("script");
+tfScript.src = "https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.14.0/dist/tf.min.js";
+document.head.appendChild(tfScript);
+
+let modelloPredittivo = null;
+let datiAddestramento = [];
+
+/* Estrai dati numerici per ogni macchina */
+function preparaDataset(allData) {
+  const slots = {};
+  for (const r of allData) {
+    const id = r["N°"] || r["MATRICOLA"] || "Sconosciuta";
+    if (!slots[id]) slots[id] = [];
+    const inVal = parseFloat(r.CNTTOTIN || r.IN || 0);
+    const outVal = parseFloat(r.CNTTOTOUT || r.OUT || 0);
+    const payout = outVal > 0 ? (outVal / (inVal || 1)) * 100 : 0;
+    slots[id].push({ inVal, outVal, payout });
+  }
+
+  const dataset = [];
+  for (const id of Object.keys(slots)) {
+    const seq = slots[id];
+    if (seq.length < 6) continue;
+    for (let i = 5; i < seq.length; i++) {
+      const prev = seq.slice(i - 5, i);
+      const next = seq[i];
+      const features = prev.flatMap(p => [p.inVal, p.outVal, p.payout]);
+      const label = next.outVal - next.inVal; // utile per stimare payout
+      dataset.push({ features, label });
+    }
+  }
+  return dataset;
+}
+
+/* Addestra modello */
+async function addestraModello(dataset) {
+  if (!window.tf || !dataset.length) return null;
+  console.log("🧠 Addestramento modello predittivo su", dataset.length, "campioni...");
+
+  const xs = tf.tensor2d(dataset.map(d => d.features));
+  const ys = tf.tensor2d(dataset.map(d => [d.label]));
+
+  const model = tf.sequential();
+  model.add(tf.layers.dense({ inputShape: [dataset[0].features.length], units: 32, activation: "relu" }));
+  model.add(tf.layers.dense({ units: 16, activation: "relu" }));
+  model.add(tf.layers.dense({ units: 1, activation: "linear" }));
+
+  model.compile({ optimizer: tf.train.adam(0.01), loss: "meanSquaredError" });
+  await model.fit(xs, ys, { epochs: 25, batchSize: 32, verbose: 0 });
+
+  const save = await model.save("indexeddb://awp-predict-model");
+  console.log("💾 Modello salvato localmente:", save);
+  return model;
+}
+
+/* Carica modello esistente */
+async function caricaModelloSalvato() {
+  try {
+    const model = await tf.loadLayersModel("indexeddb://awp-predict-model");
+    console.log("⚡ Modello predittivo caricato da cache");
+    return model;
+  } catch {
+    console.warn("Nessun modello salvato trovato, verrà creato nuovo.");
+    return null;
+  }
+}
+
+/* Previsione per ogni macchina */
+async function previsioniAI(allData) {
+  if (!modelloPredittivo) return;
+
+  const perSlot = {};
+  const slots = [...new Set(allData.map(r => r["N°"] || r["MATRICOLA"] || "Sconosciuta"))];
+
+  for (const id of slots) {
+    const seq = allData.filter(r => (r["N°"] || r["MATRICOLA"]) === id)
+                       .slice(-5)
+                       .map(r => ({
+                         inVal: parseFloat(r.CNTTOTIN || r.IN || 0),
+                         outVal: parseFloat(r.CNTTOTOUT || r.OUT || 0),
+                         payout: parseFloat(r.CNTTOTOUT || 0) / ((parseFloat(r.CNTTOTIN || 1)) || 1) * 100
+                       }));
+    if (seq.length < 5) continue;
+
+    const features = seq.flatMap(p => [p.inVal, p.outVal, p.payout]);
+    const tensor = tf.tensor2d([features]);
+    const prediction = modelloPredittivo.predict(tensor);
+    const value = (await prediction.data())[0];
+    const prob = Math.min(1, Math.max(0, (value > 0 ? value / 10000 : 0.1)));
+
+    perSlot[id] = { predDelta: value, prob };
+  }
+
+  // aggiorna tabella e avvisi
+  aggiornaSezionePrevisioni(perSlot);
+}
+
+/* Mostra risultati IA */
+function aggiornaSezionePrevisioni(previste) {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `<h2>🤖 Previsioni AI / Machine Learning</h2>
+    <div id="aiSummary" style="font-weight:600;color:var(--muted);margin-bottom:6px;">
+      Il modello analizza le variazioni introdotto/pagato e prevede la probabilità di pagamento imminente per ogni macchina.
+    </div>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr><th style="text-align:left;">Slot</th><th>Δ previsto</th><th>Probabilità</th><th>Stato</th></tr></thead><tbody id="aiTable"></tbody>
+    </table>`;
+  document.querySelector("main").appendChild(card);
+
+  const body = card.querySelector("#aiTable");
+  Object.entries(previste).forEach(([id, val]) => {
+    let stato = "Neutro";
+    if (val.prob > 0.8) stato = "🔥 Alta probabilità";
+    else if (val.prob > 0.6) stato = "🟡 Media";
+    else if (val.prob < 0.3) stato = "❄️ Bassa";
+    body.innerHTML += `
+      <tr><td>${id}</td><td>${val.predDelta.toFixed(0)}</td>
+      <td>${(val.prob*100).toFixed(1)}%</td><td>${stato}</td></tr>`;
+  });
+}
+
+/* Integrazione con flusso principale */
+const oldAnalizza7 = analizzaDatiSlot;
+analizzaDatiSlot = async function(allData) {
+  await oldAnalizza7(allData);
+  datiAddestramento = preparaDataset(allData);
+  modelloPredittivo = await caricaModelloSalvato();
+  if (!modelloPredittivo) modelloPredittivo = await addestraModello(datiAddestramento);
+  await previsioniAI(allData);
+};
+ /* === BLOCCO 11 — Mappa Termica Interattiva === */
+
+// Crea la card
+function creaSezioneMappa() {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `
+    <h2>🗺️ Mappa Termica Slot</h2>
+    <p style="color:var(--muted);margin-top:-6px;">
+      Ogni punto rappresenta una macchina: colore = probabilità di pagamento, dimensione = payout previsto.
+    </p>
+    <canvas id="heatMapChart" height="380"></canvas>
+  `;
+  document.querySelector("main").appendChild(card);
+}
+
+let heatMapChart;
+
+// Disegna la mappa
+function disegnaMappaTermica(previsioni, analisi) {
+  if (!window.Chart) return;
+  const ctx = document.getElementById("heatMapChart").getContext("2d");
+  if (heatMapChart) heatMapChart.destroy();
+
+  // Costruisci dataset combinando AI + analisi
+  const dati = [];
+  Object.entries(previsioni).forEach(([id, v]) => {
+    const ref = analisi.find(a => a.id === id);
+    const payout = ref ? ref.payout : 100;
+    const trend = ref ? ref.trend : 0;
+    const colore =
+      v.prob > 0.8 ? "rgba(239,68,68,0.8)" :
+      v.prob > 0.6 ? "rgba(250,204,21,0.8)" :
+      v.prob > 0.3 ? "rgba(96,165,250,0.8)" :
+      "rgba(148,163,184,0.6)";
+    dati.push({
+      x: payout,
+      y: trend,
+      r: Math.max(6, Math.min(30, Math.abs(v.predDelta) / 300)),
+      backgroundColor: colore,
+      borderColor: "rgba(0,0,0,0.2)",
+      borderWidth: 1,
+      label: id,
+      prob: (v.prob * 100).toFixed(0)
+    });
+  });
+
+  heatMapChart = new Chart(ctx, {
+    type: "bubble",
+    data: { datasets: [{ label: "Slot", data: dati }] },
+    options: {
+      plugins: {
+        tooltip: {
+          callbacks: {
+            label: ctx =>
+              `${ctx.raw.label} → ${ctx.raw.prob}% prob, Payout ${ctx.raw.x.toFixed(1)}%, Trend ${ctx.raw.y.toFixed(0)}`
+          }
+        },
+        legend: { display: false }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: "Payout %" },
+          ticks: { color: "var(--fg)" },
+          grid: { color: "rgba(0,0,0,0.1)" }
+        },
+        y: {
+          title: { display: true, text: "Trend crediti" },
+          ticks: { color: "var(--fg)" },
+          grid: { color: "rgba(0,0,0,0.1)" }
+        }
+      }
+    }
+  });
+}
+
+/* Integrazione col motore AI */
+const oldAnalizza8 = analizzaDatiSlot;
+analizzaDatiSlot = async function (allData) {
+  await oldAnalizza8(allData);
+  creaSezioneMappa();
+
+  // Ricarica dati AI precedenti se disponibili
+  const previsioni = {};
+  if (typeof previsioniAI === "function" && modelloPredittivo) {
+    const slots = [...new Set(allData.map(r => r["N°"] || r["MATRICOLA"]))];
+    for (const id of slots) {
+      const seq = allData
+        .filter(r => (r["N°"] || r["MATRICOLA"]) === id)
+        .slice(-5)
+        .map(r => ({
+          inVal: parseFloat(r.CNTTOTIN || r.IN || 0),
+          outVal: parseFloat(r.CNTTOTOUT || r.OUT || 0),
+          payout: parseFloat(r.CNTTOTOUT || 0) /
+                   ((parseFloat(r.CNTTOTIN || 1)) || 1) * 100
+        }));
+      if (seq.length < 5) continue;
+      const features = seq.flatMap(p => [p.inVal, p.outVal, p.payout]);
+      const t = tf.tensor2d([features]);
+      const val = (await modelloPredittivo.predict(t).data())[0];
+      const prob = Math.min(1, Math.max(0, (val > 0 ? val / 10000 : 0.1)));
+      previsioni[id] = { predDelta: val, prob };
+    }
+  }
+
+  disegnaMappaTermica(previsioni, analisiGlobale);
+};
+  /* === BLOCCO 12 — Timeline Animata della Mappa Termica === */
+
+function creaSezioneTimeline() {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `
+    <h2>🎞️ Timeline Evoluzione Slot</h2>
+    <p style="color:var(--muted);margin-top:-6px;">
+      Riproduci giorno per giorno come sono cambiate le probabilità e i payout.
+    </p>
+    <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+      <button id="tlBack" class="pill">⏪</button>
+      <button id="tlPlay" class="pill">▶ Play</button>
+      <button id="tlPause" class="pill" disabled>⏸ Pausa</button>
+      <button id="tlNext" class="pill">⏩</button>
+      <button id="tlReset" class="pill">⏹ Reset</button>
+      <span id="tlDateLabel" style="margin-left:10px;font-weight:600;color:var(--muted);"></span>
+    </div>
+    <canvas id="timelineChart" height="380"></canvas>
+  `;
+  document.querySelector("main").appendChild(card);
+}
+
+let timelineChart;
+let timelineData = [];
+let tlIndex = 0;
+let tlTimer = null;
+let tlPlaying = false;
+
+function preparaTimeline(allData) {
+  // Raggruppa per giorno
+  const perGiorno = {};
+  for (const r of allData) {
+    const date = (r["DATA LETTURA"] || r["DATA"] || r["DATE"] || "").split(" ")[0];
+    if (!date) continue;
+    if (!perGiorno[date]) perGiorno[date] = [];
+    const inVal = parseFloat(r.CNTTOTIN || r.IN || 0);
+    const outVal = parseFloat(r.CNTTOTOUT || r.OUT || 0);
+    const payout = outVal / (inVal || 1) * 100;
+    perGiorno[date].push({ id: r["N°"] || r["MATRICOLA"], inVal, outVal, payout });
+  }
+  timelineData = Object.entries(perGiorno).sort((a,b)=>new Date(a[0])-new Date(b[0]));
+  console.log("🎞️ Timeline caricata:", timelineData.length, "giorni");
+}
+
+function disegnaTimelineFrame(index) {
+  if (!timelineData.length) return;
+  const ctx = document.getElementById("timelineChart").getContext("2d");
+  const [giorno, records] = timelineData[index];
+  const points = records.map(r=>{
+    const delta = r.outVal - r.inVal;
+    const prob = Math.max(0, Math.min(1, (delta>0?delta/10000:0.1)));
+    const color =
+      prob>0.8?"rgba(239,68,68,0.8)":
+      prob>0.6?"rgba(250,204,21,0.8)":
+      prob>0.3?"rgba(96,165,250,0.8)":
+      "rgba(148,163,184,0.6)";
+    return {x:r.payout,y:delta,r:Math.max(4,Math.min(25,Math.abs(delta)/300)),backgroundColor:color,label:r.id};
+  });
+
+  if (timelineChart) timelineChart.destroy();
+  timelineChart = new Chart(ctx,{
+    type:"bubble",
+    data:{datasets:[{data:points}]},
+    options:{
+      animation:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>`${c.raw.label} — payout ${c.raw.x.toFixed(1)}%`}}
+      },
+      scales:{
+        x:{title:{display:true,text:"Payout %"},ticks:{color:"var(--fg)"}},
+        y:{title:{display:true,text:"Δ Crediti"},ticks:{color:"var(--fg)"}}
+      }
+    }
+  });
+
+  document.getElementById("tlDateLabel").textContent = giorno;
+}
+
+function controlliTimeline() {
+  const play = document.getElementById("tlPlay");
+  const pause = document.getElementById("tlPause");
+  const next = document.getElementById("tlNext");
+  const back = document.getElementById("tlBack");
+  const reset = document.getElementById("tlReset");
+
+  play.onclick = ()=>{
+    if (tlPlaying) return;
+    tlPlaying=true;
+    play.disabled=true; pause.disabled=false;
+    tlTimer=setInterval(()=>{
+      if (tlIndex<timelineData.length-1){ tlIndex++; disegnaTimelineFrame(tlIndex);}
+      else{ clearInterval(tlTimer); tlPlaying=false; play.disabled=false; pause.disabled=true;}
+    },1200);
+  };
+  pause.onclick = ()=>{ clearInterval(tlTimer); tlPlaying=false; play.disabled=false; pause.disabled=true; };
+  next.onclick = ()=>{ if (tlIndex<timelineData.length-1){tlIndex++; disegnaTimelineFrame(tlIndex);} };
+  back.onclick = ()=>{ if (tlIndex>0){tlIndex--; disegnaTimelineFrame(tlIndex);} };
+  reset.onclick = ()=>{ tlIndex=0; disegnaTimelineFrame(tlIndex); };
+}
+
+/* Integrazione nel flusso */
+const oldAnalizza9 = analizzaDatiSlot;
+analizzaDatiSlot = async function(allData){
+  await oldAnalizza9(allData);
+  creaSezioneTimeline();
+  preparaTimeline(allData);
+  disegnaTimelineFrame(0);
+  controlliTimeline();
+};
+ /* === BLOCCO 13 — Sincronizzazione Multi-Tablet LAN === */
+
+// Configurazione: cambia in base alla tua rete locale
+const WEBSOCKET_URL = "ws://omen.local:8080"; // puoi anche usare ws://192.168.x.x:8080
+let ws;
+let isMaster = false;
+
+/* Avvia la connessione */
+function avviaSyncSocket() {
+  if (!("WebSocket" in window)) return console.warn("WebSocket non supportato");
+  try {
+    ws = new WebSocket(WEBSOCKET_URL);
+    ws.onopen = () => {
+      console.log("🔌 Connessione WebSocket aperta con il server");
+      ws.send(JSON.stringify({ type: "hello", user: localStorage.getItem("awp_user") || "anonimo" }));
+    };
+    ws.onmessage = (event) => gestisciMessaggio(event.data);
+    ws.onclose = () => console.warn("❌ WebSocket chiuso. Ritento tra 5s...") || setTimeout(avviaSyncSocket, 5000);
+  } catch (e) {
+    console.warn("Connessione WebSocket fallita", e);
+  }
+}
+
+/* Gestione messaggi */
+function gestisciMessaggio(msg) {
+  let data;
+  try { data = JSON.parse(msg); } catch { return; }
+
+  if (data.type === "sync-broadcast" && data.payload) {
+    console.log("📡 Ricevuto aggiornamento sincronizzato:", data.payload.info);
+    if (data.payload.analisi) {
+      analisiGlobale = data.payload.analisi;
+      aggiornaReport(analisiGlobale);
+      aggiornaDashboardLive();
+    }
+    if (data.payload.alert) {
+      toast(`🔔 ${data.payload.alert}`);
+    }
+  }
+
+  if (data.type === "request-role") {
+    // Il primo che risponde diventa master
+    if (!isMaster) {
+      ws.send(JSON.stringify({ type: "role-confirm", role: "client" }));
+    } else {
+      ws.send(JSON.stringify({ type: "role-confirm", role: "master" }));
+    }
+  }
+}
+
+/* Invia un broadcast */
+function inviaBroadcast(payload) {
+  if (!ws || ws.readyState !== 1) return;
+  ws.send(JSON.stringify({ type: "sync-broadcast", payload }));
+}
+
+/* Integrazione con motore: il master propaga i risultati */
+const oldAnalizza10 = analizzaDatiSlot;
+analizzaDatiSlot = async function (allData) {
+  await oldAnalizza10(allData);
+  if (isMaster && ws && ws.readyState === 1) {
+    inviaBroadcast({
+      info: "Analisi aggiornata",
+      analisi: analisiGlobale,
+      alert: `Aggiornate ${analisiGlobale.length} slot dal server master`
+    });
+  }
+};
+
+/* Avvio della sincronizzazione */
+function setupSyncRole() {
+  const role = prompt("👉 Inserisci ruolo dispositivo: 'master' o 'client'");
+  if (role && role.toLowerCase() === "master") {
+    isMaster = true;
+    toast("🧭 Questo dispositivo è il MASTER (invierà analisi)");
+  } else {
+    isMaster = false;
+    toast("📱 Questo dispositivo è CLIENT (riceverà dati)");
+  }
+  avviaSyncSocket();
+}
+
+setupSyncRole();
 </script>
 </body>
 </html>
