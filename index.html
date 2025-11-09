@@ -389,6 +389,187 @@ loadManifestAndFiles = async function () {
     div.innerHTML = "Errore: " + e.message;
   }
 };
+  /* === BLOCCO 3 — Grafico Avanzato & Filtri === */
+
+// Carica Chart.js
+const chartScript = document.createElement("script");
+chartScript.src = "https://cdn.jsdelivr.net/npm/chart.js";
+document.head.appendChild(chartScript);
+
+chartScript.onload = () => {
+  console.log("Chart.js caricato ✔");
+};
+
+// Contenitore principale
+const graficoCard = document.createElement("div");
+graficoCard.className = "card";
+graficoCard.innerHTML = `
+  <h2>📈 Analisi Temporale e Previsioni</h2>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:10px;">
+    <select id="slotSelect" style="padding:6px;border:1px solid var(--border);border-radius:6px;">
+      <option value="all">Tutte le macchine</option>
+    </select>
+    <div style="flex:1"></div>
+    <button class="periodBtn" data-p="7">Settimana</button>
+    <button class="periodBtn" data-p="30">Mese</button>
+    <button class="periodBtn" data-p="365">Anno</button>
+    <button class="periodBtn" data-p="all">Tutto</button>
+    <button class="periodBtn" data-p="forecast">Previsioni</button>
+  </div>
+  <canvas id="graficoGenerale" height="350"></canvas>
+`;
+document.querySelector("main").appendChild(graficoCard);
+
+// Variabili globali
+let chart;
+let currentData = [];
+let slotList = [];
+
+// Ricostruisci i dati aggregati per grafico grande
+async function preparaDatiPerGrafico(allData) {
+  // Ricava colonna tempo
+  const groupByDay = {};
+  for (const r of allData) {
+    const dateRaw = r["DATA LETTURA"] || r["DATA"] || r["DATE"] || "";
+    const d = new Date(dateRaw);
+    if (isNaN(d)) continue;
+    const key = d.toISOString().substring(0, 10);
+    const inVal = parseFloat(r.CNTTOTIN || r.IN || 0);
+    const outVal = parseFloat(r.CNTTOTOUT || r.OUT || 0);
+    if (!groupByDay[key]) groupByDay[key] = { in: 0, out: 0 };
+    groupByDay[key].in += inVal;
+    groupByDay[key].out += outVal;
+  }
+
+  const points = Object.keys(groupByDay)
+    .sort()
+    .map(k => ({
+      date: k,
+      in: groupByDay[k].in,
+      out: groupByDay[k].out
+    }));
+
+  currentData = points;
+  slotList = [...new Set(allData.map(r => r["N°"] || r["MATRICOLA"] || "Sconosciuta"))];
+  aggiornaSelectSlot();
+  disegnaGrafico("all", "all");
+}
+
+// Aggiorna menu a tendina con macchine
+function aggiornaSelectSlot() {
+  const sel = document.getElementById("slotSelect");
+  slotList.forEach(s => {
+    const opt = document.createElement("option");
+    opt.value = s;
+    opt.textContent = s;
+    sel.appendChild(opt);
+  });
+  sel.onchange = () => disegnaGrafico(sel.value, "all");
+}
+
+// Funzione per disegnare/aggiornare grafico
+function disegnaGrafico(slot, periodo) {
+  if (!window.Chart || !currentData.length) return;
+  const ctx = document.getElementById("graficoGenerale").getContext("2d");
+
+  // Filtro periodo
+  let dati = [...currentData];
+  if (periodo !== "all" && periodo !== "forecast") {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - parseInt(periodo));
+    dati = dati.filter(p => new Date(p.date) >= cutoff);
+  }
+
+  const labels = dati.map(p => p.date);
+  const inData = dati.map(p => p.in);
+  const outData = dati.map(p => p.out);
+
+  // Calcolo forecast base (lineare)
+  const steps = 10;
+  const lastIn = inData[inData.length - 1];
+  const lastOut = outData[outData.length - 1];
+  const deltaIn = (lastIn - inData[inData.length - 5]) / 5;
+  const deltaOut = (lastOut - outData[outData.length - 5]) / 5;
+  const forecastLabels = [];
+  const forecastIn = [];
+  const forecastOut = [];
+
+  for (let i = 1; i <= steps; i++) {
+    const future = new Date(labels[labels.length - 1]);
+    future.setDate(future.getDate() + i);
+    forecastLabels.push(future.toISOString().substring(0, 10));
+    forecastIn.push(lastIn + deltaIn * i);
+    forecastOut.push(lastOut + deltaOut * i);
+  }
+
+  const datasets = [
+    {
+      label: "IN",
+      data: inData,
+      borderColor: "green",
+      fill: false,
+      tension: 0.1
+    },
+    {
+      label: "OUT",
+      data: outData,
+      borderColor: "blue",
+      fill: false,
+      tension: 0.1
+    }
+  ];
+
+  if (periodo === "forecast") {
+    datasets.push({
+      label: "Forecast IN",
+      data: forecastIn,
+      borderColor: "red",
+      borderDash: [4, 3],
+      fill: false
+    });
+    datasets.push({
+      label: "Forecast OUT",
+      data: forecastOut,
+      borderColor: "gold",
+      borderDash: [4, 3],
+      fill: false
+    });
+  }
+
+  if (chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: "line",
+    data: { labels: [...labels, ...(periodo === "forecast" ? forecastLabels : [])], datasets },
+    options: {
+      responsive: true,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: { labels: { color: "var(--fg)" } },
+        title: { display: false }
+      },
+      scales: {
+        x: { ticks: { color: "var(--fg)" } },
+        y: { ticks: { color: "var(--fg)" }, beginAtZero: true }
+      }
+    }
+  });
+}
+
+// Collega bottoni periodo
+document.querySelectorAll(".periodBtn").forEach(btn => {
+  btn.onclick = () => {
+    const p = btn.dataset.p;
+    const slot = document.getElementById("slotSelect").value;
+    disegnaGrafico(slot, p);
+  };
+});
+
+// Integra con BLOCCO 2
+const oldAnalizza = analizzaDatiSlot;
+analizzaDatiSlot = async function (allData) {
+  await oldAnalizza(allData);
+  preparaDatiPerGrafico(allData);
+};
 </script>
 </body>
 </html>
