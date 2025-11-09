@@ -245,6 +245,150 @@ async function readXLS(url){
   const wb=XLSX.read(buf,{type:'array'});
   return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:'',raw:false});
 }
+  /* === BLOCCO 2 — Analisi e Previsioni Slot === */
+
+/**
+ * Dopo il caricamento di tutti i file, viene chiamata questa funzione.
+ * Riceve un array con tutte le righe aggregate dai sinottici.
+ */
+async function analizzaDatiSlot(allData) {
+  const areaAnalisi = document.createElement('div');
+  areaAnalisi.className = 'card';
+  areaAnalisi.innerHTML = "<h2>Analisi Predittiva Slot</h2><div id='resultGrid'></div>";
+  document.querySelector('main').appendChild(areaAnalisi);
+
+  const grid = document.getElementById('resultGrid');
+  grid.style.display = 'grid';
+  grid.style.gridTemplateColumns = 'repeat(auto-fit,minmax(240px,1fr))';
+  grid.style.gap = '10px';
+
+  // Raggruppa per N° macchina o nome
+  const macchine = {};
+  for (const r of allData) {
+    const id = r["N°"] || r["MATRICOLA"] || r["MACHINE"] || "Sconosciuta";
+    if (!macchine[id]) macchine[id] = [];
+    macchine[id].push(r);
+  }
+
+  // Calcola metriche per ciascuna macchina
+  for (const id of Object.keys(macchine)) {
+    const rows = macchine[id];
+    const numerici = rows.map(r => ({
+      in: parseFloat(r.CNTTOTIN || r.IN || 0),
+      out: parseFloat(r.CNTTOTOUT || r.OUT || 0)
+    })).filter(x => x.in > 0);
+
+    if (numerici.length < 2) continue;
+
+    const IN = numerici.map(x => x.in);
+    const OUT = numerici.map(x => x.out);
+    const diff = numerici.map((x, i) => x.in - x.out);
+    const totaleIn = IN[IN.length - 1] - IN[0];
+    const totaleOut = OUT[OUT.length - 1] - OUT[0];
+    const payout = totaleOut / (totaleIn || 1) * 100;
+    const varianza = Math.sqrt(diff.map(x => (x - (totaleIn - totaleOut) / diff.length) ** 2)
+                                .reduce((a, b) => a + b, 0) / diff.length);
+    const trend = diff[diff.length - 1] - diff[0];
+
+    // Valutazione predittiva
+    let stato = '';
+    let colore = '';
+    let prob = 0;
+    if (payout < 60 && trend > 0) { stato = '💰 Alta probabilità di pagamento'; colore = '#00a000'; prob = 0.9; }
+    else if (payout < 80) { stato = '🟡 Potenziale medio'; colore = '#ffaa00'; prob = 0.6; }
+    else if (payout < 100) { stato = '🟠 Paga poco probabile'; colore = '#cc6600'; prob = 0.3; }
+    else { stato = '🔴 Ciclo scarico o appena pagato'; colore = '#cc0000'; prob = 0.1; }
+
+    // Crea box visivo
+    const box = document.createElement('div');
+    box.style.border = `2px solid ${colore}`;
+    box.style.borderRadius = '8px';
+    box.style.padding = '10px';
+    box.style.background = 'var(--card)';
+    box.innerHTML = `
+      <b>${id}</b><br>
+      Payout medio: ${payout.toFixed(1)}%<br>
+      Variazione ciclo: ${trend.toFixed(0)} crediti<br>
+      <b style="color:${colore}">${stato}</b>
+      <canvas id="chart_${id}" width="200" height="80"></canvas>
+    `;
+    grid.appendChild(box);
+
+    // Disegno grafico rapido
+    const ctx = box.querySelector('canvas').getContext('2d');
+    ctx.lineWidth = 2;
+
+    // Linea verde IN
+    ctx.strokeStyle = 'green';
+    ctx.beginPath();
+    for (let i = 0; i < IN.length; i++) {
+      const x = (i / (IN.length - 1)) * 200;
+      const y = 80 - (IN[i] - IN[0]) / (IN[IN.length - 1] - IN[0] || 1) * 80;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Linea blu OUT
+    ctx.strokeStyle = 'blue';
+    ctx.beginPath();
+    for (let i = 0; i < OUT.length; i++) {
+      const x = (i / (OUT.length - 1)) * 200;
+      const y = 80 - (OUT[i] - OUT[0]) / (OUT[OUT.length - 1] - OUT[0] || 1) * 80;
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Previsione (linee tratteggiate)
+    const previsioni = 10;
+    const lastIn = IN[IN.length - 1];
+    const lastOut = OUT[OUT.length - 1];
+    const deltaIn = (IN[IN.length - 1] - IN[IN.length - 5]) / 5;
+    const deltaOut = (OUT[OUT.length - 1] - OUT[OUT.length - 5]) / 5;
+
+    ctx.setLineDash([4, 3]);
+    ctx.strokeStyle = 'red';
+    ctx.beginPath();
+    ctx.moveTo(200, 80 - (IN[IN.length - 1] - IN[0]) / (IN[IN.length - 1] - IN[0] || 1) * 80);
+    ctx.lineTo(200 + 20, 80 - ((lastIn + deltaIn * previsioni) - IN[0]) / (IN[IN.length - 1] - IN[0] || 1) * 80);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'gold';
+    ctx.beginPath();
+    ctx.moveTo(200, 80 - (OUT[OUT.length - 1] - OUT[0]) / (OUT[OUT.length - 1] - OUT[0] || 1) * 80);
+    ctx.lineTo(200 + 20, 80 - ((lastOut + deltaOut * previsioni) - OUT[0]) / (OUT[OUT.length - 1] - OUT[0] || 1) * 80);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  areaAnalisi.scrollIntoView({ behavior: 'smooth' });
+}
+
+/* Integra il motore al termine del caricamento */
+const oldLoad = loadManifestAndFiles;
+loadManifestAndFiles = async function () {
+  const div = document.getElementById('loadStatus');
+  setProgress(0);
+  try {
+    const res = await fetch('Dati/manifest.json', { cache: 'no-store' });
+    if (!res.ok) throw new Error("Manifest non trovato o accesso negato");
+    const manifest = await res.json();
+    const files = Array.isArray(manifest) ? manifest : (manifest.sinottici || []);
+    if (!files.length) throw new Error("Nessun file trovato nel manifest");
+    let done = 0, total = files.length, all = [];
+    for (const f of files) {
+      div.innerHTML = `Carico <b>${f}</b> (${done + 1}/${total})...`;
+      const part = await readXLS(`Dati/${f}`);
+      all.push(...part); done++;
+      setProgress(Math.round(done / total * 100));
+      await new Promise(r => setTimeout(r, 50));
+    }
+    div.innerHTML = `Caricate ${all.length} righe da ${total} file ✔`;
+    // Avvia l’analisi
+    analizzaDatiSlot(all);
+  } catch (e) {
+    div.innerHTML = "Errore: " + e.message;
+  }
+};
 </script>
 </body>
 </html>
