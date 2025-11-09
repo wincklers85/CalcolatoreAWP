@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AWP Analyzer Pro — v3.0</title>
 
-<!-- FONTS & ICONS -->
+<!-- Librerie -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
@@ -22,15 +22,19 @@
 }
 
 /* === Temi === */
-body.theme-bianco   { --bg:#ffffff; --fg:#111; --acc:#007bff; }
-body.theme-azzurro  { --bg:#e9f3ff; --fg:#001830; --acc:#007bff; }
-body.theme-arancio  { --bg:#fff7ef; --fg:#352200; --acc:#ff8c00; }
-body.theme-windows  { --bg:#c0c0c0; --fg:#000; --card:#dcdcdc; --border:#808080; --acc:#000080; font-family:"MS Sans Serif",Tahoma,sans-serif; }
+body.theme-bianco  { --bg:#ffffff; --fg:#111; --acc:#007bff; }
+body.theme-azzurro { --bg:#e9f3ff; --fg:#001830; --acc:#007bff; }
+body.theme-arancio { --bg:#fff7ef; --fg:#352200; --acc:#ff8c00; }
+body.theme-windows {
+  --bg:#c0c0c0; --fg:#000; --card:#dcdcdc; --border:#808080; --acc:#000080;
+  font-family:"MS Sans Serif",Tahoma,sans-serif;
+}
 
-/* === Layout base === */
+/* === Layout === */
 body {
   margin:0; background:var(--bg); color:var(--fg);
-  font-family:Inter,system-ui,sans-serif; transition:background .3s,color .3s;
+  font-family:Inter,system-ui,sans-serif;
+  transition:background .3s,color .3s;
 }
 header {
   display:flex; justify-content:space-between; align-items:center;
@@ -66,8 +70,7 @@ small.version { display:block; margin-top:15px; color:var(--muted); }
 
 /* === Barra caricamento === */
 #progressBarContainer {
-  position:fixed; bottom:0; left:0; right:0; height:6px;
-  background:#ddd;
+  position:fixed; bottom:0; left:0; right:0; height:6px; background:#ddd;
 }
 #progressBar {
   height:100%; width:0%; background:var(--acc); transition:width .3s;
@@ -97,7 +100,7 @@ footer { text-align:center; padding:10px; font-size:12px; color:var(--muted); }
   <div id="loginBox" class="fadeIn">
     <h1>AWP Analyzer Pro</h1>
     <input id="username" type="text" placeholder="Utente">
-    <input id="password" type="password" placeholder="Password">
+    <input id="password" type="password" placeholder="PIN">
     <button id="btnLogin">Accedi</button>
     <small class="version">Versione 3.0 — Build 2025.11</small>
     <div style="margin-top:10px">
@@ -130,7 +133,7 @@ footer { text-align:center; padding:10px; font-size:12px; color:var(--muted); }
   </main>
 
   <footer>
-    AWP Analyzer Pro v3.0 — ©2025 Stephan Winckler
+    AWP Analyzer Pro v3.0 — © 2025 Stephan Winckler
   </footer>
 </div>
 
@@ -139,39 +142,63 @@ footer { text-align:center; padding:10px; font-size:12px; color:var(--muted); }
 <script>
 /* ======== BLOCCO 1 JS ======== */
 
-// === LOGIN & THEME ===
-const users = [{user:"admin", pass:"theone"}, {user:"demo", pass:"demo"}];
-document.getElementById('btnLogin').onclick = () => {
-  const u = username.value.trim(), p = password.value.trim();
-  if(users.find(x=>x.user===u && x.pass===p)){
-    localStorage.setItem('awp_user',u);
-    startApp(u);
-  } else alert("Credenziali non valide");
-};
-function startApp(u){
+/* === LOGIN con users.json === */
+async function doLogin() {
+  const u = username.value.trim().toLowerCase();
+  const pin = password.value.trim();
+
+  try {
+    const res = await fetch('users.json', {cache:'no-store'});
+    if(!res.ok) throw new Error("Impossibile leggere users.json");
+    const users = await res.json();
+
+    const user = users.find(x => x.user.toLowerCase() === u && x.pin === pin);
+    if (!user) { alert("Credenziali non valide"); return; }
+
+    // Controllo scadenza
+    if (user.expires) {
+      const exp = new Date(user.expires);
+      if (exp < new Date()) {
+        alert(`Abbonamento scaduto il ${user.expires}`);
+        return;
+      }
+    }
+
+    localStorage.setItem('awp_user', user.user);
+    localStorage.setItem('awp_level', user.level);
+    startApp(user.user, user.level);
+
+  } catch(err) {
+    alert("Errore durante il login: "+err);
+  }
+}
+
+document.getElementById('btnLogin').onclick = doLogin;
+
+/* === Avvio app === */
+function startApp(u, level="Base") {
   loginScreen.style.display='none';
   dashboard.style.display='block';
-  userInfo.textContent="Benvenuto, "+u;
+  userInfo.textContent = `${u} (${level})`;
   loadManifestAndFiles();
 }
 
-// === Cambio tema ===
-document.getElementById('themeSelect').onchange = e=>{
+/* === Cambio tema === */
+themeSelect.onchange = e=>{
   document.body.className='theme-'+e.target.value;
   localStorage.setItem('awp_theme', e.target.value);
 };
 const savedTheme = localStorage.getItem('awp_theme');
 if(savedTheme) document.body.className='theme-'+savedTheme;
 
-// === Progress bar ===
+/* === Barra di progresso === */
 function setProgress(p){
-  document.getElementById('progressBar').style.width = p+'%';
+  document.getElementById('progressBar').style.width=p+'%';
 }
 
-// === Caricamento sinottici dal manifest ===
+/* === Caricamento progressivo sinottici dal manifest === */
 async function loadManifestAndFiles(){
   const loadDiv = document.getElementById('loadStatus');
-  loadDiv.innerHTML="Caricamento in corso...";
   setProgress(0);
   try {
     const res = await fetch('manifest.json',{cache:'no-store'});
@@ -179,22 +206,25 @@ async function loadManifestAndFiles(){
     const total = files.length;
     let loaded = 0;
     const allData=[];
+
     for(const f of files){
       loadDiv.innerHTML = `Caricamento <b>${f}</b> (${++loaded}/${total})...`;
       const part = await readSheetUniversal('Dati/'+f);
       allData.push(...part);
       setProgress(Math.round(loaded/total*100));
-      await new Promise(r=>setTimeout(r,100)); // simulazione fluida
+      await new Promise(r=>setTimeout(r,100)); // effetto fluido
     }
+
     loadDiv.innerHTML = `<b>${allData.length}</b> righe caricate da ${total} file.`;
     setProgress(100);
-    // qui poi chiameremo il motore predittivo (Blocco 2)
-  } catch(err){
-    loadDiv.innerHTML="Errore caricamento manifest: "+err;
+    // In seguito qui verrà chiamato il motore predittivo (Blocco 2)
+
+  } catch(err) {
+    loadDiv.innerHTML = "Errore caricamento manifest: " + err;
   }
 }
 
-// === Lettore XLS/XLSX universale ===
+/* === Lettore XLS/XLSX universale === */
 async function readSheetUniversal(url){
   const res = await fetch(url);
   if(!res.ok) throw new Error("Impossibile leggere "+url);
@@ -204,9 +234,9 @@ async function readSheetUniversal(url){
   return XLSX.utils.sheet_to_json(ws,{defval:'',raw:false});
 }
 
-// === Autologin se salvato ===
+/* === Autologin === */
 const lastUser = localStorage.getItem('awp_user');
-if(lastUser){ startApp(lastUser); }
+if(lastUser){ startApp(lastUser, localStorage.getItem('awp_level')||"Base"); }
 
 </script>
 </body>
