@@ -709,6 +709,510 @@ analizzaDatiSlot = async function (allData) {
   document.getElementById("exportCSV").onclick = esportaCSV;
   document.getElementById("searchInput").oninput = applicaFiltri;
 }
+  /* === BLOCCO 5 — Cronologia & Avvisi Slot Calde === */
+
+// piccolo suono di notifica
+const notifySound = new Audio("https://assets.mixkit.co/active_storage/sfx/2000/2000-preview.mp3");
+notifySound.volume = 0.25;
+
+// card cronologia
+function creaSezioneCronologia() {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `
+    <h2>🕓 Cronologia & Avvisi Slot</h2>
+    <div style="margin-bottom:10px;">
+      <select id="slotHistorySelect" style="padding:6px;border:1px solid var(--border);border-radius:6px;">
+        <option value="">Seleziona una macchina…</option>
+      </select>
+      <button id="refreshHistory" class="pill">Aggiorna</button>
+    </div>
+    <div id="alertBox" style="margin-bottom:10px;font-weight:700;"></div>
+    <canvas id="chartHistory" height="260"></canvas>
+    <div id="historyList" style="max-height:240px;overflow:auto;margin-top:8px;
+      border-top:1px solid var(--border);font-size:13px;"></div>
+  `;
+  document.querySelector("main").appendChild(card);
+}
+
+let historyChart;
+let lastAlerts = {};
+
+// genera mini-report storico
+function aggiornaCronologia(allData) {
+  const sel = document.getElementById("slotHistorySelect");
+  sel.innerHTML = '<option value="">Seleziona una macchina…</option>';
+  const unique = [...new Set(allData.map(r => r["N°"] || r["MATRICOLA"] || "Sconosciuta"))];
+  unique.forEach(id => {
+    const opt = document.createElement("option");
+    opt.value = id;
+    opt.textContent = id;
+    sel.appendChild(opt);
+  });
+  sel.onchange = () => mostraCronologia(sel.value, allData);
+  document.getElementById("refreshHistory").onclick = () => mostraCronologia(sel.value, allData);
+}
+
+// disegna grafico storico singola slot
+function mostraCronologia(id, allData) {
+  if (!id) return;
+  const serie = allData.filter(r => (r["N°"] || r["MATRICOLA"]) === id);
+  if (!serie.length) return;
+
+  const ctx = document.getElementById("chartHistory").getContext("2d");
+  const date = serie.map(r => new Date(r["DATA LETTURA"] || r["DATA"] || r["DATE"])).sort((a,b)=>a-b);
+  const inVals = serie.map(r => parseFloat(r.CNTTOTIN || r.IN || 0));
+  const outVals = serie.map(r => parseFloat(r.CNTTOTOUT || r.OUT || 0));
+
+  // forecast lineare 7 giorni
+  const steps = 7;
+  const deltaIn = (inVals[inVals.length-1]-inVals[inVals.length-5])/5;
+  const deltaOut = (outVals[outVals.length-1]-outVals[outVals.length-5])/5;
+  const lastIn = inVals[inVals.length-1];
+  const lastOut = outVals[outVals.length-1];
+  const futureDates=[], fIn=[], fOut=[];
+  for(let i=1;i<=steps;i++){
+    const f=new Date(date[date.length-1]); f.setDate(f.getDate()+i);
+    futureDates.push(f);
+    fIn.push(lastIn+deltaIn*i);
+    fOut.push(lastOut+deltaOut*i);
+  }
+
+  if(historyChart) historyChart.destroy();
+  historyChart = new Chart(ctx,{
+    type:"line",
+    data:{
+      labels:[...date.map(d=>d.toISOString().slice(0,10)),...futureDates.map(d=>d.toISOString().slice(0,10))],
+      datasets:[
+        {label:"IN",data:inVals,borderColor:"green",fill:false,tension:.2},
+        {label:"OUT",data:outVals,borderColor:"blue",fill:false,tension:.2},
+        {label:"Forecast IN",data:[...Array(inVals.length).fill(null),...fIn],borderColor:"red",borderDash:[4,3],fill:false},
+        {label:"Forecast OUT",data:[...Array(outVals.length).fill(null),...fOut],borderColor:"gold",borderDash:[4,3],fill:false}
+      ]
+    },
+    options:{
+      plugins:{legend:{labels:{color:"var(--fg)"}}},
+      scales:{x:{ticks:{color:"var(--fg)"}},y:{ticks:{color:"var(--fg)"},beginAtZero:true}}
+    }
+  });
+
+  // cronologia tabellare
+  const hist = document.getElementById("historyList");
+  let html = "<table style='width:100%;border-collapse:collapse;'><thead><tr><th>Data</th><th>IN</th><th>OUT</th></tr></thead><tbody>";
+  for(let i=0;i<date.length;i++){
+    html += `<tr><td>${date[i].toISOString().slice(0,10)}</td><td style="text-align:right;">${inVals[i].toFixed(0)}</td>
+             <td style="text-align:right;">${outVals[i].toFixed(0)}</td></tr>`;
+  }
+  html += "</tbody></table>";
+  hist.innerHTML = html;
+
+  // sistema di avviso
+  const payout = ((outVals[outVals.length-1]-outVals[0]) / ((inVals[inVals.length-1]-inVals[0])||1))*100;
+  const delta = (inVals[inVals.length-1]-outVals[outVals.length-1]) - (inVals[0]-outVals[0]);
+  const box = document.getElementById("alertBox");
+  box.style.padding = "8px"; box.style.borderRadius = "8px"; box.style.textAlign = "center";
+  if(payout<60 && delta>0){
+    box.style.background="#fef3c7"; box.style.color="#92400e";
+    box.textContent = `⚠ Slot ${id} in fase calda – payout ${payout.toFixed(1)}% probabile pagamento entro 48 h`;
+    if(!lastAlerts[id]||Date.now()-lastAlerts[id]>7200000){ // 2 ore
+      notifySound.play();
+      lastAlerts[id]=Date.now();
+    }
+  }else if(payout>100){
+    box.style.background="#e0f2fe"; box.style.color="#1e3a8a";
+    box.textContent = `💤 Slot ${id} scarica – nessuna probabilità di pagamento prossimo`;
+  }else{
+    box.style.background="transparent"; box.style.color="var(--muted)";
+    box.textContent = `Nessun alert attivo`;
+  }
+}
+
+// integrazione con motore
+const oldAnalizza3 = analizzaDatiSlot;
+analizzaDatiSlot = async function(allData){
+  await oldAnalizza3(allData);
+  creaSezioneCronologia();
+  aggiornaCronologia(allData);
+};
+  /* === BLOCCO 6 — Dashboard Live + Notifiche Push === */
+
+let liveData = { hot:0, medium:0, cold:0, empty:0, avgPayout:0, avgTrend:0 };
+let lastNotifyTime = 0;
+let liveInterval = null;
+
+// Card principale
+function creaSezioneLive() {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.id = "liveCard";
+  card.innerHTML = `
+    <h2>📡 Dashboard Live & Notifiche</h2>
+    <div id="liveStats" style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:12px;">
+      <div class="statLive" id="liveHot">🔥 Calde: 0</div>
+      <div class="statLive" id="liveMid">🟡 Medie: 0</div>
+      <div class="statLive" id="liveCold">❄️ Fredde: 0</div>
+      <div class="statLive" id="liveEmpty">💤 Scariche: 0</div>
+      <div class="statLive" id="liveAvg">📈 Payout medio: —%</div>
+      <div class="statLive" id="liveTrend">💶 Trend medio: —€</div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">
+      <label>⏱ Aggiornamento ogni</label>
+      <select id="refreshTime" style="padding:6px;border:1px solid var(--border);border-radius:6px;">
+        <option value="1">1 min</option>
+        <option value="2" selected>2 min</option>
+        <option value="5">5 min</option>
+        <option value="10">10 min</option>
+      </select>
+      <button id="manualRefresh" class="pill">Aggiorna ora</button>
+      <button id="toggleNotify" class="pill">🔔 Notifiche ON</button>
+    </div>
+    <canvas id="chartLive" height="220"></canvas>
+  `;
+  document.querySelector("main").appendChild(card);
+}
+
+/* Richiede permesso notifiche */
+async function richiediNotifiche() {
+  if (!("Notification" in window)) return false;
+  const perm = await Notification.requestPermission();
+  return perm === "granted";
+}
+
+/* Invia notifica visiva */
+function inviaNotifica(titolo, testo) {
+  const now = Date.now();
+  if (now - lastNotifyTime < 60000) return; // max 1 al minuto
+  lastNotifyTime = now;
+  new Notification(titolo, { body: testo, icon: "https://cdn-icons-png.flaticon.com/512/741/741407.png" });
+  notifySound.play();
+}
+
+/* Calcola statistiche globali */
+function aggiornaDashboardLive() {
+  if (!analisiGlobale?.length) return;
+  const hot = analisiGlobale.filter(x=>x.status.includes("Alta")).length;
+  const mid = analisiGlobale.filter(x=>x.status.includes("Media")).length;
+  const cold = analisiGlobale.filter(x=>x.status.includes("Bassa")).length;
+  const empty = analisiGlobale.filter(x=>x.status.includes("Scarico")).length;
+  const avgPayout = analisiGlobale.reduce((a,b)=>a+b.payout,0)/analisiGlobale.length;
+  const avgTrend = analisiGlobale.reduce((a,b)=>a+b.trend,0)/analisiGlobale.length;
+
+  liveData = { hot, medium:mid, cold, empty, avgPayout, avgTrend };
+
+  document.getElementById("liveHot").textContent = `🔥 Calde: ${hot}`;
+  document.getElementById("liveMid").textContent = `🟡 Medie: ${mid}`;
+  document.getElementById("liveCold").textContent = `❄️ Fredde: ${cold}`;
+  document.getElementById("liveEmpty").textContent = `💤 Scariche: ${empty}`;
+  document.getElementById("liveAvg").textContent = `📈 Payout medio: ${avgPayout.toFixed(1)}%`;
+  document.getElementById("liveTrend").textContent = `💶 Trend medio: ${avgTrend.toFixed(0)} €`;
+
+  if (hot >= 3) inviaNotifica("Slot calde rilevate!", `${hot} macchine in fase di pagamento imminente`);
+
+  aggiornaGraficoLive();
+}
+
+/* Grafico cumulativo */
+let chartLive;
+function aggiornaGraficoLive() {
+  const ctx = document.getElementById("chartLive").getContext("2d");
+  if (chartLive) chartLive.destroy();
+  chartLive = new Chart(ctx, {
+    type: "bar",
+    data: {
+      labels: ["Calde", "Medie", "Fredde", "Scariche"],
+      datasets: [
+        { label: "Numero Slot", data: [liveData.hot, liveData.medium, liveData.cold, liveData.empty],
+          backgroundColor: ["#f87171","#facc15","#60a5fa","#9ca3af"] }
+      ]
+    },
+    options: {
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:"var(--fg)"}},
+        y:{ticks:{color:"var(--fg)"},beginAtZero:true}
+      }
+    }
+  });
+}
+
+/* Auto-refresh */
+function impostaAggiornamento() {
+  const mins = parseInt(document.getElementById("refreshTime").value);
+  if (liveInterval) clearInterval(liveInterval);
+  liveInterval = setInterval(()=>aggiornaDashboardLive(), mins*60000);
+}
+
+/* Integrazione nel motore */
+const oldAnalizza4 = analizzaDatiSlot;
+analizzaDatiSlot = async function(allData){
+  await oldAnalizza4(allData);
+  creaSezioneLive();
+  aggiornaDashboardLive();
+  impostaAggiornamento();
+
+  document.getElementById("refreshTime").onchange = impostaAggiornamento;
+  document.getElementById("manualRefresh").onclick = aggiornaDashboardLive;
+
+  const toggle = document.getElementById("toggleNotify");
+  let notifyOn = true;
+  toggle.onclick = async ()=>{
+    notifyOn = !notifyOn;
+    toggle.textContent = notifyOn ? "🔔 Notifiche ON" : "🔕 Notifiche OFF";
+    if (notifyOn) await richiediNotifiche();
+  };
+};
+  /* === BLOCCO 7 — Temi Windows95 + Impostazioni Utente === */
+
+// Stili base per i nuovi temi
+const style = document.createElement("style");
+style.textContent = `
+html[data-theme=azzurro]{
+  --bg:#e6f1ff;--fg:#072043;--card:#ffffff;--border:#a9c6ff;
+  --acc:#0078d7;--orange:#f59e0b;--muted:#4a6a99;
+}
+html[data-theme=bianco]{
+  --bg:#ffffff;--fg:#222;--card:#f9f9f9;--border:#dcdcdc;
+  --acc:#2563eb;--orange:#f59e0b;--muted:#666;
+}
+html[data-theme=arancio]{
+  --bg:#fff8f2;--fg:#201108;--card:#fffaf5;--border:#f2c79d;
+  --acc:#f97316;--orange:#d97706;--muted:#885f3a;
+}
+html[data-theme=win95]{
+  --bg:#c3c7cb;--fg:#000;--card:#e3e3e3;--border:#808080;
+  --acc:#008080;--orange:#d97706;--muted:#404040;
+  font-family:"MS Sans Serif",Tahoma,sans-serif;
+}
+.win95-btn{border:2px outset #fff;background:#d4d0c8;padding:4px 10px;font-family:inherit;}
+.win95-btn:active{border-style:inset;background:#c3c3c3;}
+.win95-window{border:2px outset #fff;background:#e3e3e3;padding:8px;}
+`;
+document.head.appendChild(style);
+
+/* === MENU UTENTE === */
+const userMenu = document.createElement("div");
+userMenu.id = "userMenu";
+userMenu.style.cssText = `
+  position:absolute;top:50px;right:20px;display:none;z-index:1000;
+  background:var(--card);border:1px solid var(--border);border-radius:8px;
+  box-shadow:0 4px 18px rgba(0,0,0,.2);padding:10px;min-width:220px;
+`;
+userMenu.innerHTML = `
+  <h4 style="margin-top:0;">⚙️ Impostazioni Utente</h4>
+  <label>Timeout Login (ore): <input id="loginTimeout" type="number" min="1" max="72" value="24"
+     style="width:70px;"></label><br><br>
+  <label>Tema Interfaccia:</label><br>
+  <select id="themeSelect" style="width:100%;padding:4px;margin-top:4px;">
+    <option value="azzurro">Azzurro</option>
+    <option value="bianco">Bianco</option>
+    <option value="arancio">Arancio</option>
+    <option value="win95">Windows 95</option>
+  </select><br><br>
+  <label><input type="checkbox" id="soundToggle" checked> Suono notifiche</label><br><br>
+  <button id="savePrefs" class="pill" style="width:100%;">💾 Salva Preferenze</button>
+`;
+document.body.appendChild(userMenu);
+
+/* Toggle del menu */
+const userInfoEl = document.getElementById("userInfo");
+if (userInfoEl) {
+  userInfoEl.style.cursor = "pointer";
+  userInfoEl.onclick = () => {
+    userMenu.style.display = userMenu.style.display === "none" ? "block" : "none";
+  };
+}
+document.addEventListener("click", e => {
+  if (!userMenu.contains(e.target) && e.target !== userInfoEl) userMenu.style.display = "none";
+});
+
+/* Gestione preferenze */
+const PREF_KEY = "awp_userPrefs";
+let prefs = { timeoutHrs:24, theme:"azzurro", sound:true };
+try { prefs = Object.assign(prefs, JSON.parse(localStorage.getItem(PREF_KEY)||"{}")); }catch{}
+document.documentElement.setAttribute("data-theme", prefs.theme);
+document.getElementById("loginTimeout").value = prefs.timeoutHrs;
+document.getElementById("themeSelect").value = prefs.theme;
+document.getElementById("soundToggle").checked = prefs.sound;
+notifySound.muted = !prefs.sound;
+
+document.getElementById("savePrefs").onclick = ()=>{
+  prefs.timeoutHrs = parseInt(document.getElementById("loginTimeout").value)||24;
+  prefs.theme = document.getElementById("themeSelect").value;
+  prefs.sound = document.getElementById("soundToggle").checked;
+  localStorage.setItem(PREF_KEY, JSON.stringify(prefs));
+  document.documentElement.setAttribute("data-theme", prefs.theme);
+  notifySound.muted = !prefs.sound;
+  toast("✅ Preferenze salvate");
+};
+
+/* Applica timeout personalizzato al login persistente */
+const customDuration = prefs.timeoutHrs * 60 * 60 * 1000;
+if (customDuration && customDuration !== SESSION_DURATION) {
+  clearInterval(liveInterval);
+  console.log(`Sessione personalizzata: ${prefs.timeoutHrs} ore`);
+}
+ /* === BLOCCO 8 — Esportazione Report PDF Professionale === */
+
+// Carica pdf-lib
+const pdfLib = document.createElement("script");
+pdfLib.src = "https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js";
+document.head.appendChild(pdfLib);
+
+// Aggiunge pulsante nella dashboard live
+function aggiungiBottonePDF() {
+  const card = document.getElementById("liveCard");
+  const btn = document.createElement("button");
+  btn.className = "pill";
+  btn.style.marginTop = "8px";
+  btn.textContent = "📄 Esporta Report PDF";
+  btn.onclick = generaReportPDF;
+  card.appendChild(btn);
+}
+
+/* Genera il PDF */
+async function generaReportPDF() {
+  if (!window.PDFLib || !analisiGlobale.length) {
+    alert("Analisi non disponibile o libreria PDF non pronta.");
+    return;
+  }
+
+  const { PDFDocument, StandardFonts, rgb } = PDFLib;
+  const pdf = await PDFDocument.create();
+  const page = pdf.addPage([595.28, 841.89]); // A4
+  const font = await pdf.embedFont(StandardFonts.Helvetica);
+  const { width, height } = page.getSize();
+  const now = new Date().toLocaleString();
+
+  // colori coerenti col tema
+  const theme = document.documentElement.getAttribute("data-theme") || "azzurro";
+  const colors = {
+    azzurro: rgb(0.02, 0.46, 0.84),
+    bianco: rgb(0.2, 0.2, 0.2),
+    arancio: rgb(0.97, 0.58, 0.06),
+    win95: rgb(0.0, 0.5, 0.5)
+  };
+  const color = colors[theme] || rgb(0,0,0);
+
+  // header
+  page.drawText("AWP ANALYZER PRO — REPORT PREVISIONALE", { x: 40, y: height - 60, size: 16, font, color });
+  page.drawText(`Generato il ${now}`, { x: 40, y: height - 80, size: 10, font, color: rgb(0.3, 0.3, 0.3) });
+
+  // live summary
+  const summaryY = height - 120;
+  page.drawText(`🔥 Calde: ${liveData.hot}   🟡 Medie: ${liveData.medium}   ❄️ Fredde: ${liveData.cold}   💤 Scariche: ${liveData.empty}`, 
+                { x: 40, y: summaryY, size: 12, font, color });
+  page.drawText(`📈 Payout medio: ${liveData.avgPayout.toFixed(1)}%   💶 Trend medio: ${liveData.avgTrend.toFixed(0)} €`, 
+                { x: 40, y: summaryY - 18, size: 12, font, color });
+
+  // tabella slot principali
+  const headerY = summaryY - 50;
+  page.drawText("MACHINE", { x: 40, y: headerY, size: 10, font, color });
+  page.drawText("PAYOUT%", { x: 170, y: headerY, size: 10, font, color });
+  page.drawText("TREND", { x: 250, y: headerY, size: 10, font, color });
+  page.drawText("PROB%", { x: 330, y: headerY, size: 10, font, color });
+  page.drawText("STATO", { x: 410, y: headerY, size: 10, font, color });
+
+  let y = headerY - 14;
+  analisiGlobale.slice(0, 30).forEach(slot => {
+    page.drawText(slot.id.toString().substring(0, 16), { x: 40, y, size: 9, font, color: rgb(0,0,0) });
+    page.drawText(slot.payout.toFixed(1), { x: 170, y, size: 9, font });
+    page.drawText(slot.trend.toFixed(0), { x: 250, y, size: 9, font });
+    page.drawText((slot.prob*100).toFixed(0)+"%", { x: 330, y, size: 9, font });
+    page.drawText(slot.status, { x: 410, y, size: 9, font });
+    y -= 12;
+    if (y < 60) {
+      y = height - 60;
+      pdf.addPage();
+    }
+  });
+
+  // footer
+  page.drawText("Generato automaticamente da AWP Analyzer Pro", { x: 40, y: 30, size: 9, font, color: rgb(0.5, 0.5, 0.5) });
+
+  const pdfBytes = await pdf.save();
+  const blob = new Blob([pdfBytes], { type: "application/pdf" });
+  const url = URL.createObjectURL(blob);
+  window.open(url, "_blank");
+}
+
+/* Integra nel flusso */
+const oldAnalizza5 = analizzaDatiSlot;
+analizzaDatiSlot = async function(allData){
+  await oldAnalizza5(allData);
+  aggiungiBottonePDF();
+};
+ /* === BLOCCO 9 — Modalità Offline + PWA === */
+
+// Aggiunge manifest PWA dinamicamente
+const manifestData = {
+  name: "AWP Analyzer Pro",
+  short_name: "AWP Analyzer",
+  start_url: ".",
+  display: "standalone",
+  background_color: "#ffffff",
+  theme_color: "#0078d7",
+  icons: [
+    { src: "https://cdn-icons-png.flaticon.com/512/741/741407.png", sizes: "192x192", type: "image/png" },
+    { src: "https://cdn-icons-png.flaticon.com/512/741/741407.png", sizes: "512x512", type: "image/png" }
+  ]
+};
+const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: "application/json" });
+const manifestURL = URL.createObjectURL(manifestBlob);
+const manifestTag = document.createElement("link");
+manifestTag.rel = "manifest";
+manifestTag.href = manifestURL;
+document.head.appendChild(manifestTag);
+
+// Service Worker per cache offline
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").then(() => {
+      console.log("🛰 Service Worker registrato");
+    });
+  });
+}
+
+// Mostra stato offline
+const offlineBanner = document.createElement("div");
+offlineBanner.id = "offlineBanner";
+offlineBanner.style.cssText = `
+  position:fixed;bottom:0;left:0;width:100%;
+  background:#facc15;color:#1a1a1a;
+  text-align:center;padding:6px;font-weight:600;
+  display:none;z-index:9999;
+`;
+offlineBanner.textContent = "🛰 Modalità Offline attiva – alcune funzioni potrebbero essere limitate";
+document.body.appendChild(offlineBanner);
+
+window.addEventListener("online", ()=> offlineBanner.style.display="none");
+window.addEventListener("offline", ()=> offlineBanner.style.display="block");
+
+/* Cache automatica dei dati */
+async function salvaCacheDati(key, data) {
+  try { localStorage.setItem(key, JSON.stringify(data)); } catch(e) { console.warn("Cache non salvata", e); }
+}
+function caricaCacheDati(key) {
+  try { return JSON.parse(localStorage.getItem(key)||"[]"); } catch { return []; }
+}
+
+/* Integra nel motore analitico */
+const oldAnalizza6 = analizzaDatiSlot;
+analizzaDatiSlot = async function(allData){
+  await oldAnalizza6(allData);
+  salvaCacheDati("awp_lastAnalysis", analisiGlobale);
+};
+
+/* Se offline all’avvio, ricarica dati cache */
+if (!navigator.onLine) {
+  const cached = caricaCacheDati("awp_lastAnalysis");
+  if (cached.length) {
+    console.log("💾 Dati caricati dalla cache locale:", cached.length, "record");
+    analisiGlobale = cached;
+    setTimeout(()=>{ aggiornaReport(analisiGlobale); aggiornaDashboardLive(); }, 500);
+    offlineBanner.style.display = "block";
+  }
+}
+  
 </script>
 </body>
 </html>
