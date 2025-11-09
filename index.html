@@ -570,6 +570,145 @@ analizzaDatiSlot = async function (allData) {
   await oldAnalizza(allData);
   preparaDatiPerGrafico(allData);
 };
+  /* === BLOCCO 4 — Report & Filtri Intelligenti === */
+
+function creaSezioneReport() {
+  const card = document.createElement("div");
+  card.className = "card";
+  card.innerHTML = `
+    <h2>📊 Report & Filtri Intelligenti</h2>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+      <input id="searchInput" type="text" placeholder="Cerca slot per nome o matricola"
+        style="flex:2;padding:8px;border:1px solid var(--border);border-radius:6px;">
+      <label>Payout min % <input id="payoutMin" type="number" value="0"
+        style="width:70px;margin-left:5px;padding:5px;"></label>
+      <label>max % <input id="payoutMax" type="number" value="200"
+        style="width:70px;margin-left:5px;padding:5px;"></label>
+      <button id="applyFilter" style="background:var(--acc);color:#fff;border:none;
+        border-radius:6px;padding:8px 14px;cursor:pointer;">Filtra</button>
+      <button id="exportCSV" style="background:var(--orange);color:#fff;border:none;
+        border-radius:6px;padding:8px 14px;cursor:pointer;">Esporta CSV</button>
+    </div>
+    <div id="reportSummary"
+      style="font-weight:600;margin-bottom:6px;color:var(--muted);"></div>
+    <div id="reportTable"
+      style="overflow-x:auto;max-height:400px;border-top:1px solid var(--border);"></div>
+  `;
+  document.querySelector("main").appendChild(card);
+}
+
+let analisiGlobale = [];
+
+/* Popola la tabella riepilogativa */
+function aggiornaReport(lista) {
+  const tableDiv = document.getElementById("reportTable");
+  if (!lista.length) {
+    tableDiv.innerHTML = "<i>Nessuna slot corrispondente ai criteri.</i>";
+    return;
+  }
+
+  const hot = lista.filter(x => x.status.includes("Alta")).length;
+  const mid = lista.filter(x => x.status.includes("medio")).length;
+  const cold = lista.filter(x => x.status.includes("poco") || x.status.includes("scarico")).length;
+
+  document.getElementById("reportSummary").textContent =
+    `🔥 Calde: ${hot} | 🟡 Medie: ${mid} | ❄️ Fredde: ${cold} | Totale: ${lista.length}`;
+
+  let html = `
+    <table style="width:100%;border-collapse:collapse;">
+      <thead style="background:var(--bg);position:sticky;top:0;">
+        <tr>
+          <th style="text-align:left;padding:6px;">Slot</th>
+          <th>Payout %</th>
+          <th>Trend Crediti</th>
+          <th>Probabilità</th>
+          <th>Stato</th>
+        </tr>
+      </thead><tbody>`;
+  lista.forEach(x => {
+    html += `
+      <tr>
+        <td style="padding:6px;">${x.id}</td>
+        <td style="text-align:center;">${x.payout.toFixed(1)}</td>
+        <td style="text-align:center;">${x.trend.toFixed(0)}</td>
+        <td style="text-align:center;">${(x.prob * 100).toFixed(0)}%</td>
+        <td style="text-align:center;">${x.status}</td>
+      </tr>`;
+  });
+  html += "</tbody></table>";
+  tableDiv.innerHTML = html;
+}
+
+/* Applica i filtri e aggiorna */
+function applicaFiltri() {
+  const q = document.getElementById("searchInput").value.toLowerCase();
+  const min = parseFloat(document.getElementById("payoutMin").value || 0);
+  const max = parseFloat(document.getElementById("payoutMax").value || 200);
+  const filtrati = analisiGlobale.filter(
+    x =>
+      (!q || x.id.toLowerCase().includes(q)) &&
+      x.payout >= min && x.payout <= max
+  );
+  aggiornaReport(filtrati);
+}
+
+/* Esporta CSV */
+function esportaCSV() {
+  if (!analisiGlobale.length) return;
+  let csv = "Slot,Payout%,Trend,Probabilità,Stato\n";
+  analisiGlobale.forEach(x => {
+    csv += `${x.id},${x.payout.toFixed(1)},${x.trend.toFixed(0)},${(x.prob*100).toFixed(0)}%,${x.status}\n`;
+  });
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "report_awp.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* Integra con BLOCCO 2 & 3 */
+const oldAnalizza2 = analizzaDatiSlot;
+analizzaDatiSlot = async function (allData) {
+  await oldAnalizza2(allData);
+  creaSezioneReport();
+
+  // Ricrea i dati globali sintetici per il report
+  const macchine = {};
+  for (const r of allData) {
+    const id = r["N°"] || r["MATRICOLA"] || "Sconosciuta";
+    if (!macchine[id]) macchine[id] = [];
+    macchine[id].push(r);
+  }
+
+  analisiGlobale = [];
+  for (const id of Object.keys(macchine)) {
+    const rows = macchine[id];
+    const IN = rows.map(x => parseFloat(x.CNTTOTIN || x.IN || 0));
+    const OUT = rows.map(x => parseFloat(x.CNTTOTOUT || x.OUT || 0));
+    if (IN.length < 2 || OUT.length < 2) continue;
+
+    const payout = ((OUT[OUT.length - 1] - OUT[0]) /
+      ((IN[IN.length - 1] - IN[0]) || 1)) * 100;
+    const trend = (IN[IN.length - 1] - OUT[OUT.length - 1]) -
+                  (IN[0] - OUT[0]);
+
+    let status = "Neutro", prob = 0.5;
+    if (payout < 60 && trend > 0) { status = "Alta probabilità"; prob = 0.9; }
+    else if (payout < 80) { status = "Media"; prob = 0.6; }
+    else if (payout < 100) { status = "Bassa"; prob = 0.3; }
+    else { status = "Scarico"; prob = 0.1; }
+
+    analisiGlobale.push({ id, payout, trend, prob, status });
+  }
+
+  aggiornaReport(analisiGlobale);
+
+  document.getElementById("applyFilter").onclick = applicaFiltri;
+  document.getElementById("exportCSV").onclick = esportaCSV;
+  document.getElementById("searchInput").oninput = applicaFiltri;
+}
 </script>
 </body>
 </html>
