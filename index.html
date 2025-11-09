@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AWP Analyzer Pro — v3.1</title>
+<title>AWP Analyzer Pro — v3.2</title>
 
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -13,35 +13,56 @@
   --bg:#f7faff; --fg:#102030; --acc:#007bff; --muted:#708090;
   --card:#fff; --border:#d6dbe2; --orange:#ff8c00; --blue:#007bff;
 }
-/* === Temi === */
-body.theme-bianco  { --bg:#ffffff; --fg:#111; --acc:#007bff; }
-body.theme-azzurro { --bg:#e9f3ff; --fg:#001830; --acc:#007bff; }
-body.theme-arancio { --bg:#fff7ef; --fg:#352200; --acc:#ff8c00; }
+/* Temi */
+body.theme-bianco  {--bg:#fff;--fg:#111;--acc:#007bff;}
+body.theme-azzurro {--bg:#e9f3ff;--fg:#001830;--acc:#007bff;}
+body.theme-arancio {--bg:#fff7ef;--fg:#352200;--acc:#ff8c00;}
 body.theme-windows {
-  --bg:#c0c0c0; --fg:#000; --card:#dcdcdc; --border:#808080; --acc:#000080;
+  --bg:#c0c0c0;--fg:#000;--card:#dcdcdc;--border:#808080;--acc:#000080;
   font-family:"MS Sans Serif",Tahoma,sans-serif;
 }
-/* === Layout === */
-body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,sans-serif;transition:background .3s,color .3s;}
-header{display:flex;justify-content:space-between;align-items:center;padding:12px 20px;border-bottom:2px solid var(--border);background:linear-gradient(to bottom,var(--card),var(--bg));}
+
+/* Layout base */
+body{margin:0;background:var(--bg);color:var(--fg);
+  font-family:Inter,system-ui,sans-serif;
+  transition:background .3s,color .3s;}
+header{display:flex;justify-content:space-between;align-items:center;
+  padding:12px 20px;border-bottom:2px solid var(--border);
+  background:linear-gradient(to bottom,var(--card),var(--bg));position:relative;}
 h1{font-size:20px;margin:0;color:var(--acc);}main{padding:20px;}
-/* === Login === */
-#loginScreen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:var(--bg);}
-#loginBox{background:var(--card);border:1px solid var(--border);padding:30px;border-radius:10px;box-shadow:0 8px 25px rgba(0,0,0,.1);width:300px;text-align:center;}
-input[type=text],input[type=password]{width:100%;padding:10px;margin:8px 0;border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--fg);}
-button{cursor:pointer;border:none;border-radius:6px;padding:10px 18px;font-weight:600;color:#fff;background:var(--acc);transition:.2s;}
+
+/* Login */
+#loginScreen{position:fixed;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;background:var(--bg);}
+#loginBox{background:var(--card);border:1px solid var(--border);padding:30px;
+  border-radius:10px;box-shadow:0 8px 25px rgba(0,0,0,.1);width:300px;text-align:center;}
+input[type=text],input[type=password]{width:100%;padding:10px;margin:8px 0;
+  border:1px solid var(--border);border-radius:5px;background:var(--bg);color:var(--fg);}
+button{cursor:pointer;border:none;border-radius:6px;padding:10px 18px;
+  font-weight:600;color:#fff;background:var(--acc);transition:.2s;}
 button:hover{opacity:.9;}
 small.version{display:block;margin-top:15px;color:var(--muted);}
 #loginError{color:red;margin-top:8px;}
-/* === Caricamento === */
+
+/* Caricamento */
 #progressBarContainer{position:fixed;bottom:0;left:0;right:0;height:6px;background:#ddd;}
 #progressBar{height:100%;width:0%;background:var(--acc);transition:width .3s;}
-/* === Dashboard === */
+
+/* Dashboard */
 #dashboard{display:none;}
-.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:15px;margin-bottom:15px;box-shadow:0 3px 8px rgba(0,0,0,.05);}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:15px;margin-bottom:15px;box-shadow:0 3px 8px rgba(0,0,0,.05);}
 .theme-windows .card{border:2px outset #fff;box-shadow:none;}
 footer{text-align:center;padding:10px;font-size:12px;color:var(--muted);}
 .fadeIn{animation:fadeIn .5s ease-in;}@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+
+/* Menu utente */
+#userMenu{position:absolute;right:20px;top:50px;background:var(--card);
+  border:1px solid var(--border);border-radius:8px;box-shadow:0 6px 18px rgba(0,0,0,.15);
+  display:none;flex-direction:column;min-width:220px;z-index:50;}
+#userMenu div{padding:10px;cursor:pointer;}
+#userMenu div:hover{background:var(--acc);color:#fff;}
+#userMenu input[type=number]{width:80px;padding:5px;margin-left:6px;}
 </style>
 </head>
 <body class="theme-azzurro">
@@ -53,7 +74,7 @@ footer{text-align:center;padding:10px;font-size:12px;color:var(--muted);}
     <input id="username" type="text" placeholder="Utente">
     <input id="password" type="password" placeholder="PIN">
     <button id="btnLogin">Accedi</button>
-    <small class="version">Versione 3.1 — Build 2025.11</small>
+    <small class="version">Versione 3.2 — Build 2025.11</small>
     <div style="margin-top:10px">
       <select id="themeSelect">
         <option value="azzurro" selected>Azzurro</option>
@@ -70,7 +91,24 @@ footer{text-align:center;padding:10px;font-size:12px;color:var(--muted);}
 <div id="dashboard">
   <header>
     <h1>AWP Analyzer Pro — Dashboard</h1>
-    <div id="userInfo"></div>
+    <div id="userInfo" style="cursor:pointer;"></div>
+    <div id="userMenu" class="fadeIn">
+      <div><b>⚙️ Impostazioni Utente</b></div>
+      <div>
+        ⏱ Timeout login (ore): 
+        <input type="number" id="timeoutInput" min="1" max="168">
+      </div>
+      <div>
+        🎨 Tema:
+        <select id="themeSelectMenu">
+          <option value="azzurro">Azzurro</option>
+          <option value="bianco">Bianco</option>
+          <option value="arancio">Arancio</option>
+          <option value="windows">Windows 95</option>
+        </select>
+      </div>
+      <div id="logoutBtn" style="color:#d00;font-weight:600;">🚪 Logout</div>
+    </div>
   </header>
 
   <main>
@@ -85,52 +123,96 @@ footer{text-align:center;padding:10px;font-size:12px;color:var(--muted);}
     </div>
   </main>
 
-  <footer>AWP Analyzer Pro v3.1 — ©2025 Stephan Winckler</footer>
+  <footer>AWP Analyzer Pro v3.2 — © 2025 Stephan Winckler</footer>
 </div>
 
 <div id="progressBarContainer"><div id="progressBar"></div></div>
 
 <script>
-/* === LOGIN con Dati/users.json === */
+/* === LOGIN da Dati/users.json === */
 async function doLogin(){
-  const u = username.value.trim().toLowerCase();
-  const pin = password.value.trim();
+  const u=username.value.trim().toLowerCase();
+  const pin=password.value.trim();
   try{
-    const res = await fetch('Dati/users.json',{cache:'no-store'});
-    if(!res.ok) throw new Error(`Impossibile leggere Dati/users.json (HTTP ${res.status})`);
-    const users = await res.json();
-    const user = users.find(x=>x.user.toLowerCase()===u && x.pin===pin);
-    if(!user){ loginError.textContent="Credenziali non valide"; return; }
+    const res=await fetch('Dati/users.json',{cache:'no-store'});
+    if(!res.ok)throw new Error(`Impossibile leggere Dati/users.json (HTTP ${res.status})`);
+    const users=await res.json();
+    const user=users.find(x=>x.user.toLowerCase()===u&&x.pin===pin);
+    if(!user){loginError.textContent="Credenziali non valide";return;}
     if(user.expires){
       const exp=new Date(user.expires);
-      if(exp<new Date()){ loginError.textContent="Abbonamento scaduto: "+user.expires; return; }
+      if(exp<new Date()){loginError.textContent="Abbonamento scaduto: "+user.expires;return;}
     }
     localStorage.setItem('awp_user',user.user);
     localStorage.setItem('awp_level',user.level);
+    localStorage.setItem('awp_lastLogin',Date.now().toString());
     startApp(user.user,user.level);
-  }catch(err){
-    loginError.textContent="Errore: "+err.message;
-  }
+  }catch(err){loginError.textContent="Errore: "+err.message;}
 }
 btnLogin.onclick=doLogin;
 
-/* === Avvio app === */
+/* === Gestione sessione e logout === */
 function startApp(u,level="Base"){
   loginScreen.style.display='none';
   dashboard.style.display='block';
   userInfo.textContent=`${u} (${level})`;
+  timeoutInput.value=getSessionHours();
+  themeSelectMenu.value=getTheme();
   loadManifestAndFiles();
 }
 
-/* === Tema === */
-themeSelect.onchange=e=>{
-  document.body.className='theme-'+e.target.value;
+function logout(){
+  localStorage.removeItem('awp_user');
+  localStorage.removeItem('awp_level');
+  localStorage.removeItem('awp_lastLogin');
+  loginScreen.style.display='flex';
+  dashboard.style.display='none';
+  username.value='';password.value='';
+}
+
+/* === Menu utente === */
+userInfo.onclick=()=>{
+  userMenu.style.display=(userMenu.style.display==='flex')?'none':'flex';
+};
+logoutBtn.onclick=logout;
+document.addEventListener('click',e=>{
+  if(!userMenu.contains(e.target)&&e.target!==userInfo)userMenu.style.display='none';
+});
+
+/* Timeout personalizzabile */
+timeoutInput.onchange=()=>{
+  const hrs=Math.max(1,Math.min(168,timeoutInput.value));
+  localStorage.setItem('awp_sessionHours',hrs);
+};
+
+/* Tema nel menu */
+themeSelectMenu.onchange=e=>{
+  setTheme(e.target.value);
   localStorage.setItem('awp_theme',e.target.value);
 };
-const savedTheme=localStorage.getItem('awp_theme');
-if(savedTheme) document.body.className='theme-'+savedTheme;
+function setTheme(th){
+  document.body.className='theme-'+th;
+}
+function getTheme(){
+  return localStorage.getItem('awp_theme')||'azzurro';
+}
+setTheme(getTheme());
 
-/* === Progress bar === */
+/* Gestione sessione automatica */
+function getSessionHours(){
+  return parseInt(localStorage.getItem('awp_sessionHours')||'24');
+}
+const lastUser=localStorage.getItem('awp_user');
+const lastLogin=parseInt(localStorage.getItem('awp_lastLogin')||'0');
+const now=Date.now();
+const limit=getSessionHours()*60*60*1000;
+if(lastUser&&(now-lastLogin<limit)){
+  startApp(lastUser,localStorage.getItem('awp_level')||'Base');
+}else{
+  logout();
+}
+
+/* === Barra di progresso === */
 function setProgress(v){progressBar.style.width=v+"%";}
 
 /* === Caricamento sinottici === */
@@ -139,36 +221,30 @@ async function loadManifestAndFiles(){
   setProgress(0);
   try{
     const res=await fetch('Dati/manifest.json',{cache:'no-store'});
-    if(!res.ok) throw new Error("Manifest non trovato o accesso negato");
+    if(!res.ok)throw new Error("Manifest non trovato o accesso negato");
     const manifest=await res.json();
     const files=Array.isArray(manifest)?manifest:(manifest.sinottici||[]);
-    if(!Array.isArray(files)||!files.length) throw new Error("Nessun file trovato nel manifest");
+    if(!files.length)throw new Error("Nessun file trovato nel manifest");
     let done=0,total=files.length,all=[];
     for(const f of files){
       div.innerHTML=`Carico <b>${f}</b> (${done+1}/${total})...`;
       const part=await readXLS(`Dati/${f}`);
-      all.push(...part);
-      done++; setProgress(Math.round(done/total*100));
-      await new Promise(r=>setTimeout(r,100));
+      all.push(...part);done++;
+      setProgress(Math.round(done/total*100));
+      await new Promise(r=>setTimeout(r,50));
     }
     div.innerHTML=`Caricate ${all.length} righe da ${total} file ✔`;
-  }catch(e){
-    div.innerHTML="Errore: "+e.message;
-  }
+  }catch(e){div.innerHTML="Errore: "+e.message;}
 }
 
 /* === Lettura Excel === */
 async function readXLS(url){
   const res=await fetch(url);
-  if(!res.ok) throw new Error("File mancante: "+url);
+  if(!res.ok)throw new Error("File mancante: "+url);
   const buf=await res.arrayBuffer();
   const wb=XLSX.read(buf,{type:'array'});
   return XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:'',raw:false});
 }
-
-/* === Auto-login === */
-const lastUser=localStorage.getItem('awp_user');
-if(lastUser){startApp(lastUser,localStorage.getItem('awp_level')||"Base");}
 </script>
 </body>
 </html>
