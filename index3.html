@@ -19,18 +19,23 @@ html[data-theme=amber]{--bg:#fffaf2;--ink:#201508;--muted:#8b6a3a;--card:#fff;--
 body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
 .app{max-width:1350px;margin:auto;padding:16px}
 .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px}
-h1{margin:0 0 6px}.muted{color:var(--muted)}.hidden{display:none!important}
+h1{margin:0 0 6px}
+.muted{color:var(--muted)}
+.hidden{display:none!important}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;margin-top:12px}
 .stat{border:1px dashed var(--border);border-radius:12px;padding:8px 12px;font-size:13px}
-.tabs{display:flex;gap:8px;margin:10px 0 0}
+.tabs{display:flex;gap:8px;margin:10px 0 0;flex-wrap:wrap}
 .tab{padding:8px 12px;border:1px solid var(--border);border-radius:999px;cursor:pointer;background:var(--card)}
 .tab.active{outline:2px solid var(--accent);box-shadow:var(--glow)}
 .themebar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.pill{border:1px solid var(--border);background:var(--card);color:var(--ink);padding:8px 12px;border-radius:999px;cursor:pointer}
+.pill{border:1px solid var(--border);background:var(--card);color:var(--ink);padding:8px 12px;border-radius:999px;cursor:pointer;font-size:13px}
+.pill.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
 .search{border:1px solid var(--border);border-radius:999px;padding:8px 12px;width:320px}
 .badge{padding:4px 10px;border-radius:999px;font-weight:800;font-size:12px;border:1px solid var(--border)}
-.badge.base{background:#fff0;color:#6b7280}.badge.sub{background:#e7f6ed;color:#0b7a42;border-color:#bfe8d2}.badge.admin{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
+.badge.base{background:#fff0;color:#6b7280}
+.badge.sub{background:#e7f6ed;color:#0b7a42;border-color:#bfe8d2}
+.badge.admin{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
 .table-wrap{overflow:auto;border-radius:12px;border:1px solid var(--border)}
 table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
 thead th{position:sticky;top:0;z-index:2;background:var(--thead);text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);border-bottom:1px solid var(--border);padding:8px;cursor:pointer;user-select:none}
@@ -57,14 +62,16 @@ tbody tr:hover td{background:var(--hover)}
 @keyframes floaty{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-18px) rotate(6deg)}}
 .login-footer{margin-top:12px;font-size:12px;color:var(--muted)}.version{font-weight:800}
 
-/* Loader bar */
-.loader{margin-top:8px;border-radius:999px;border:1px solid var(--border);background:var(--thead);padding:4px 8px;display:none;flex-direction:column;gap:4px}
-.loader-inner-wrap{width:100%;height:6px;border-radius:999px;background:rgba(148,163,184,.4);overflow:hidden}
-.loader-inner{height:100%;width:0%;background:var(--accent);transition:width .2s}
-.loader-text{font-size:11px;color:var(--muted);text-align:left}
+/* Loading bar */
+.loadbar{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;z-index:6;min-width:260px;max-width:420px;background:var(--card);border-radius:999px;border:1px solid var(--border);box-shadow:0 8px 20px rgba(0,0,0,.15);padding:8px 14px;font-size:12px;display:flex;flex-direction:column;gap:6px}
+.loadbar-line{width:100%;height:6px;border-radius:999px;background:var(--thead);overflow:hidden}
+.loadbar-fill{height:100%;border-radius:999px;background:var(--accent);width:0%;transition:width .25s}
+
+/* IA Insight card */
+.ia-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--thead)}
 
 /* Mobile */
-@media (max-width: 860px){
+@media (max-width:860px){
   .app{padding:10px}
   .search{width:100%}
   .toolbar{gap:8px}
@@ -93,19 +100,36 @@ tbody tr:hover td{background:var(--hover)}
   </div>
 </div>
 
+<!-- Barra caricamento -->
+<div class="loadbar hidden" id="loadBar">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+    <span id="loadText" class="muted">Preparazione dati…</span>
+    <span id="loadPct" class="muted" style="font-variant-numeric:tabular-nums;">0%</span>
+  </div>
+  <div class="loadbar-line"><div class="loadbar-fill" id="loadFill"></div></div>
+  <div class="muted" style="font-size:11px;">
+    Modalità rapida: ultimi sinottici. Per analisi storica completa premi <b>Analisi IA</b> in alto.
+  </div>
+</div>
+
 <!-- App -->
 <div class="app hidden" id="app">
   <div class="card">
     <div class="row" style="justify-content:space-between;align-items:flex-start;">
       <div>
         <h1>Analisi Fine Ciclo</h1>
-        <div class="muted">Payout default: <b>65%</b> · Formato date: <b>DD-MM-YYYY</b></div>
+        <div class="muted">Modalità: <b id="modeLabel">Classica (ultimo sinottico)</b> · Payout default: <b>65%</b> · Date: <b>DD-MM-YYYY</b></div>
         <div id="lastRead" class="muted" style="margin-top:4px;"></div>
+        <div class="row" style="margin-top:6px;gap:6px;align-items:center;">
+          <span class="ia-chip"><span>🤖</span><span>IA attiva su storico e modelli</span></span>
+          <span id="iaStatus" class="muted" style="font-size:11px;">Analisi IA veloce pronta. Storico completo non ancora caricato.</span>
+        </div>
         <div id="staleWarn" class="error hidden" style="margin-top:6px;">Attenzione: alcune macchine non sono aggiornate a oggi.</div>
         <div class="tabs" id="tabs" style="margin-top:10px;">
           <button class="tab active" data-tab="dashboard">Dashboard</button>
           <button class="tab" data-tab="nonaggiornate">Non aggiornate</button>
           <button class="tab" data-tab="aggregati">Aggregati</button>
+          <button class="tab" data-tab="models">Modelli IA</button>
           <button class="tab" data-tab="impostazioni">Impostazioni</button>
         </div>
       </div>
@@ -122,17 +146,11 @@ tbody tr:hover td{background:var(--hover)}
         </div>
         <div id="who" style="margin-top:8px;font-size:13px;"></div>
         <div id="expireWarn" class="error hidden">Abbonamento scaduto: accesso in modalità Base.</div>
-        <div class="loader" id="loader">
-          <div class="loader-text" id="loaderText">Caricamento dati…</div>
-          <div class="loader-inner-wrap"><div class="loader-inner" id="loaderInner"></div></div>
-        </div>
-        <div id="adminBar" class="row" style="justify-content:flex-end;margin-top:8px;display:none;">
+        <div class="row" id="adminBar" style="justify-content:flex-end;margin-top:8px;display:none;gap:6px;">
           <button class="pill" id="btnExportCSV" type="button">Esporta CSV</button>
           <button class="pill" id="btnExportXLSX" type="button">Esporta XLSX</button>
           <button class="pill" id="btnUnmapped" type="button">Codici non mappati</button>
-        </div>
-        <div id="advBar" class="row" style="justify-content:flex-end;margin-top:4px;display:none;">
-          <button class="pill" id="btnDeepAnalysis" type="button">Analisi completa IA</button>
+          <button class="pill primary" id="btnFullIA" type="button">Analisi IA completa</button>
         </div>
       </div>
     </div>
@@ -171,7 +189,7 @@ tbody tr:hover td{background:var(--hover)}
           <tbody></tbody>
         </table>
       </div>
-      <div class="muted" id="footNote" style="margin-top:8px;">Residuo OUT negativo → <b>€0</b>. IN/OUT divisi per <b>100</b>. Timestamp da <b>“DATA ULTIMA LETTURA VAL.”</b>. Analisi IA basata su letture multiple per macchina.</div>
+      <div class="muted" id="footNote" style="margin-top:8px;">Modalità Classica: usa l’ultimo sinottico.<br/>Modalità IA: usa lo storico dei sinottici caricati. Residuo OUT negativo → <b>€0</b>. IN/OUT divisi per <b>100</b>. Timestamp da <b>“DATA ULTIMA LETTURA VAL.”</b>.</div>
     </div>
 
     <!-- NON AGGIORNATE -->
@@ -204,6 +222,56 @@ tbody tr:hover td{background:var(--hover)}
       </div>
     </div>
 
+    <!-- MODELLI IA -->
+    <div id="view-models" class="hidden" style="margin-top:10px;">
+      <div class="row" style="align-items:flex-start;gap:16px;">
+        <div style="flex:1.4;min-width:420px;">
+          <div class="row" style="gap:8px;align-items:center;margin-bottom:6px;">
+            <label>Ordina per:</label>
+            <select id="iaSort" class="pill">
+              <option value="in">Giocato (IN)</option>
+              <option value="speed">Giocato/giorno</option>
+              <option value="payout">Payout effettivo</option>
+            </select>
+            <span class="muted" style="font-size:11px;">La tabella usa sempre i dati IA (storico sinottici caricati).</span>
+          </div>
+          <div class="table-wrap">
+            <table id="iaModelTable">
+              <thead>
+                <tr>
+                  <th>Modello</th>
+                  <th>Codice</th>
+                  <th># Macchine</th>
+                  <th>IN tot</th>
+                  <th>OUT tot</th>
+                  <th>Payout eff.</th>
+                  <th>Giocato/giorno</th>
+                  <th>Zona pagamento tipica</th>
+                  <th>Locali migliori</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+        <div style="flex:1;min-width:260px;">
+          <div class="card" style="padding:14px;">
+            <h3 style="margin-top:0;margin-bottom:4px;">Assistente IA modelli</h3>
+            <div class="muted" style="font-size:11px;margin-bottom:4px;">Suggerimenti automatici basati sullo storico (sinottici caricati).</div>
+            <div id="iaInsightBox" class="muted" style="font-size:13px;line-height:1.5;">
+              Seleziona un modello nella tabella per vedere:
+              <ul>
+                <li>dove gioca di più (locali/comuni);</li>
+                <li>quando tende a pagare nel ciclo;</li>
+                <li>in che tipo di locale conviene metterlo.</li>
+              </ul>
+            </div>
+            <button class="pill primary" id="btnIaRebuild" type="button" style="margin-top:10px;">Ricalcola IA con storico completo</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- IMPOSTAZIONI -->
     <div id="view-impostazioni" class="hidden" style="margin-top:10px;">
       <div class="row" style="gap:10px;align-items:center;">
@@ -214,10 +282,6 @@ tbody tr:hover td{background:var(--hover)}
         <label><input type="checkbox" class="colToggle" data-col="PROVINCIA" checked/> Provincia</label>
         <button class="pill" id="btnSaveSettings">Salva</button>
         <button class="pill" id="btnResetSettings">Reset</button>
-      </div>
-      <div class="muted" style="margin-top:6px;font-size:12px;">
-        Avvio veloce: vengono caricati solo gli ultimi 5 sinottici.<br/>
-        “Analisi completa IA” ricarica tutti i sinottici del manifest e aggiorna le previsioni.
       </div>
     </div>
   </div>
@@ -236,12 +300,9 @@ tbody tr:hover td{background:var(--hover)}
         <div><b>Locale</b>: <span id="m_locale"></span></div>
         <div><b>Indirizzo</b>: <span id="m_addr"></span></div>
         <div><b>Comune/Prov.</b>: <span id="m_city"></span></div>
-        <div><b>Ciclo</b>: <span id="m_cycle"></span> · <b>Payout effettivo</b>: <span id="m_payout">65%</span></div>
-        <div><b>Payout teorico</b>: <span id="m_payout_model"></span> · <b>Payout osservato</b>: <span id="m_payout_obs"></span></div>
-        <div><b>Punto medio pagamento</b>: <span id="m_hitpos"></span></div>
+        <div><b>Ciclo</b>: <span id="m_cycle"></span> · <b>Payout teorico</b>: <span id="m_payout">65%</span></div>
         <div><b>Residuo IN</b>: <span id="m_resid_in"></span> · <b>Residuo OUT</b>: <span id="m_resid_out"></span></div>
         <div><b>Percentuale Ciclo</b>: <span id="m_perc"></span> · <b>Fine Ciclo Stimata</b>: <span id="m_forecast"></span></div>
-        <div><b>Affidabilità previsione</b>: <span id="m_conf"></span></div>
       </div>
       <div style="flex:1;min-width:320px;">
         <canvas id="m_chart" width="640" height="240"></canvas>
@@ -253,147 +314,196 @@ tbody tr:hover td{background:var(--hover)}
 </div>
 
 <script>
-/* ====== Versione ====== */
-document.getElementById('version').textContent="v2.1.0 — IA per macchina + avvio rapido";
+/* ===== Versione ===== */
+document.getElementById('version').textContent = "v2.0.0 · IA modelli + caricamento rapido";
 
-/* ====== Utility ====== */
-const norm=s=>(s??"").toString().trim();
-const lowerKeys=o=>{const r={};for(const k in o)r[norm(k).toLowerCase()]=o[k];return r};
-const normalize=s=>(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
-const euro=n=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n||0);
-const fmtDMY=iso=>{if(!iso)return'—';const d=new Date(iso);if(isNaN(d))return'—';const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'),yy=d.getFullYear();return`${dd}-${mm}-${yy}`};
-const todayIso=()=>new Date().toISOString().slice(0,10);
-const daysDiff=iso=>{if(!iso)return null;const t=new Date(iso);if(isNaN(t))return null;const ms=new Date().setHours(0,0,0,0)-new Date(t.getFullYear(),t.getMonth(),t.getDate()).getTime();return Math.max(0,Math.round(ms/86400000))}
-function toast(m){const d=document.createElement('div');d.textContent=m;d.style.cssText='position:fixed;bottom:12px;left:12px;right:12px;padding:10px 14px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;z-index:9999;font-weight:700';document.body.appendChild(d);setTimeout(()=>d.remove(),4500)}
-function escapeHTML(s){return(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+/* ===== Utility ===== */
+const norm = s => (s ?? "").toString().trim();
+const lowerKeys = o => { const r={}; for(const k in o) r[norm(k).toLowerCase()] = o[k]; return r; };
+const normalize = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
+const euro = n => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n||0);
+const fmtDMY = iso => {
+  if(!iso) return '—';
+  const d = new Date(iso); if(isNaN(d)) return '—';
+  const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'),yy=d.getFullYear();
+  return `${dd}-${mm}-${yy}`;
+};
+const todayIso = () => new Date().toISOString().slice(0,10);
+const daysDiff = iso => {
+  if(!iso) return null;
+  const t=new Date(iso); if(isNaN(t)) return null;
+  const ms = new Date().setHours(0,0,0,0) - new Date(t.getFullYear(),t.getMonth(),t.getDate()).getTime();
+  return Math.max(0,Math.round(ms/86400000));
+};
+function toast(m){const d=document.createElement('div');d.textContent=m;d.style.cssText='position:fixed;bottom:12px;left:12px;right:12px;padding:10px 14px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;z-index:9999;font-weight:700';document.body.appendChild(d);setTimeout(()=>d.remove(),4500);}
+function escapeHTML(s){return(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
-/* ====== Tema ====== */
-document.querySelectorAll('.pill[data-theme]').forEach(b=>b.onclick=()=>{document.documentElement.setAttribute('data-theme',b.dataset.theme);localStorage.setItem('awp_theme',b.dataset.theme)});
-const savedTheme=localStorage.getItem('awp_theme');if(savedTheme)document.documentElement.setAttribute('data-theme',savedTheme);
+/* ===== Tema ===== */
+document.querySelectorAll('.pill[data-theme]').forEach(b=>b.onclick=()=>{
+  document.documentElement.setAttribute('data-theme',b.dataset.theme);
+  localStorage.setItem('awp_theme',b.dataset.theme);
+});
+const savedTheme = localStorage.getItem('awp_theme');
+if(savedTheme) document.documentElement.setAttribute('data-theme',savedTheme);
 
-/* ====== Loader ====== */
-const loader=document.getElementById('loader');
-const loaderInner=document.getElementById('loaderInner');
-const loaderText=document.getElementById('loaderText');
-function showLoader(msg){loader.style.display='flex';loaderInner.style.width='0%';loaderText.textContent=msg||'Caricamento…';}
-function updateLoader(progress,msg){
-  const p=Math.max(0,Math.min(1,progress||0));
-  loaderInner.style.width=(p*100).toFixed(0)+'%';
-  if(msg) loaderText.textContent=msg;
-}
-function hideLoader(){loader.style.display='none';}
-
-/* ====== Login ====== */
+/* ===== Login ===== */
 let CURRENT_USER=null;
 document.getElementById('enterBtn').onclick=auth;
-document.getElementById('pin').addEventListener('keydown',e=>{if(e.key==='Enter')auth()});
-function badgeHTML(l){l=(l||'Base').toLowerCase();return l==='admin'?'<span class="badge admin">Admin</span>':(l==='abbonato'?'<span class="badge sub">Abbonato</span>':'<span class="badge base">Base</span>')}
-async function sha256Hex(s){const enc=new TextEncoder().encode(s);const buf=await crypto.subtle.digest('SHA-256',enc);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('')}
-function loginErr(){const m=document.getElementById('pinMsg');m.style.display='block';setTimeout(()=>m.style.display='none',1500)}
-
+document.getElementById('pin').addEventListener('keydown',e=>{if(e.key==='Enter')auth();});
+async function sha256Hex(s){
+  const enc=new TextEncoder().encode(s);
+  const buf=await crypto.subtle.digest('SHA-256',enc);
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function badgeHTML(l){
+  l=(l||'Base').toLowerCase();
+  return l==='admin'?'<span class="badge admin">Admin</span>':(l==='abbonato'?'<span class="badge sub">Abbonato</span>':'<span class="badge base">Base</span>');
+}
+function loginErr(){const m=document.getElementById('pinMsg');m.style.display='block';setTimeout(()=>m.style.display='none',1500);}
 async function auth(){
-  const u=norm(document.getElementById('user').value).toLowerCase(),p=norm(document.getElementById('pin').value);
-  let list=[];try{const r=await fetch('Dati/users.json',{cache:'no-store'});if(!r.ok)throw 0;list=await r.json()}catch{toast('Errore lettura Dati/users.json');return}
-  const rec=list.find(x=>String(x.user||'').toLowerCase()===u);if(!rec)return loginErr();
-  let ok=false;if(rec.pin_hash){ok=(await sha256Hex(p)).toLowerCase()===String(rec.pin_hash).toLowerCase()}else if(rec.pin){ok=String(rec.pin)===p}
-  if(!ok)return loginErr();
-  let level=(rec.level||'Base').trim();const exp=rec.expires?String(rec.expires):null;const now=todayIso();const expired=!!(exp && exp<now);if(expired)level='Base';
+  const u=norm(document.getElementById('user').value).toLowerCase();
+  const p=norm(document.getElementById('pin').value);
+  let list=[];
+  try{
+    const r=await fetch('Dati/users.json',{cache:'no-store'});
+    if(!r.ok) throw 0;
+    list=await r.json();
+  }catch{
+    toast('Errore lettura Dati/users.json');
+    return;
+  }
+  const rec=list.find(x=>String(x.user||'').toLowerCase()===u);
+  if(!rec) return loginErr();
+  let ok=false;
+  if(rec.pin_hash){
+    ok=(await sha256Hex(p)).toLowerCase()===String(rec.pin_hash).toLowerCase();
+  }else if(rec.pin){
+    ok=String(rec.pin)===p;
+  }
+  if(!ok) return loginErr();
+
+  let level=(rec.level||'Base').trim();
+  const exp=rec.expires?String(rec.expires):null;
+  const now=todayIso();
+  const expired=!!(exp && exp<now);
+  if(expired) level='Base';
+
   CURRENT_USER={user:rec.user,level,expires:exp,expiredFlag:expired};
-  document.getElementById('splash').classList.add('hidden');document.getElementById('app').classList.remove('hidden');
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
   document.getElementById('who').innerHTML=`Utente: <b>${CURRENT_USER.user}</b> · ${badgeHTML(level)} · Scadenza: <b>${CURRENT_USER.expires||'—'}</b>`;
   document.getElementById('expireWarn').classList.toggle('hidden',!expired);
-  const proLevel=(level.toLowerCase()==='abbonato'||level.toLowerCase()==='admin');
-  document.querySelectorAll('.col-calc').forEach(el=>el.style.display=proLevel?'':'none');
-  document.getElementById('statsBar').style.display=proLevel?'flex':'none';
-  document.getElementById('footNote').style.display=proLevel?'block':'none';
+
+  const pro=(level.toLowerCase()==='abbonato'||level.toLowerCase()==='admin');
+  document.querySelectorAll('.col-calc').forEach(el=>el.style.display=pro?'':'none');
+  document.getElementById('statsBar').style.display=pro?'flex':'none';
+  document.getElementById('footNote').style.display=pro?'block':'none';
   document.getElementById('adminBar').style.display=(level.toLowerCase()==='admin')?'flex':'none';
-  document.getElementById('advBar').style.display=proLevel?'flex':'none';
-  initAuto(); // avvio rapido
+
+  initAuto(); // avvio caricamento dati
 }
 
-/* ====== Tabs ====== */
+/* ===== Tabs ===== */
 function showTab(name){
   document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
-  for(const id of ['dashboard','nonaggiornate','aggregati','impostazioni'])
+  ['dashboard','nonaggiornate','aggregati','models','impostazioni'].forEach(id=>{
     document.getElementById('view-'+id).classList.toggle('hidden',id!==name);
-  if(name==='aggregati')renderAggregati();
-  if(name==='nonaggiornate')renderStale();
+  });
+  if(name==='aggregati') renderAggregati();
+  if(name==='nonaggiornate') renderStale();
+  if(name==='models') renderModelStats();
 }
 document.getElementById('tabs').addEventListener('click',e=>{
-  const b=e.target.closest('button.tab');if(!b)return;showTab(b.dataset.tab);
+  const b=e.target.closest('button.tab'); if(!b) return;
+  showTab(b.dataset.tab);
 });
 
-/* ====== Ciclo Slot (config) ====== */
-let CICLOSLOT=[];try{const el=document.getElementById('cicloslot-json');if(el&&el.textContent.trim())CICLOSLOT=JSON.parse(el.textContent)}catch{}
+/* ===== Ciclo Slot ===== */
+let CICLOSLOT = [];
+try{
+  const el=document.getElementById('cicloslot-json');
+  if(el && el.textContent.trim()) CICLOSLOT=JSON.parse(el.textContent);
+}catch{}
 const cleanCode=s=>(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/^0+/,'');
 const cleanID=s=>(s||'').trim();
-function parsePayout(v){if(v==null||v==='')return null;let s=String(v).replace('%','').trim();let n=parseFloat(s);if(isNaN(n))return null;if(n>1)n/=100;return Math.max(0,Math.min(1,n))}
+function parsePayout(v){
+  if(v==null||v==='')return null;
+  let s=String(v).replace('%','').trim();
+  let n=parseFloat(s); if(isNaN(n))return null;
+  if(n>1) n/=100;
+  return Math.max(0,Math.min(1,n));
+}
 function buildCicloMaps(arr){
   const byModelCode=new Map(),payoutByModelCode=new Map(),cicloByModelName=new Map(),payoutByModelName=new Map();
   arr.forEach(x=>{
     const mc=cleanCode(x.code||x['codice modello']||x['CODICE MODELLO']);
     const mdl=norm(x.model||x.modello||x['MODELLO']||'');
-    const cyc=+x.cycle||+x.ciclo||+x['CICLO'];
+    const cyc=+x.ciclo||+x.cycle||+x['CICLO'];
     const py=parsePayout(x['PAYOUT %']??x['PAYOUT']??x['payout']);
-    if(mc&&cyc){byModelCode.set(mc,cyc);if(py!=null)payoutByModelCode.set(mc,py)}
-    const mkey=normalize(mdl);if(mkey&&cyc)cicloByModelName.set(mkey,cyc);if(mkey&&py!=null)payoutByModelName.set(mkey,py)
+    if(mc&&cyc){byModelCode.set(mc,cyc);if(py!=null)payoutByModelCode.set(mc,py);}
+    const mkey=normalize(mdl);
+    if(mkey&&cyc)cicloByModelName.set(mkey,cyc);
+    if(mkey&&py!=null)payoutByModelName.set(mkey,py);
   });
-  return{byModelCode,payoutByModelCode,cicloByModelName,payoutByModelName}
+  return{byModelCode,payoutByModelCode,cicloByModelName,payoutByModelName};
 }
-let CYCLE={byModelCode:new Map(),payoutByModelCode:new Map(),cicloByModelName:new Map(),payoutByModelName:new Map()};
+let CYCLE = buildCicloMaps(CICLOSLOT);
 
-function getCicloPayout(modelCode,modelName){
-  const mc=cleanCode(modelCode);
-  const byCode=CYCLE.byModelCode.get(mc);
-  const byName=CYCLE.cicloByModelName.get(normalize(modelName||''));
-  const ciclo=byCode||byName||null;
-  const py=CYCLE.payoutByModelCode.get(mc) ?? CYCLE.payoutByModelName.get(normalize(modelName||'')) ?? payoutDefault;
-  return {ciclo,payout:py};
-}
-
-/* ====== Lettura XLS/XLSX ====== */
+/* ===== XLS/XLSX helper ===== */
 async function fetchXLSX(url){
-  const res=await fetch(url,{cache:'no-store'});if(!res.ok)throw new Error('fetch '+url);
-  const buf=await res.arrayBuffer();const wb=XLSX.read(buf,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];
+  const res=await fetch(url,{cache:'no-store'});
+  if(!res.ok) throw new Error('fetch '+url);
+  const buf=await res.arrayBuffer();
+  const wb=XLSX.read(buf,{type:'array'});
+  const ws=wb.Sheets[wb.SheetNames[0]];
   const json=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false,blankrows:false,skipHidden:false});
   return json.map(lowerKeys);
 }
 
-/* colonne del sinottico (in minuscolo) */
+/* col mapping */
 function pickCols(map){
-  const keys=Object.keys(map); const pick=a=>a.find(k=>keys.includes(k));
+  const keys=Object.keys(map);
+  const pick=a=>a.find(k=>keys.includes(k));
   return{
     idKey: pick(['codeid','id','id awp','id macchina','matricola','codiceid'])||null,
-    modelCodeKey: keys.includes('codice modello')? 'codice modello': null,
-    inKey: keys.includes('cnttotin')? 'cnttotin': null,
-    outKey: keys.includes('cnttotot')? 'cnttotot': null,
+    modelCodeKey: keys.includes('codice modello')?'codice modello':null,
+    inKey: keys.includes('cnttotin')?'cnttotin':null,
+    outKey: keys.includes('cnttotot')?'cnttotot':null,
     modelloKey: pick(['modello','descrizione modello','model','desc modello','descr. modello']),
     denomSedeKey: pick(['denomin. sede','denominazione sede','denom. sede','denominazione','denonim. sede']),
     sedeKey: pick(['sede','comune','località','localita','città','citta','city']),
     indirKey: pick(['indirizzo','indirizzo sede','via','via/piazza','indir.','address']),
     provKey: pick(['provincia','prov.','prov','sigla provincia']),
     validKey: pick(['data ultima lettura val.','data ultima lettura val','data ultima lettura','ultima lettura val.','ultima lettura']),
-    timeKey: pick(['ora lettura','ora','time','orario']) /* se servisse in futuro */
+    timeKey: pick(['ora lettura','ora','time','orario'])
   };
 }
 
-/* parse contatori (÷100) */
-const parseCnt=v=>{if(typeof v==='number')return v/100;let s=(v||'').toString().trim();if(!s)return 0;s=s.replace(/\s+/g,'');if(s.includes('.')&&s.includes(','))s=s.replace(/\./g,'').replace(',', '.');else if(s.includes(','))s=s.replace('.', '').replace(',', '.');const n=parseFloat(s);return isNaN(n)?0:n/100};
+/* contatori */
+const parseCnt=v=>{
+  if(typeof v==='number')return v/100;
+  let s=(v||'').toString().trim();
+  if(!s)return 0;
+  s=s.replace(/\s+/g,'');
+  if(s.includes('.')&&s.includes(','))s=s.replace(/\./g,'').replace(',', '.');
+  else if(s.includes(','))s=s.replace('.', '').replace(',', '.');
+  const n=parseFloat(s);
+  return isNaN(n)?0:n/100;
+};
 
-/* parse data/ora dal valore della colonna validKey */
+/* date parsing */
 function parseTSValue(val, fallbackISO){
-  if(!val){ return fallbackISO; }
-  const s = String(val).trim();
-  let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if(!val) return fallbackISO;
+  const s=String(val).trim();
+  let m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
   if(m){
     const dd=m[1].padStart(2,'0'),mm=m[2].padStart(2,'0'),yy=(m[3].length===2?('20'+m[3]):m[3]);
-    const HH=(m[4]??'00').padStart(2,'0'), MM=(m[5]??'00').padStart(2,'0'), SS=(m[6]??'00').padStart(2,'0');
+    const HH=(m[4]??'00').padStart(2,'0'),MM=(m[5]??'00').padStart(2,'0'),SS=(m[6]??'00').padStart(2,'0');
     return `${yy}-${mm}-${dd}T${HH}:${MM}:${SS}`;
   }
-  if(/^\d{4}-\d{2}-\d{2}T/.test(s) || /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s)){
+  if(/^\d{4}-\d{2}-\d{2}T/.test(s) || /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s))
     return s.replace(' ','T').replace(/(\d{2}:\d{2})(?!:)/,'$1:00');
-  }
-  let m2 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  let m2=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
   if(m2){
     const dd=m2[1].padStart(2,'0'),mm=m2[2].padStart(2,'0'),yy=(m2[3].length===2?('20'+m2[3]):m2[3]);
     return `${yy}-${mm}-${dd}T00:00:00`;
@@ -403,157 +513,237 @@ function parseTSValue(val, fallbackISO){
 function parseStampFromName(name){
   const d=name.match(/(\d{4})-(\d{2})-(\d{2})(?:[_\s\-T]?(\d{2})[:\-]?(\d{2}))?/);
   if(!d) return new Date().toISOString();
-  const[,Y,M,D,h,m]=d; return `${Y}-${M}-${D}T${h??'00'}:${m??'00'}:00`;
+  const[,Y,M,D,h,m]=d;
+  return `${Y}-${M}-${D}T${h??'00'}:${m??'00'}:00`;
 }
 
-/* ====== Storico & IA ====== */
-const payoutDefault=0.65, HIST_KEY='awp_history_by_id_v1';
-let history={}; try{ history=JSON.parse(localStorage.getItem(HIST_KEY)||'{}'); }catch{ history={}; }
-let MACHINE_STATS={}; // ID -> { avgInPerHour, payoutObs, confidence, segments, hitFrac }
+/* ===== Storico & IA ===== */
+const payoutDefault=0.65;
+const HIST_KEY='awp_history_by_id_v2';
+let history={};
+try{ history=JSON.parse(localStorage.getItem(HIST_KEY)||'{}'); }catch{ history={}; }
 
 function pushHistory(ID,ts,IN,OUT,meta){
-  ID = cleanID(ID); if(!ID) return;
+  ID = cleanID(ID);
+  if(!ID) return;
   if(!history[ID]) history[ID]=[];
   const arr=history[ID];
-  if(arr.some(r=> r.ts===ts)) return;
+  if(arr.some(r=>r.ts===ts)) return;
   arr.push({ts,IN,OUT,meta});
   arr.sort((a,b)=> new Date(a.ts)-new Date(b.ts));
 }
-
 function getLatestStateForAll(){
   const out=[];
   for(const ID in history){
     const arr=history[ID]; if(!arr?.length) continue;
     const last=arr[arr.length-1], m=last.meta||{};
-    out.push({ ID, IN:last.IN, OUT:last.OUT, MODELLO:m.MODELLO||'', MODEL_CODE:m.MODEL_CODE||'', DENOMIN_SEDE:m.DENOMIN_SEDE||'', SEDE:m.SEDE||'',
-               INDIRIZZO:m.INDIRIZZO||'', PROVINCIA:m.PROVINCIA||'', _ts:last.ts });
+    out.push({
+      ID,
+      IN:last.IN,
+      OUT:last.OUT,
+      MODELLO:m.MODELLO||'',
+      MODEL_CODE:m.MODEL_CODE||'',
+      DENOMIN_SEDE:m.DENOMIN_SEDE||'',
+      SEDE:m.SEDE||'',
+      INDIRIZZO:m.INDIRIZZO||'',
+      PROVINCIA:m.PROVINCIA||'',
+      _ts:last.ts
+    });
   }
   return out;
 }
-
-/* Mini-IA: velocità IN/ora, payout osservato, posizione media di pagamento */
-function buildMachineStats(){
-  const out={};
-  for(const ID in history){
-    const arr=history[ID];
-    if(!arr || arr.length<3) continue;
-    const N=12;
-    const h=arr.slice(-N);
-    let sumRates=0,sumRates2=0,segments=0;
-    let totIn=0,totOut=0,totHrs=0;
-    const hitFracs=[];
-    for(let i=1;i<h.length;i++){
-      const a=h[i-1],b=h[i];
-      const t1=new Date(a.ts),t2=new Date(b.ts);
-      const dtHrs=(t2-t1)/36e5;
-      const dIn=b.IN-a.IN;
-      const dOut=b.OUT-a.OUT;
-      if(!isFinite(dtHrs)||dtHrs<=0)continue;
-      if(dIn<=0)continue;
-      const rate=dIn/dtHrs;
-      sumRates+=rate;sumRates2+=rate*rate;segments++;
-      totIn+=dIn;totOut+=Math.max(0,dOut);totHrs+=dtHrs;
-
-      const meta=b.meta||{};
-      const {ciclo:C}=getCicloPayout(meta.MODEL_CODE,meta.MODELLO);
-      if(C && C>0 && dOut>0){
-        const in_cycle=b.IN % C;
-        const frac=in_cycle/C;
-        const rel = dIn>0 ? (dOut/dIn) : 0;
-        if(dOut>=0.5*dIn || rel>=0.8){
-          if(frac>0 && frac<=1.2) hitFracs.push(Math.min(frac,1.2));
-        }
-      }
-    }
-    if(!segments || totIn<=0 || totHrs<=0) continue;
-    const avgRate=sumRates/segments;
-    const meanSq=sumRates2/segments;
-    const variance=Math.max(0,meanSq-avgRate*avgRate);
-    const stdev=Math.sqrt(variance);
-    const cv=avgRate>0?(stdev/avgRate):1;
-    let confidence=Math.min(1,segments/8);
-    if(cv>0.8) confidence*=0.4; else if(cv<0.3) confidence*=1.1;
-    confidence=Math.max(0.1,Math.min(confidence,1));
-    const payoutObs=totOut/totIn;
-    let hitFrac=null;
-    if(hitFracs.length){
-      const s=hitFracs.reduce((a,b)=>a+b,0);
-      hitFrac=s/hitFracs.length;
-    }
-    out[ID]={avgInPerHour:avgRate,payoutObs,confidence,segments,hitFrac};
-  }
-  return out;
-}
-
-/* Previsione fine ciclo usando velocità media IN/ora */
 function forecastDate(ID,resid_in){
-  const st=MACHINE_STATS[ID];
-  if(!st||!st.avgInPerHour||st.avgInPerHour<=0||!resid_in||resid_in<=0)return'—';
-  if(st.confidence<0.25)return'—';
-  const hrs=Math.ceil(resid_in/st.avgInPerHour);
-  if(!isFinite(hrs)||hrs<=0||hrs>24*30)return'—';
-  const est=new Date();est.setHours(est.getHours()+hrs);
+  const h=history[ID]||[];
+  if(h.length<2) return '—';
+  const last=h.slice(-6);
+  let sumIn=0,sumHrs=0;
+  for(let i=1;i<last.length;i++){
+    const t1=new Date(last[i-1].ts),t2=new Date(last[i].ts);
+    const dtHrs=Math.max(1,(t2-t1)/36e5);
+    const dIn=Math.max(0,last[i].IN-(last[i-1].IN||0));
+    sumIn+=dIn;sumHrs+=dtHrs;
+  }
+  const avg=sumHrs>0?sumIn/sumHrs:0;
+  if(avg<=0||resid_in<=0) return '—';
+  const hrs=Math.ceil(resid_in/avg);
+  const est=new Date(); est.setHours(est.getHours()+hrs);
   return fmtDMY(est.toISOString());
 }
 
-/* ====== Config & stato globale ====== */
+/* ===== Calcoli riga ===== */
+function getCicloPayout(modelCode,modelName){
+  const mc=cleanCode(modelCode);
+  const byCode=CYCLE.byModelCode.get(mc);
+  const byName=CYCLE.cicloByModelName.get(normalize(modelName||''));
+  const ciclo=byCode||byName||null;
+  const py=CYCLE.payoutByModelCode.get(mc) ?? CYCLE.payoutByModelName.get(normalize(modelName||'')) ?? payoutDefault;
+  return{ciclo,payout:py};
+}
+function rowFlag(delta,resid_in){
+  const cfg=JSON.parse(localStorage.getItem('awp_cfg_v3')||'{}');
+  const abs=Number(cfg.thrAbs||200),pct=Number(cfg.thrPct||0);
+  const passAbs=abs>0 && delta>=abs;
+  const passPct=pct>0 && resid_in>0 && delta>=(pct/100)*resid_in;
+  return(passAbs||passPct)?'⭐':'';
+}
+
+/* --- modalità CLASSICA: solo ultimo sinottico --- */
+function computeRowClassic(r){
+  const pro=(CURRENT_USER?.level||'Base').toLowerCase();
+  const show=(pro==='abbonato'||pro==='admin');
+  const {ciclo:C,payout:P}=getCicloPayout(r.MODEL_CODE,r.MODELLO);
+  const I=r.IN,V=r.OUT;
+  const isToday=(r._ts||'').slice(0,10)===todayIso();
+  const tsDays=daysDiff(r._ts);
+
+  if(!C || !show){
+    return {...r,_cycle:C||null,_payout:P||payoutDefault,perc_cycle:null,cycle_idx:null,resid_in:null,resid_out:null,need65:null,forecast_date:'',
+      _delta:0,flag:'',_ts_str:fmtDMY(r._ts)+(isToday?'':(tsDays!=null?` (${tsDays} gg)`:'')),_stato:'',_oggi:isToday,_I:I,_V:V};
+  }
+
+  const cycles_done=Math.floor(I/C);
+  const in_cycle=I-cycles_done*C;
+  const target_prev=cycles_done*(P*C);
+  let paid_cycle=V-target_prev; if(paid_cycle<0)paid_cycle=0;
+  const resid_in=in_cycle>0?(C-in_cycle):C;
+  let resid_out=(P*C)-paid_cycle; if(resid_out<0)resid_out=0;
+  const perc_cycle=in_cycle>0?(paid_cycle/in_cycle)*100:0;
+  const cycle_idx=cycles_done+1;
+  const need65=(in_cycle>0 && perc_cycle<65)?Math.max(0,(0.65*in_cycle)-paid_cycle):null;
+  const fDate=forecastDate(r.ID,resid_in);
+  const delta=resid_out-resid_in;
+  const flag=rowFlag(delta,resid_in);
+
+  const stato = {badge:'',label:''};
+  return {...r,_cycle:C,_payout:P,perc_cycle,cycle_idx,resid_in,resid_out,need65,forecast_date:fDate,_delta:delta,flag,
+    _ts_str:fmtDMY(r._ts)+(isToday?'':(tsDays!=null?` (${tsDays} gg)`:'')),
+    _stato:`${stato.badge} ${stato.label}`,_oggi:isToday,_I:I,_V:V};
+}
+
+/* --- modalità IA: usa ultimo stato da history, controlla aggiornamento --- */
+function computeRowIA(r){
+  const pro=(CURRENT_USER?.level||'Base').toLowerCase();
+  const show=(pro==='abbonato'||pro==='admin');
+  const {ciclo:C,payout:P}=getCicloPayout(r.MODEL_CODE,r.MODELLO);
+  const I=r.IN,V=r.OUT;
+  const isToday=(r._ts||'').slice(0,10)===todayIso();
+  const tsDays=daysDiff(r._ts);
+
+  const arr=(history[r.ID]||[]).slice(-2);
+  const stato = !arr.length ? {label:'—',badge:''}
+               : ((arr[arr.length-1].ts.slice(0,10)!==todayIso()) ? {label:'Non aggiornata',badge:'⏸️'}
+                  : (arr.length<2 ? {label:'Aggiornata',badge:'✅'}
+                    : ((arr[arr.length-1].IN===arr[arr.length-2].IN && arr[arr.length-1].OUT===arr[arr.length-2].OUT)
+                       ? {label:'Invariata',badge:'＝'} : {label:'Aggiornata',badge:'✅'})));
+
+  if(!C || !show){
+    return {...r,_cycle:C||null,_payout:P||payoutDefault,perc_cycle:null,cycle_idx:null,resid_in:null,resid_out:null,need65:null,forecast_date:'',
+      _delta:0,flag:'',_ts_str:fmtDMY(r._ts)+(isToday?'':(tsDays!=null?` (${tsDays} gg)`:'')),
+      _stato:`${stato.badge} ${stato.label}`,_oggi:isToday,_I:I,_V:V};
+  }
+
+  const cycles_done=Math.floor(I/C);
+  const in_cycle=I-cycles_done*C;
+  const target_prev=cycles_done*(P*C);
+  let paid_cycle=V-target_prev; if(paid_cycle<0)paid_cycle=0;
+  const resid_in=in_cycle>0?(C-in_cycle):C;
+  let resid_out=(P*C)-paid_cycle; if(resid_out<0)resid_out=0;
+  const perc_cycle=in_cycle>0?(paid_cycle/in_cycle)*100:0;
+  const cycle_idx=cycles_done+1;
+  const need65=(in_cycle>0 && perc_cycle<65)?Math.max(0,(0.65*in_cycle)-paid_cycle):null;
+  const fDate=forecastDate(r.ID,resid_in);
+  const delta=resid_out-resid_in;
+  const flag=rowFlag(delta,resid_in);
+
+  return {...r,_cycle:C,_payout:P,perc_cycle,cycle_idx,resid_in,resid_out,need65,forecast_date:fDate,_delta:delta,flag,
+    _ts_str:fmtDMY(r._ts)+(isToday?'':(tsDays!=null?` (${tsDays} gg)`:'')),
+    _stato:`${stato.badge} ${stato.label}`,_oggi:isToday,_I:I,_V:V};
+}
+
+/* ===== Stato globale ===== */
 const STORE='awp_cfg_v3';
 const defCfg={thrAbs:200,thrPct:0,staleDays:0,showCols:{INDIRIZZO:true,PROVINCIA:true}};
-let CFG=defCfg;try{CFG=Object.assign({},defCfg,JSON.parse(localStorage.getItem(STORE)||'{}'))}catch{}
-let latestSnapshot='—', lastUnmapped=[], fullRows=[], staleRows=[];
-let SORT_KEY=null, SORT_DIR=1;
-let MANIFEST_LIST=[];
+let CFG=defCfg;
+try{ CFG=Object.assign({},defCfg,JSON.parse(localStorage.getItem(STORE)||'{}')); }catch{}
 
-/* ====== Filtro & rendering ====== */
+let latestSnapshot='—', lastUnmapped=[], SORT_KEY=null,SORT_DIR=1;
+let staleRows=[];
+
+let MODE='classic'; // 'classic' | 'ia'
+let fullRowsClassic=[],fullRowsIA=[];
+
+let MODEL_STATS=[]; // array per tab Modelli IA
+
+let PENDING_FILES=[]; // sinottici più vecchi da caricare per IA completa
+let LATEST_FILE_NAME='';
+
+function setMode(m){
+  MODE=m;
+  document.getElementById('modeLabel').textContent = MODE==='classic'
+    ? 'Classica (ultimo sinottico)'
+    : 'IA (storico sinottici)';
+  renderCurrent();
+}
+
+/* ===== Filtri & rendering ===== */
 function filterByQuery(rows){
   const q=norm(document.getElementById('search').value).toLowerCase();
-  if(!q)return rows;
+  if(!q) return rows;
   const parts=q.match(/(?:[^\s"]+|"[^"]*")+/g)||[];
   let free=[],keyed=[];
   parts.forEach(p=>{
-    if(p.includes(':')){const[k,...rest]=p.split(':');const v=rest.join(':').replaceAll('"','');keyed.push({k:k.toLowerCase(),v:v.toLowerCase()});}
-    else free.push(p.replaceAll('"',''));
+    if(p.includes(':')){
+      const [k,...rest]=p.split(':');
+      const v=rest.join(':').replaceAll('"','');
+      keyed.push({k:k.toLowerCase(),v:v.toLowerCase()});
+    }else free.push(p.replaceAll('"',''));
   });
   return rows.filter(r=>{
     const blob=`${r.ID} ${r.MODELLO} ${r.DENOMIN_SEDE} ${r.SEDE} ${r.INDIRIZZO} ${r.PROVINCIA}`.toLowerCase();
-    if(free.some(t=>!blob.includes(t)))return false;
+    if(free.some(t=>!blob.includes(t))) return false;
     for(const kv of keyed){
       const val=String(r[kv.k?.toUpperCase()]||r[kv.k]||'').toLowerCase();
-      if(!val.includes(kv.v))return false;
+      if(!val.includes(kv.v)) return false;
     }
     return true;
   });
 }
 function getValForSort(r,k){
-  const v=r[k]; if(v==null)return'';
-  if(k==='perc_cycle'||k==='cycle_idx'||k==='resid_in'||k==='resid_out'||k==='need65')return+v;
-  if(k==='forecast_date'){if(!v||v==='—')return'';const[d,m,y]=v.split('-');return`${y}-${m}-${d}`;}
-  if(k==='_ts_str')return r._ts||'';
+  const v=r[k]; if(v==null) return '';
+  if(['perc_cycle','cycle_idx','resid_in','resid_out','need65','_delta'].includes(k)) return +v;
+  if(k==='forecast_date'){ if(!v||v==='—') return ''; const [d,m,y]=v.split('-'); return `${y}-${m}-${d}`; }
+  if(k==='_ts_str'){ return r._ts||''; }
   return String(v).toLowerCase();
 }
-
 function render(rows){
-  const pro=(CURRENT_USER?.level||'Base').toLowerCase();const show=(pro==='abbonato'||pro==='admin');
+  const pro=(CURRENT_USER?.level||'Base').toLowerCase();
+  const show=(pro==='abbonato'||pro==='admin');
+
   let view=filterByQuery(rows);
   if(SORT_KEY){
-    view.sort((a,b)=>{const va=getValForSort(a,SORT_KEY),vb=getValForSort(b,SORT_KEY);if(va<vb)return-1*SORT_DIR;if(va>vb)return 1*SORT_DIR;return 0;});
+    view.sort((a,b)=>{
+      const va=getValForSort(a,SORT_KEY),vb=getValForSort(b,SORT_KEY);
+      if(va<vb)return-1*SORT_DIR; if(va>vb)return 1*SORT_DIR; return 0;
+    });
   }else{
-    if(show){view.sort((a,b)=>(b._delta-a._delta)||(b.resid_out-a.resid_out));}
-    else{view.sort((a,b)=>String(a.DENOMIN_SEDE||a.SEDE||a.MODELLO).localeCompare(String(b.DENOMIN_SEDE||b.SEDE||b.MODELLO)));}
+    if(show) view.sort((a,b)=>(b._delta-a._delta)||(b.resid_out-a.resid_out));
+    else view.sort((a,b)=>String(a.DENOMIN_SEDE||a.SEDE||a.MODELLO).localeCompare(String(b.DENOMIN_SEDE||b.SEDE||b.MODELLO)));
   }
-  const tb=document.querySelector('#resultTable tbody');tb.innerHTML='';
+
+  const tb=document.querySelector('#resultTable tbody'); tb.innerHTML='';
   for(const r of view){
     const tr=document.createElement('tr');
-    const calc=r._cycle!=null&&show;
-    const tagClass=(calc&&(r.resid_out>r.resid_in))?'good':(calc&&Math.abs((r.resid_out||0)-(r.resid_in||0))<=0.1*((r.resid_in||1))?'mid':'bad');
-    tr.innerHTML=`
+    const calc = r._cycle!=null && show;
+    const tagClass=(calc && (r.resid_out>r.resid_in)) ? 'good'
+                      : (calc && Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*(r.resid_in||1)) ? 'mid' : 'bad';
+    tr.innerHTML = `
       <td class="col-calc">${calc?(r.flag||''):''}</td>
-      <td class="col-calc">${calc?`<span class="tag ${tagClass}">${r.perc_cycle!=null?r.perc_cycle.toFixed(2):'0.00'}%</span>`:''}</td>
+      <td class="col-calc">${calc? `<span class="tag ${tagClass}">${r.perc_cycle!=null ? r.perc_cycle.toFixed(2) : '0.00'}%</span>` : ''}</td>
       <td class="col-calc">${calc?(r.cycle_idx ?? ''):''}</td>
-      <td class="col-calc">${calc?(r.resid_in!=null?euro(r.resid_in):''):''}</td>
-      <td class="col-calc">${calc?(r.resid_out!=null?euro(r.resid_out):''):''}</td>
-      <td class="col-calc">${calc?((r.need65!=null)?euro(r.need65):'—'):''}</td>
-      <td class="col-calc">${calc?(r.forecast_date||'—'):''}</td>
+      <td class="col-calc">${calc?(r.resid_in!=null ? euro(r.resid_in) : ''):''}</td>
+      <td class="col-calc">${calc?(r.resid_out!=null ? euro(r.resid_out) : ''):''}</td>
+      <td class="col-calc">${calc?((r.need65!=null) ? euro(r.need65) : '—'):''}</td>
+      <td class="col-calc">${calc?(r.forecast_date || '—'):''}</td>
       <td>${escapeHTML(r.ID||'')}</td>
       <td>${escapeHTML(r.MODELLO||'')}</td>
       <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
@@ -561,70 +751,76 @@ function render(rows){
       <td class="col-INDIRIZZO">${escapeHTML(r.INDIRIZZO||'')}</td>
       <td class="col-PROVINCIA">${escapeHTML(r.PROVINCIA||'')}</td>
       <td>${escapeHTML(r._stato||'')}</td>
-      <td>${r._oggi?'<span class="tag good">Oggi</span>':escapeHTML(r._ts_str||'')}</td>
+      <td>${r._oggi ? '<span class="tag good">Oggi</span>' : escapeHTML(r._ts_str||'')}</td>
     `;
     tr.addEventListener('click',()=>openModal(r.ID,r));
     tb.appendChild(tr);
   }
+
   document.getElementById('statCount').textContent='Macchine: '+view.length;
   if(!show){
     document.getElementById('statGood').textContent='Top: —';
     document.getElementById('statWarn').textContent='Equilibrate: —';
   }else{
-    const good=view.filter(r=>(r._cycle!=null&&r.resid_out>r.resid_in)).length;
-    const warn=view.filter(r=>(r._cycle!=null&&Math.abs((r.resid_out||0)-(r.resid_in||0))<=0.1*(r.resid_in||1))).length;
+    const good=view.filter(r=> (r._cycle!=null && r.resid_out>r.resid_in)).length;
+    const warn=view.filter(r=> (r._cycle!=null && Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*(r.resid_in||1))).length;
     document.getElementById('statGood').textContent='Top (OUT>IN): '+good;
     document.getElementById('statWarn').textContent='Equilibrate (±10%): '+warn;
   }
-  document.querySelectorAll('.col-INDIRIZZO').forEach(td=>td.style.display=CFG.showCols.INDIRIZZO?'':'none');
-  document.querySelectorAll('.col-PROVINCIA').forEach(td=>td.style.display=CFG.showCols.PROVINCIA?'':'none');
+
+  document.querySelectorAll('.col-INDIRIZZO').forEach(td=> td.style.display = CFG.showCols.INDIRIZZO ? '' : 'none');
+  document.querySelectorAll('.col-PROVINCIA').forEach(td=> td.style.display = CFG.showCols.PROVINCIA ? '' : 'none');
 }
-document.querySelector('#resultTable thead').addEventListener('click',(e)=>{
-  const th=e.target.closest('th');if(!th)return;
-  const key=th.dataset.k;if(!key)return;
-  if(SORT_KEY===key){SORT_DIR*=-1;}else{SORT_KEY=key;SORT_DIR=1;}
-  render(fullRows);
+function renderCurrent(){
+  const rows = MODE==='classic' ? fullRowsClassic : fullRowsIA;
+  render(rows);
+}
+document.querySelector('#resultTable thead').addEventListener('click',e=>{
+  const th=e.target.closest('th'); if(!th) return;
+  const key=th.dataset.k; if(!key) return;
+  if(SORT_KEY===key) SORT_DIR*=-1; else{ SORT_KEY=key; SORT_DIR=1; }
+  renderCurrent();
 });
 
-/* ====== Non aggiornate ====== */
+/* ===== Non aggiornate ===== */
 function findStale(){
   const today=todayIso();
   const all=getLatestStateForAll();
-  staleRows=all.filter(x=>(x._ts||'').slice(0,10)!==today).map(s=>({...s,_ts_str:fmtDMY(s._ts),_days:daysDiff(s._ts)}));
+  staleRows = all.filter(x=>(x._ts||'').slice(0,10)!==today)
+    .map(s=>({...s,_ts_str:fmtDMY(s._ts),_days:daysDiff(s._ts)}));
   document.getElementById('staleWarn').classList.toggle('hidden',staleRows.length===0);
 }
 function renderStale(){
-  const tb=document.querySelector('#staleTable tbody');tb.innerHTML='';
+  const tb=document.querySelector('#staleTable tbody'); tb.innerHTML='';
   for(const r of staleRows){
     const tr=document.createElement('tr');
-    tr.innerHTML=`
+    tr.innerHTML = `
       <td>${escapeHTML(r.ID||'')}</td>
       <td>${escapeHTML(r.MODELLO||'')}</td>
       <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
       <td>${escapeHTML(r.SEDE||'')}</td>
       <td>${escapeHTML(r.INDIRIZZO||'')}</td>
       <td>${escapeHTML(r.PROVINCIA||'')}</td>
-      <td>${escapeHTML(r._ts_str||'')} ${r._days!=null?`(${r._days} gg)`:''}</td>
-    `;
+      <td>${escapeHTML(r._ts_str||'')} ${r._days!=null?`(${r._days} gg)`:''}</td>`;
     tb.appendChild(tr);
   }
 }
 
-/* ====== Aggregati ====== */
+/* ===== Aggregati ===== */
 function renderAggregati(){
-  const pro=(CURRENT_USER?.level||'Base').toLowerCase();const show=(pro==='abbonato'||pro==='admin');
+  const pro=(CURRENT_USER?.level||'Base').toLowerCase(); const show=(pro==='abbonato'||pro==='admin');
   const field=document.getElementById('aggField').value;
-  const src=filterByQuery(fullRows);
+  const src=filterByQuery(MODE==='classic'?fullRowsClassic:fullRowsIA);
   const map=new Map();
   for(const r of src){
     const key=r[field]||'—';
-    let o=map.get(key);if(!o)o={k:key,n:0,in:0,out:0,rin:0,rout:0};
-    o.n++;o.in+=(r._I||0);o.out+=(r._V||0);
+    let o=map.get(key); if(!o)o={k:key,n:0,in:0,out:0,rin:0,rout:0};
+    o.n++; o.in+=(r._I||0); o.out+=(r._V||0);
     if(show){o.rin+=(r.resid_in||0);o.rout+=(r.resid_out||0);}
     map.set(key,o);
   }
   const arr=[...map.values()].sort((a,b)=>(b.rout-b.rin)-(a.rout-a.rin)||(b.out-b.in)-(a.out-a.in)||b.n-a.n);
-  const tb=document.querySelector('#aggTable tbody');tb.innerHTML='';
+  const tb=document.querySelector('#aggTable tbody'); tb.innerHTML='';
   for(const g of arr){
     const payout=g.in>0?(g.out/g.in)*100:0;
     const tr=document.createElement('tr');
@@ -633,17 +829,20 @@ function renderAggregati(){
   }
 }
 
-/* ====== Export ====== */
+/* ===== Export ===== */
 function exportCSV(rows,filename){
   const cols=['flag','perc_cycle','cycle_idx','resid_in','resid_out','need65','forecast_date','ID','MODELLO','DENOMIN_SEDE','SEDE','INDIRIZZO','PROVINCIA','_stato','_ts_str'];
   const lines=[cols.join(';')];
   rows.forEach(r=>{
-    const o={...r};o.perc_cycle=(o.perc_cycle!=null)?o.perc_cycle.toFixed(2)+'%':''; 
-    o.resid_in=(o.resid_in!=null)?o.resid_in.toFixed(2):'';o.resid_out=(o.resid_out!=null)?o.resid_out.toFixed(2):'';
+    const o={...r};
+    o.perc_cycle=(o.perc_cycle!=null)?o.perc_cycle.toFixed(2)+'%':'';
+    o.resid_in=(o.resid_in!=null)?o.resid_in.toFixed(2):'';
+    o.resid_out=(o.resid_out!=null)?o.resid_out.toFixed(2):'';
     o.need65=(o.need65!=null)?o.need65.toFixed(2):'';
     lines.push(cols.map(c=>String(o[c]??'').replace(/;/g,',')).join(';'));
   });
-  const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();
+  const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();
 }
 function exportXLSX(rows,filename){
   const data=rows.map(r=>({
@@ -656,8 +855,8 @@ function exportXLSX(rows,filename){
   }));
   const ws=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'dati');XLSX.writeFile(wb,filename);
 }
-document.getElementById('btnExportCSV').onclick=()=>exportCSV(filterByQuery(fullRows),`awp_${latestSnapshot||'export'}.csv`);
-document.getElementById('btnExportXLSX').onclick=()=>exportXLSX(filterByQuery(fullRows),`awp_${latestSnapshot||'export'}.xlsx`);
+document.getElementById('btnExportCSV').onclick=()=>exportCSV(filterByQuery(MODE==='classic'?fullRowsClassic:fullRowsIA),`awp_${latestSnapshot||'export'}.csv`);
+document.getElementById('btnExportXLSX').onclick=()=>exportXLSX(filterByQuery(MODE==='classic'?fullRowsClassic:fullRowsIA),`awp_${latestSnapshot||'export'}.xlsx`);
 document.getElementById('btnAggExport').onclick=()=>{
   const tb=document.querySelector('#aggTable tbody');
   const rows=[...tb.querySelectorAll('tr')].map(tr=>{
@@ -667,11 +866,13 @@ document.getElementById('btnAggExport').onclick=()=>{
   const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'aggregati');XLSX.writeFile(wb,`aggregati_${todayIso()}.xlsx`);
 };
 document.getElementById('btnUnmapped').onclick=()=>{
-  const lines=['CODICE MODELLO;MODELLO'];lastUnmapped.forEach(x=>lines.push(`${x.modelCode};${(x.modello||'').replace(/;/g,',')}`));
-  const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`non_mappati_${latestSnapshot||todayIso()}.csv`;a.click();
+  const lines=['CODICE MODELLO;MODELLO'];
+  lastUnmapped.forEach(x=>lines.push(`${x.modelCode};${(x.modello||'').replace(/;/g,',')}`));
+  const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`non_mappati_${latestSnapshot||todayIso()}.csv`;a.click();
 };
 
-/* ====== Impostazioni ====== */
+/* ===== Impostazioni ===== */
 function loadSettingsUI(){
   document.getElementById('thrAbs').value=CFG.thrAbs;
   document.getElementById('thrPct').value=CFG.thrPct;
@@ -684,32 +885,28 @@ document.getElementById('btnSaveSettings').onclick=()=>{
   CFG.staleDays=+document.getElementById('staleDays').value||0;
   document.querySelectorAll('.colToggle').forEach(ch=>CFG.showCols[ch.dataset.col]=!!ch.checked);
   localStorage.setItem(STORE,JSON.stringify(CFG));
-  render(fullRows);renderAggregati();renderStale();toast('Impostazioni salvate');
+  renderCurrent();renderAggregati();renderStale();toast('Impostazioni salvate');
 };
 document.getElementById('btnResetSettings').onclick=()=>{
   CFG=JSON.parse(JSON.stringify(defCfg));
   localStorage.setItem(STORE,JSON.stringify(CFG));
-  loadSettingsUI();render(fullRows);renderAggregati();renderStale();
+  loadSettingsUI();renderCurrent();renderAggregati();renderStale();
 };
 
-/* ====== Flag in base alle soglie ====== */
-function rowFlag(delta,resid_in){
-  const cfg=JSON.parse(localStorage.getItem('awp_cfg_v3')||'{}');
-  const abs=Number(cfg.thrAbs||200),pct=Number(cfg.thrPct||0);
-  const passAbs=abs>0&&delta>=abs;
-  const passPct=pct>0&&resid_in>0&&delta>=(pct/100)*resid_in;
-  return(passAbs||passPct)?'⭐':'';
-}
-
-/* ====== Modale & grafico ====== */
-const modal=document.getElementById('modal');document.getElementById('closeModal').onclick=()=>modal.classList.add('hidden');
+/* ===== Modale & grafico ===== */
+const modal=document.getElementById('modal');
+document.getElementById('closeModal').onclick=()=>modal.classList.add('hidden');
 function drawChart(canvas,series){
-  const ctx=canvas.getContext('2d');const W=canvas.width,H=canvas.height;ctx.clearRect(0,0,W,H);
-  if(series.length<2){ctx.fillStyle='var(--muted)';ctx.font='12px system-ui';ctx.fillText('Dati insufficienti',10,20);return;}
+  const ctx=canvas.getContext('2d');const W=canvas.width,H=canvas.height;
+  ctx.clearRect(0,0,W,H);
+  if(series.length<2){
+    ctx.fillStyle='var(--muted)';ctx.font='12px system-ui';ctx.fillText('Dati insufficienti',10,20);return;
+  }
   const pad=30,x0=pad,x1=W-pad,y0=H-pad,y1=pad;
   const minT=+new Date(series[0].ts),maxT=+new Date(series[series.length-1].ts);
-  let minV=Infinity,maxV=-Infinity;series.forEach(p=>{minV=Math.min(minV,p.IN,p.OUT);maxV=Math.max(maxV,p.IN,p.OUT);});
-  if(minV===maxV)minV=0;
+  let minV=Infinity,maxV=-Infinity;
+  series.forEach(p=>{minV=Math.min(minV,p.IN,p.OUT);maxV=Math.max(maxV,p.IN,p.OUT);});
+  if(minV===maxV) minV=0;
   const x=t=>x0+((t-minT)/(maxT-minT||1))*(x1-x0);
   const y=v=>y0-((v-minV)/(maxV-minV||1))*(y0-y1);
   ctx.strokeStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y0);ctx.moveTo(x0,y0);ctx.lineTo(x0,y1);ctx.stroke();
@@ -719,7 +916,8 @@ function drawChart(canvas,series){
   ctx.strokeStyle='#666';ctx.lineWidth=2;ctx.stroke();
 }
 function openModal(ID,row){
-  const pro=(CURRENT_USER?.level||'Base').toLowerCase();if(!(pro==='abbonato'||pro==='admin'))return;
+  const pro=(CURRENT_USER?.level||'Base').toLowerCase();
+  if(!(pro==='abbonato'||pro==='admin'))return;
   modal.classList.remove('hidden');
   document.getElementById('m_title').textContent='Scheda macchina – '+ID;
   document.getElementById('m_id').textContent=ID;
@@ -729,32 +927,11 @@ function openModal(ID,row){
   document.getElementById('m_addr').textContent=row.INDIRIZZO||'';
   document.getElementById('m_city').textContent=(row.SEDE||'')+(row.PROVINCIA?' ('+row.PROVINCIA+')':'');
   document.getElementById('m_cycle').textContent=(row._cycle||'')+' partite';
-
-  const pEff=(row._payout_eff ?? row._payout ?? payoutDefault)*100;
-  const pModel=(row._payout_model!=null?row._payout_model*100:null);
-  const pObs=(row._payout_obs!=null?row._payout_obs*100:null);
-
-  document.getElementById('m_payout').textContent=isFinite(pEff)?pEff.toFixed(2)+'%':'—';
-  document.getElementById('m_payout_model').textContent=(pModel!=null&&isFinite(pModel))?pModel.toFixed(2)+'%':'—';
-  document.getElementById('m_payout_obs').textContent=(pObs!=null&&isFinite(pObs))?pObs.toFixed(2)+'%':'—';
-
-  const hitFrac=row._hitFrac;
-  document.getElementById('m_hitpos').textContent=(hitFrac!=null&&isFinite(hitFrac))?(hitFrac*100).toFixed(1)+'% del ciclo':'—';
-
+  document.getElementById('m_payout').textContent=((row._payout||payoutDefault)*100).toFixed(2)+'%';
   document.getElementById('m_resid_in').textContent=row.resid_in!=null?euro(row.resid_in):'—';
   document.getElementById('m_resid_out').textContent=row.resid_out!=null?euro(row.resid_out):'—';
   document.getElementById('m_perc').textContent=(row.perc_cycle!=null?row.perc_cycle.toFixed(2):'—')+'%';
   document.getElementById('m_forecast').textContent=row.forecast_date||'—';
-
-  const conf=row._forecast_conf;
-  let confLabel='—';
-  if(conf!=null){
-    if(conf>=0.75)confLabel='Alta';
-    else if(conf>=0.45)confLabel='Media';
-    else confLabel='Bassa';
-    confLabel+=` (${(conf*100).toFixed(0)}%)`;
-  }
-  document.getElementById('m_conf').textContent=confLabel;
 
   const h=(history[ID]||[]).slice().sort((a,b)=>new Date(a.ts)-new Date(b.ts));
   let html='<table style="width:100%;border-collapse:collapse;"><thead><tr>'
@@ -773,164 +950,318 @@ function openModal(ID,row){
   drawChart(document.getElementById('m_chart'),h.map(x=>({ts:x.ts,IN:x.IN,OUT:x.OUT})));
 }
 
-/* ====== Calcolo riga ====== */
-function computeRow(r){
-  const pro=(CURRENT_USER?.level||'Base').toLowerCase();
-  const show=(pro==='abbonato'||pro==='admin');
-  const {ciclo:C,payout:P_model}=getCicloPayout(r.MODEL_CODE,r.MODELLO);
-  const stats=MACHINE_STATS[r.ID]||null;
-  const P_obs=(stats&&stats.payoutObs&&isFinite(stats.payoutObs)&&stats.payoutObs>0&&stats.payoutObs<2)?stats.payoutObs:null;
-  let P_eff=P_model ?? payoutDefault;
-  if(P_obs!=null){
-    P_eff=(P_model!=null?(0.7*P_model+0.3*P_obs):P_obs);
-  }
-  const I=r.IN,V=r.OUT;
-  const isToday=(r._ts||'').slice(0,10)===todayIso();
-  const tsDays=daysDiff(r._ts);
+/* ===== IA sui modelli / “algoritmo scheda” ===== */
+function buildModelStats(){
+  const statsMap=new Map(); // key -> obj
 
-  const arr=(history[r.ID]||[]).slice(-2);
-  const stato=!arr.length?{label:'—',badge:''}
-    :((arr[arr.length-1].ts.slice(0,10)!==todayIso())?{label:'Non aggiornata',badge:'⏸️'}
-      :(arr.length<2?{label:'Aggiornata',badge:'✅'}
-        :((arr[arr.length-1].IN===arr[arr.length-2].IN&&arr[arr.length-1].OUT===arr[arr.length-2].OUT)?{label:'Invariata',badge:'＝'}:{label:'Aggiornata',badge:'✅'})));
+  for(const ID in history){
+    const arr=history[ID]; if(!arr || arr.length<2) continue;
+    for(let i=1;i<arr.length;i++){
+      const prev=arr[i-1],cur=arr[i];
+      const dIn=cur.IN-(prev.IN||0);
+      const dOut=cur.OUT-(prev.OUT||0);
+      if(dIn<=0 && dOut<=0) continue;
+      const dtMs=new Date(cur.ts)-new Date(prev.ts);
+      const dtDays=dtMs>0?dtMs/86400000:0.0001;
+      const meta=cur.meta||prev.meta||{};
+      const modelCode=meta.MODEL_CODE||'';
+      const modelName=meta.MODELLO||'';
+      const key=modelCode || normalize(modelName||'Senza modello');
+      if(!statsMap.has(key)){
+        const {ciclo,payout}=getCicloPayout(modelCode,modelName);
+        statsMap.set(key,{
+          key,modelCode,modelName:(modelName||'(senza nome)'),machines:new Set(),
+          totalIN:0,totalOUT:0,totalDays:0,
+          locations:new Map(),payEvents:[],
+          theoCycle:ciclo||null,theoPayout:payout||payoutDefault
+        });
+      }
+      const s=statsMap.get(key);
+      s.machines.add(ID);
+      s.totalIN+=Math.max(0,dIn);
+      s.totalOUT+=Math.max(0,dOut);
+      s.totalDays+=dtDays;
 
-  if(!C||!show){
-    return{
-      ...r,
-      _cycle:C||null,
-      _payout_eff:P_eff||payoutDefault,
-      _payout_model:P_model??null,
-      _payout_obs:P_obs,
-      _hitFrac:stats?.hitFrac ?? null,
-      _forecast_conf:stats?.confidence ?? null,
-      perc_cycle:null,cycle_idx:null,resid_in:null,resid_out:null,need65:null,forecast_date:'',
-      _delta:0,flag:'',
-      _ts_str:fmtDMY(r._ts)+(isToday?'':(tsDays!=null?` (${tsDays} gg)`:'')),
-      _stato:`${stato.badge} ${stato.label}`,_oggi:isToday,_I:I,_V:V
-    };
-  }
+      const locKey=meta.DENOMIN_SEDE||meta.SEDE||'—';
+      if(locKey){
+        let L=s.locations.get(locKey);
+        if(!L){L={name:locKey,totalIN:0,totalOUT:0};s.locations.set(locKey,L);}
+        L.totalIN+=Math.max(0,dIn);
+        L.totalOUT+=Math.max(0,dOut);
+      }
 
-  const cycles_done=Math.floor(I/C);
-  const in_cycle=I-cycles_done*C;
-
-  const target_prev=cycles_done*(P_eff*C);
-  let paid_cycle=V-target_prev;if(paid_cycle<0)paid_cycle=0;
-
-  const hitFrac=(stats?.hitFrac && stats.hitFrac>0.5 && stats.hitFrac<=1.2)?stats.hitFrac:1;
-  const C_eff=Math.max(1,C*hitFrac);
-  const resid_in=in_cycle>0?Math.max(0,C_eff-in_cycle):C_eff;
-
-  let resid_out=(P_eff*C)-paid_cycle;
-  if(resid_out<0)resid_out=0;
-
-  const perc_cycle=in_cycle>0?(paid_cycle/in_cycle)*100:0;
-  const cycle_idx=cycles_done+1;
-  const need65=(in_cycle>0&&perc_cycle<65)?Math.max(0,(0.65*in_cycle)-paid_cycle):null;
-  const fDate=forecastDate(r.ID,resid_in);
-  const delta=resid_out-resid_in;
-  const flag=rowFlag(delta,resid_in);
-
-  return{
-    ...r,
-    _cycle:C,
-    _payout_eff:P_eff,
-    _payout_model:P_model??null,
-    _payout_obs:P_obs,
-    _hitFrac:stats?.hitFrac ?? null,
-    _forecast_conf:stats?.confidence ?? null,
-    perc_cycle,cycle_idx,resid_in,resid_out,need65,forecast_date:fDate,_delta:delta,flag,
-    _ts_str:fmtDMY(r._ts)+(isToday?'':(tsDays!=null?` (${tsDays} gg)`:'')),
-    _stato:`${stato.badge} ${stato.label}`,_oggi:isToday,_I:I,_V:V
-  };
-}
-
-/* ====== Init / caricamento rapido & IA completa ====== */
-async function loadCicloslotConfig(){
-  try{
-    if(CICLOSLOT.length===0){
-      try{
-        const rJson=await fetch('Dati/cicloslot.json',{cache:'no-store'});
-        if(rJson.ok){
-          const j=await rJson.json();
-          if(Array.isArray(j)&&j.length)CICLOSLOT=j;
+      // rileva "evento pagamento"
+      const C=s.theoCycle;
+      if(C){
+        const inCycle = cur.IN % C;
+        const percCycle = (inCycle/C)*100;
+        const expOut = (s.theoPayout||payoutDefault)*dIn;
+        const bonus = dOut-expOut;
+        // evento quando paga forte: tanto OUT o bonus alto
+        if(dOut>=200 || bonus>=150 || dOut>=3*dIn){
+          s.payEvents.push({percCycle,dIn,dOut,bonus});
         }
-      }catch{}
+      }
     }
-    if(CICLOSLOT.length===0){
-      const cicloRows=await fetchXLSX('Dati/cicloslot.xlsx');
-      const mapped=cicloRows.map(r=>({
-        code:r['codice modello']||r.code||r['CODICE MODELLO'],
-        model:r.modello||r.model||r['MODELLO']||'',
-        ciclo:r.ciclo||r.cycle||r['CICLO'],
-        payout:r['payout %']||r['payout']||r['PAYOUT %']||r['PAYOUT']
-      })).filter(x=>x.code&&+x.ciclo>0);
-      CICLOSLOT=mapped;
+  }
+
+  MODEL_STATS=[...statsMap.values()].map(s=>{
+    const nMach=s.machines.size;
+    const effPayout=s.totalIN>0?s.totalOUT/s.totalIN:0;
+    const inPerDay=s.totalDays>0?s.totalIN/s.totalDays:0;
+    const payPercs=s.payEvents.map(p=>p.percCycle).filter(p=>p>=0&&isFinite(p));
+    let payZone='Dati insufficienti';
+    if(payPercs.length>=2){
+      payPercs.sort((a,b)=>a-b);
+      const min=payPercs[0],max=payPercs[payPercs.length-1];
+      const avg=payPercs.reduce((a,b)=>a+b,0)/payPercs.length;
+      payZone=`Tra ~${min.toFixed(0)}% e ${max.toFixed(0)}% (media ${avg.toFixed(0)}%)`;
+    }else if(payPercs.length===1){
+      payZone=`Intorno al ${payPercs[0].toFixed(0)}% del ciclo`;
     }
-    if(!CICLOSLOT.length){toast('Impossibile leggere configurazione cicli (cicloslot.json/xlsx)');return false;}
-    CYCLE=buildCicloMaps(CICLOSLOT);
-    return true;
-  }catch(e){console.error(e);toast('Errore inizializzando i cicli (cicloslot)');return false;}
+
+    const locArr=[...s.locations.values()].sort((a,b)=>b.totalIN-a.totalIN).slice(0,3);
+    const locLabel=locArr.length?locArr.map(l=>`${l.name} (${euro(l.totalIN)})`).join(', '):'—';
+
+    return{
+      key:s.key,
+      modelCode:s.modelCode,
+      modelName:s.modelName,
+      nMachines:nMach,
+      totalIN:s.totalIN,
+      totalOUT:s.totalOUT,
+      effPayout,
+      inPerDay,
+      theoCycle:s.theoCycle,
+      theoPayout:s.theoPayout,
+      payZone,
+      locations:locArr,
+      payEvents:s.payEvents
+    };
+  });
+
+  const iaStatus=document.getElementById('iaStatus');
+  iaStatus.textContent = PENDING_FILES.length
+    ? 'IA veloce pronta. Per includere tutto lo storico premi “Analisi IA completa / Ricalcola IA”.'
+    : 'IA calcolata su tutto lo storico disponibile.';
 }
 
-async function loadManifest(){
+function renderModelStats(){
+  const tb=document.querySelector('#iaModelTable tbody'); if(!tb) return;
+  tb.innerHTML='';
+  if(!MODEL_STATS.length){
+    tb.innerHTML='<tr><td colspan="9" style="padding:10px;">Nessun dato ancora disponibile. Assicurati di aver caricato almeno alcuni sinottici.</td></tr>';
+    return;
+  }
+  const sortBy=document.getElementById('iaSort').value;
+  const arr=[...MODEL_STATS];
+  arr.sort((a,b)=>{
+    if(sortBy==='payout') return (b.effPayout-a.effPayout)||(b.totalIN-a.totalIN);
+    if(sortBy==='speed') return (b.inPerDay-a.inPerDay)||(b.totalIN-a.totalIN);
+    return (b.totalIN-a.totalIN);
+  });
+  for(const s of arr){
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td>${escapeHTML(s.modelName)}</td>
+      <td>${escapeHTML(s.modelCode||'—')}</td>
+      <td>${s.nMachines}</td>
+      <td>${euro(s.totalIN)}</td>
+      <td>${euro(s.totalOUT)}</td>
+      <td>${(s.effPayout*100).toFixed(2)}%</td>
+      <td>${euro(s.inPerDay)}</td>
+      <td>${escapeHTML(s.payZone)}</td>
+      <td>${escapeHTML(s.locations.map(l=>l.name).join(', ')||'—')}</td>`;
+    tr.addEventListener('click',()=>updateIAInsights(s));
+    tb.appendChild(tr);
+  }
+}
+document.getElementById('iaSort').addEventListener('change',renderModelStats);
+
+function updateIAInsights(s){
+  const box=document.getElementById('iaInsightBox');
+  if(!s){
+    box.textContent='Seleziona un modello nella tabella per vedere i suggerimenti.';
+    return;
+  }
+  const bestLoc = s.locations[0];
+  const payoutEff=(s.effPayout*100).toFixed(2);
+  const payoutTheo=(s.theoPayout*100).toFixed(2);
+  const deltaPayout = (s.effPayout-s.theoPayout)*100;
+  const deltaText = Math.abs(deltaPayout)<0.2 ? 'molto vicino al teorico'
+                   : (deltaPayout>0 ? 'leggermente più generoso del teorico'
+                                    : 'un po’ più “tirato” del teorico');
+
+  let locText='Non ci sono ancora abbastanza dati sui locali per questo modello.';
+  if(bestLoc){
+    locText = `Finora il modello gioca di più in <b>${escapeHTML(bestLoc.name)}</b>, con circa <b>${euro(bestLoc.totalIN)}</b> di IN accumulato nelle letture considerate.`;
+  }
+
+  box.innerHTML = `
+    <p><b>Modello:</b> ${escapeHTML(s.modelName)} ${s.modelCode?`(<code>${escapeHTML(s.modelCode)}</code>)`:''}</p>
+    <p>Stai guardando <b>${s.nMachines}</b> macchin${s.nMachines===1?'a':'e'} di questo modello, con un totale di <b>${euro(s.totalIN)}</b> giocato e <b>${euro(s.totalOUT)}</b> pagato.</p>
+    <p>Il payout effettivo è <b>${payoutEff}%</b>, a fronte di un teorico di circa <b>${payoutTheo}%</b>: in pratica questo modello è ${deltaText}.</p>
+    <p><b>Algoritmo di pagamento stimato:</b> ${escapeHTML(s.payZone)}. Significa che, mediamente, gli “scarichi grossi” tendono a concentrarsi in quella zona del ciclo.</p>
+    <p>${locText}</p>
+    <p><b>Dove metterlo?</b><br/>
+       Se devi scegliere, prova a posizionare questo modello in locali con un flusso di gioco simile a <b>${bestLoc?escapeHTML(bestLoc.name):'quelli dove vedi più IN'}</b>
+       e con clientela abituale. Nei locali dove il giocato medio è più basso, potrebbe impiegare più tempo a entrare nella sua finestra di pagamento tipica.</p>
+  `;
+}
+
+/* ===== Barra caricamento ===== */
+function showLoadBar(msg,pct){
+  const bar=document.getElementById('loadBar');
+  bar.classList.remove('hidden');
+  document.getElementById('loadText').textContent=msg;
+  document.getElementById('loadPct').textContent=Math.round(pct||0)+'%';
+  document.getElementById('loadFill').style.width=(pct||0)+'%';
+}
+function hideLoadBar(){document.getElementById('loadBar').classList.add('hidden');}
+
+/* ===== Init: lettura sinottici (rapida + IA completa) ===== */
+async function loadCicloslotIfNeeded(){
+  if(CICLOSLOT.length){
+    CYCLE=buildCicloMaps(CICLOSLOT);
+    return;
+  }
+  try{
+    const rJson=await fetch('Dati/cicloslot.json',{cache:'no-store'});
+    if(rJson.ok){
+      const j=await rJson.json();
+      CICLOSLOT=j;
+      CYCLE=buildCicloMaps(j);
+      return;
+    }
+  }catch{}
+  try{
+    const cicloRows=await fetchXLSX('Dati/cicloslot.xlsx');
+    const mapped=cicloRows.map(r=>({
+      code:r['codice modello']||r.code||r['CODICE MODELLO'],
+      model:r.modello||r.model||r['MODELLO']||'',
+      ciclo:r.ciclo||r.cycle||r['CICLO'],
+      payout:r['payout %']||r['payout']||r['PAYOUT %']||r['PAYOUT']
+    })).filter(x=>x.code&&+x.ciclo>0);
+    CICLOSLOT=mapped;
+    CYCLE=buildCicloMaps(mapped);
+  }catch(e){
+    toast('Impossibile leggere cicloslot.json / .xlsx'); 
+  }
+}
+
+let ALL_FILES=[];
+
+async function initAuto(){
+  const status=m=>document.getElementById('statStatus').textContent=m;
+  showLoadBar('Preparazione cicli...',5);
+
+  await loadCicloslotIfNeeded();
+
+  status('Carico manifest…');
+  let lista=[];
   try{
     const r=await fetch('Dati/manifest.json',{cache:'no-store'});
-    if(!r.ok)throw 0;
-    const j=await r.json();
-    MANIFEST_LIST=Array.isArray(j.sinottici)?j.sinottici:[];
-  }catch(e){
-    MANIFEST_LIST=[];
+    if(r.ok){
+      const j=await r.json();
+      lista=Array.isArray(j.sinottici)?j.sinottici:[];
+    }
+  }catch{}
+  if(!lista.length){
+    status('Manifest mancante (Dati/manifest.json)');
+    hideLoadBar();
+    return;
   }
-  if(!MANIFEST_LIST.length){document.getElementById('statStatus').textContent='Manifest mancante (Dati/manifest.json)';}
+
+  ALL_FILES = lista.map(name=>({name,ts:parseStampFromName(name)}))
+                   .sort((a,b)=>new Date(a.ts)-new Date(b.ts));
+  LATEST_FILE_NAME = ALL_FILES[ALL_FILES.length-1].name;
+
+  const N_FAST=5;
+  const idxStart=Math.max(0,ALL_FILES.length-N_FAST);
+  const fastFiles=ALL_FILES.slice(idxStart);
+  PENDING_FILES = ALL_FILES.slice(0,idxStart);
+
+  history={}; // ricostruisco per il run corrente
+  lastUnmapped=[];
+  latestSnapshot='—';
+
+  await loadSinotticiSet(fastFiles,true); // caricamento rapido
+
+  localStorage.setItem(HIST_KEY,JSON.stringify(history));
+  findStale();renderStale();
+  buildModelStats();
+  renderModelStats();
+
+  const savedQ=localStorage.getItem('awp_q');
+  if(savedQ) document.getElementById('search').value=savedQ;
+  document.getElementById('search').addEventListener('input',()=>{
+    localStorage.setItem('awp_q',document.getElementById('search').value);
+    renderCurrent();
+  });
+
+  loadSettingsUI();
+  document.querySelectorAll('.colToggle').forEach(ch=>{
+    ch.checked=!!CFG.showCols[ch.dataset.col];
+    ch.onchange=()=>{CFG.showCols[ch.dataset.col]=!!ch.checked;localStorage.setItem(STORE,JSON.stringify(CFG));renderCurrent();};
+  });
+
+  hideLoadBar();
+  document.getElementById('statMap').textContent=`Non mappati: ${lastUnmapped.length}`;
+  document.getElementById('iaStatus').textContent = PENDING_FILES.length
+    ? 'IA veloce pronta. Puoi avviare l’analisi completa dallo storico.'
+    : 'IA calcolata su tutto lo storico disponibile.';
 }
 
-/* Carica i sinottici: mode='quick' (ultimi 5) o 'full' (tutti) */
-async function loadSinottici(mode){
+/* carica un set di sinottici, aggiornando history + dataset */
+async function loadSinotticiSet(files,isInitial){
   const status=m=>document.getElementById('statStatus').textContent=m;
-  if(!MANIFEST_LIST.length){status('Manifest vuoto');return;}
-  history={};lastUnmapped=[];latestSnapshot='—';
-  const all=MANIFEST_LIST.map(name=>({name,ts:parseStampFromName(name)})).sort((a,b)=>new Date(a.ts)-new Date(b.ts));
-  let files=all;
-  if(mode==='quick'&&all.length>5)files=all.slice(-5);
-
-  showLoader(mode==='quick'?'Carico ultimi sinottici…':'Analisi completa IA in corso…');
-  status(`Lettura sinottici (${mode==='quick'?'rapida':'completa'})…`);
-
+  const latestByFile=new Map(); // ID -> r dall’ULTIMO sinottico
   let lastName='',lastRowsTotal=0,totalPushed=0;
-  const total=files.length;
-  for(let i=0;i<files.length;i++){
-    const f=files[i];
+  const totalFiles=files.length||1;
+
+  for(let idx=0; idx<files.length; idx++){
+    const f=files[idx];
+    const pct = 5 + ((idx+1)/totalFiles)*60;
+    showLoadBar(`Leggo ${f.name}…`,pct);
     try{
-      updateLoader((i/total),`Leggo ${f.name} (${i+1}/${total})…`);
+      status(`Leggo ${f.name}…`);
       const data=await fetchXLSX('Dati/'+f.name);
-      lastName=f.name;lastRowsTotal=data.length;if(!data.length)continue;
+      lastName=f.name; lastRowsTotal=data.length; if(!data.length) continue;
       const cols=pickCols(data[0]);
       if(!cols.idKey||!cols.modelCodeKey||!cols.inKey||!cols.outKey){
-        toast(`Colonne mancanti in ${f.name} (servono: CODEID, CODICE MODELLO, CNTTOTIN, CNTTOTOT, DATA ULTIMA LETTURA VAL.)`);
+        toast(`Colonne mancanti in ${f.name}`);
         continue;
       }
       const fallbackTS=parseStampFromName(f.name);
       for(const r of data){
         const rec={
-          ID:cleanID(r[cols.idKey]),
-          MODEL_CODE:cleanCode(r[cols.modelCodeKey]),
-          IN:parseCnt(r[cols.inKey]),
-          OUT:parseCnt(r[cols.outKey]),
-          MODELLO:cols.modelloKey?norm(r[cols.modelloKey]):'',
-          DENOMIN_SEDE:cols.denomSedeKey?norm(r[cols.denomSedeKey]):'',
-          SEDE:cols.sedeKey?norm(r[cols.sedeKey]):(norm(r['comune'])||''),
-          INDIRIZZO:cols.indirKey?norm(r[cols.indirKey]):'',
-          PROVINCIA:cols.provKey?norm(r[cols.provKey]):''
+          ID: cleanID(r[cols.idKey]),
+          MODEL_CODE: cleanCode(r[cols.modelCodeKey]),
+          IN: parseCnt(r[cols.inKey]),
+          OUT: parseCnt(r[cols.outKey]),
+          MODELLO: cols.modelloKey?norm(r[cols.modelloKey]):'',
+          DENOMIN_SEDE: cols.denomSedeKey?norm(r[cols.denomSedeKey]):'',
+          SEDE: cols.sedeKey?norm(r[cols.sedeKey]):(norm(r['comune'])||''),
+          INDIRIZZO: cols.indirKey?norm(r[cols.indirKey]):'',
+          PROVINCIA: cols.provKey?norm(r[cols.provKey]):''
         };
-        if(!rec.ID)continue;
-        const tsVal=cols.validKey?r[cols.validKey]:'';
-        const ts=parseTSValue(tsVal,fallbackTS);
+        if(!rec.ID) continue;
+        const tsVal = cols.validKey ? r[cols.validKey] : '';
+        const ts = parseTSValue(tsVal,fallbackTS);
+
         const {ciclo}=getCicloPayout(rec.MODEL_CODE,rec.MODELLO);
-        if(!ciclo){lastUnmapped.push({modelCode:rec.MODEL_CODE,modello:rec.MODELLO});}
+        if(!ciclo){ lastUnmapped.push({modelCode:rec.MODEL_CODE,modello:rec.MODELLO}); }
+
         pushHistory(rec.ID,ts,rec.IN,rec.OUT,{
-          MODEL_CODE:rec.MODEL_CODE,MODELLO:rec.MODELLO,DENOMIN_SEDE:rec.DENOMIN_SEDE,SEDE:rec.SEDE,INDIRIZZO:rec.INDIRIZZO,PROVINCIA:rec.PROVINCIA
+          MODEL_CODE:rec.MODEL_CODE,MODELLO:rec.MODELLO,DENOMIN_SEDE:rec.DENOMIN_SEDE,
+          SEDE:rec.SEDE,INDIRIZZO:rec.INDIRIZZO,PROVINCIA:rec.PROVINCIA
         });
-        totalPushed++;latestSnapshot=ts;
+        totalPushed++;
+        latestSnapshot=ts;
+
+        if(f.name===LATEST_FILE_NAME){
+          latestByFile.set(rec.ID,{...rec,_ts:ts});
+        }
       }
     }catch(err){
       console.error('Errore su file',f.name,err);
@@ -939,39 +1270,64 @@ async function loadSinottici(mode){
     }
   }
 
-  updateLoader(1,'Analisi IA storici per macchina…');
-  MACHINE_STATS=buildMachineStats();
-  localStorage.setItem(HIST_KEY,JSON.stringify(history));
+  // costruisco dataset CLASSICO (solo ultimo file)
+  const classicStates=[...latestByFile.values()];
+  fullRowsClassic=classicStates.map(s=>computeRowClassic(s)).filter(Boolean);
+
+  // dataset IA (ultimo stato da history)
+  const latestStates=getLatestStateForAll();
+  fullRowsIA=latestStates.map(s=>computeRowIA(s)).filter(Boolean);
 
   document.getElementById('lastRead').innerHTML=`Ultima lettura: <b>${fmtDMY(latestSnapshot)}</b>`;
-  document.getElementById('statStatus').textContent=`Modalità: ${mode==='quick'?'Avvio rapido (ultimi '+files.length+' file)':'Completa'} · Ultimo file: ${lastName||'—'} — righe: ${lastRowsTotal} — importate: ${totalPushed}`;
-  document.getElementById('statMap').textContent=`Non mappati: ${lastUnmapped.length}`;
-
-  const latestStates=getLatestStateForAll();
-  fullRows=latestStates.map(s=>computeRow(s)).filter(Boolean);
-  render(fullRows);
-
-  findStale();renderStale();
-  document.getElementById('staleWarn').classList.toggle('hidden',staleRows.length===0);
-
-  hideLoader();
+  status(`Modalità: ${MODE==='classic'?'Classica':'IA'} · Ultimo file: ${lastName||'—'} — righe: ${lastRowsTotal} — letture storiche: ${totalPushed}`);
+  renderCurrent();
 }
 
-/* Avvio rapido dopo login */
-async function initAuto(){
-  const ok=await loadCicloslotConfig();
-  if(!ok)return;
-  await loadManifest();
-  loadSettingsUI();
-  const savedQ=localStorage.getItem('awp_q');if(savedQ)document.getElementById('search').value=savedQ;
-  document.getElementById('search').addEventListener('input',()=>{localStorage.setItem('awp_q',document.getElementById('search').value);render(fullRows);});
-  await loadSinottici('quick');
+/* ===== Analisi IA completa (carica i file storici rimanenti) ===== */
+let IA_RUNNING=false;
+async function runFullIA(){
+  if(IA_RUNNING) return;
+  if(!PENDING_FILES.length){
+    toast('Lo storico completo è già stato caricato.');
+    return;
+  }
+  IA_RUNNING=true;
+  showLoadBar('Analisi IA completa in corso…',10);
+  const toLoad=[...PENDING_FILES];
+  PENDING_FILES=[];
+  await loadSinotticiSet(toLoad,false);
+  localStorage.setItem(HIST_KEY,JSON.stringify(history));
+  buildModelStats();
+  renderModelStats();
+  hideLoadBar();
+  IA_RUNNING=false;
+  document.getElementById('iaStatus').textContent='IA calcolata su tutto lo storico disponibile.';
 }
-
-/* Analisi completa IA dal pulsante avanzato */
-document.getElementById('btnDeepAnalysis').onclick=async()=>{
-  await loadSinottici('full');
+document.getElementById('btnFullIA').onclick=async()=>{
+  // entra direttamente in modalità IA e carica eventuale storico
+  setMode('ia');
+  await runFullIA();
 };
+document.getElementById('btnIaRebuild').onclick=async()=>{
+  setMode('ia');
+  await runFullIA();
+};
+
+/* ===== Event: cambio modalità dal titolo (clic su label) ===== */
+document.getElementById('modeLabel').addEventListener('click',()=>{
+  setMode(MODE==='classic'?'ia':'classic');
+});
+
+/* ===== Init search e IA default ===== */
+loadSettingsUI();
+
+/* ===== Salvataggio query ===== */
+const savedQ=localStorage.getItem('awp_q');
+if(savedQ) document.getElementById('search').value=savedQ;
+document.getElementById('search').addEventListener('input',()=>{
+  localStorage.setItem('awp_q',document.getElementById('search').value);
+  renderCurrent();
+});
 </script>
 </body>
 </html>
