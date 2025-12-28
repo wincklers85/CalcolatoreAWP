@@ -1,1079 +1,1368 @@
-<!DOCTYPE html>
-<html lang="it" data-theme="light">
+<!doctype html>
+<html lang="it">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>AWP Fine Ciclo · Analyzer Pro</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<style>
-:root{
-  --bg:#f6f8fc;--ink:#0b1220;--muted:#5a6885;--card:#fff;--border:#e7ecf5;
-  --accent:#2563eb;--ok:#16a34a;--warn:#f59e0b;--bad:#ef4444;
-  --thead:#f8fafc;--hover:#f3f7ff;--zebra:#fbfdff;--overlay:rgba(0,0,0,.35);
-  --glow:0 0 20px rgba(37,99,235,.35),0 0 40px rgba(37,99,235,.2);
-}
-html[data-theme=dark]{--bg:#0f1220;--ink:#eef1ff;--muted:#9aa3c7;--card:#161a2b;--border:#273057;--accent:#5b8cff;--ok:#2bd576;--warn:#ffd24a;--bad:#ff8c8c;--thead:#1a2040;--hover:#121735;--zebra:#12162e;--overlay:rgba(0,0,0,.55);--glow:0 0 20px rgba(91,140,255,.35),0 0 40px rgba(71,108,255,.2)}
-html[data-theme=mint]{--bg:#f2fbf7;--ink:#072018;--muted:#4c7a69;--card:#fff;--border:#d7efe4;--accent:#10b981;--ok:#0ea5a5;--warn:#f59e0b;--bad:#ef4444;--thead:#ecfdf5;--hover:#e6fff5;--zebra:#f6fffb;--overlay:rgba(0,0,0,.25);--glow:0 0 20px rgba(16,185,129,.35),0 0 40px rgba(16,185,129,.2)}
-html[data-theme=amber]{--bg:#fffaf2;--ink:#201508;--muted:#8b6a3a;--card:#fff;--border:#f1e3c8;--accent:#f59e0b;--ok:#22c55e;--warn:#d97706;--bad:#ef4444;--thead:#fff4e0;--hover:#fff0d4;--zebra:#fff8ea;--overlay:rgba(0,0,0,.25);--glow:0 0 20px rgba(245,158,11,.35),0 0 40px rgba(245,158,11,.2)}
-*{box-sizing:border-box}
-body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-.app{max-width:1350px;margin:auto;padding:16px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px}
-h1{margin:0 0 6px}.muted{color:var(--muted)}.hidden{display:none!important}
-.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-.toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;margin-top:12px}
-.stat{border:1px dashed var(--border);border-radius:12px;padding:8px 12px;font-size:13px}
-.tabs{display:flex;gap:8px;margin:10px 0 0}
-.tab{padding:8px 12px;border:1px solid var(--border);border-radius:999px;cursor:pointer;background:var(--card)}
-.tab.active{outline:2px solid var(--accent);box-shadow:var(--glow)}
-.themebar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.pill{border:1px solid var(--border);background:var(--card);color:var(--ink);padding:8px 12px;border-radius:999px;cursor:pointer}
-.search{border:1px solid var(--border);border-radius:999px;padding:8px 12px;width:320px}
-.badge{padding:4px 10px;border-radius:999px;font-weight:800;font-size:12px;border:1px solid var(--border)}
-.badge.base{background:#fff0;color:#6b7280}.badge.sub{background:#e7f6ed;color:#0b7a42;border-color:#bfe8d2}.badge.admin{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
-.table-wrap{overflow:auto;border-radius:12px;border:1px solid var(--border)}
-table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
-thead th{position:sticky;top:0;z-index:2;background:var(--thead);text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);border-bottom:1px solid var(--border);padding:8px;cursor:pointer;user-select:none}
-tbody td{padding:8px;border-bottom:1px solid var(--border)}
-tbody tr:nth-child(odd) td{background:var(--zebra)}
-tbody tr:hover td{background:var(--hover)}
-.tag{padding:4px 9px;border-radius:999px;font-size:12px;font-weight:700;display:inline-block}
-.tag.good{background:color-mix(in oklab,var(--ok) 15%,transparent);color:var(--ok);border:1px solid color-mix(in oklab,var(--ok) 40%,transparent)}
-.tag.mid{background:color-mix(in oklab,var(--warn) 15%,transparent);color:var(--warn);border:1px solid color-mix(in oklab,var(--warn) 40%,transparent)}
-.tag.bad{background:color-mix(in oklab,var(--bad) 15%,transparent);color:var(--bad);border:1px solid color-mix(in oklab,var(--bad) 40%,transparent)}
-.tag.neutral{background:color-mix(in oklab,var(--muted) 12%,transparent);color:var(--muted);border:1px solid color-mix(in oklab,var(--muted) 35%,transparent)}
-.progress{margin-top:10px;border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--card)}
-.progress-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px}
-.progress-track{height:8px;background:var(--thead);border-radius:999px;overflow:hidden}
-.progress-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#60a5fa);transition:width .2s ease}
-.actionbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
-.actionbar .btn-secondary{border:1px solid var(--border);background:var(--card);color:var(--ink);padding:8px 12px;border-radius:12px;cursor:pointer;font-weight:700}
-.actionbar .btn-secondary:hover{box-shadow:var(--glow)}
-.actionbar .ai-pill{padding:6px 10px;border-radius:999px;border:1px solid var(--border);font-size:12px;color:var(--muted)}
-.analysis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:10px}
-.analysis-card{border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--card)}
-.analysis-card h4{margin:0 0 6px;font-size:13px}
-/* Splash/Login */
-.splash{position:fixed;inset:0;display:grid;place-items:center;overflow:hidden;background:radial-gradient(1200px 700px at 50% 0%,var(--thead) 0,var(--bg) 60%,var(--bg) 100%);z-index:5}
-.login-card{position:relative;text-align:center;max-width:680px;width:min(94vw,680px);padding:26px 22px 18px;border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.75));box-shadow:0 10px 40px rgba(0,0,0,.12),var(--glow);border:1px solid var(--border)}
-.brand{font-weight:900;font-size:clamp(30px,6vw,52px);letter-spacing:.3px;color:var(--ink);text-shadow:var(--glow)}
-.subtitle{color:var(--muted);margin-top:4px}
-.pinbox{margin-top:16px;display:grid;gap:10px;justify-items:center}
-.pinbox input{width:280px;text-align:center;letter-spacing:2px;font-size:18px;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--card)}
-.btn{border:0;padding:10px 14px;border-radius:12px;background:var(--accent);color:#fff;cursor:pointer;font-weight:800;letter-spacing:.3px}
-.btn:hover{filter:brightness(1.05);box-shadow:var(--glow)}
-.error{color:var(--bad);font-weight:700;margin-top:6px;text-align:center}
-.float{position:absolute;font-size:42px;opacity:.13;filter:drop-shadow(0 2px 6px rgba(0,0,0,.2));animation:floaty 12s ease-in-out infinite}
-.f1{top:6%;left:8%}.f2{top:22%;right:8%}.f3{bottom:12%;left:12%}.f4{bottom:18%;right:18%}
-@keyframes floaty{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-18px) rotate(6deg)}}
-.login-footer{margin-top:12px;font-size:12px;color:var(--muted)}.version{font-weight:800}
-/* Mobile */
-@media (max-width: 860px){
-  .app{padding:10px}
-  .search{width:100%}
-  .toolbar{gap:8px}
-  .stat{font-size:12px}
-  table{min-width:980px;font-size:13px}
-  thead th{font-size:11px}
-}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Sinottico Analyzer + S.A.G.A.</title>
+  <style>
+    :root{
+      --bg:#0b0f14;
+      --card:#111827;
+      --card2:#0f172a;
+      --muted:#94a3b8;
+      --text:#e5e7eb;
+      --accent:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --line:#223043;
+      --chip:#0b1220;
+      --shadow: 0 16px 40px rgba(0,0,0,.35);
+      --radius: 18px;
+      --radius2: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      background: radial-gradient(1200px 900px at 20% 10%, #0f2a2a 0%, transparent 50%),
+                  radial-gradient(900px 700px at 80% 20%, #1a1a3a 0%, transparent 55%),
+                  var(--bg);
+      color:var(--text);
+    }
+    header{
+      position:sticky; top:0; z-index:10;
+      backdrop-filter: blur(12px);
+      background: rgba(11,15,20,.65);
+      border-bottom:1px solid rgba(34,48,67,.65);
+    }
+    .wrap{max-width:1220px; margin:0 auto; padding:16px}
+    .topbar{
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
+      flex-wrap:wrap;
+    }
+    .brand{display:flex; gap:12px; align-items:center}
+    .logo{
+      width:42px; height:42px; border-radius:14px;
+      background: linear-gradient(135deg, rgba(34,197,94,.95), rgba(59,130,246,.85));
+      box-shadow: 0 10px 30px rgba(34,197,94,.18);
+      display:grid; place-items:center;
+      font-weight:900;
+    }
+    .brand h1{font-size:16px; margin:0; letter-spacing:.2px}
+    .brand p{margin:2px 0 0; font-size:12px; color:var(--muted)}
+    .actions{display:flex; gap:10px; flex-wrap:wrap}
+    .btn, .chip, input, select{
+      border:1px solid rgba(34,48,67,.8);
+      background: rgba(15,23,42,.65);
+      color:var(--text);
+      border-radius:14px;
+      padding:10px 12px;
+      outline:none;
+    }
+    .btn{
+      cursor:pointer;
+      transition: transform .08s ease, background .18s ease, border-color .18s ease;
+      box-shadow: 0 10px 26px rgba(0,0,0,.25);
+      user-select:none;
+    }
+    .btn:hover{transform: translateY(-1px); border-color: rgba(34,197,94,.55)}
+    .btn:active{transform: translateY(0px)}
+    .btn.primary{background: rgba(34,197,94,.16); border-color: rgba(34,197,94,.45)}
+    .btn.danger{background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.45)}
+    .btn.ghost{background: rgba(148,163,184,.07)}
+    main .wrap{padding-top:18px; padding-bottom:28px}
+    .grid{
+      display:grid;
+      grid-template-columns: 1.3fr .7fr;
+      gap:14px;
+      align-items:start;
+    }
+    @media(max-width: 1020px){
+      .grid{grid-template-columns: 1fr; }
+    }
+    .card{
+      background: linear-gradient(180deg, rgba(17,24,39,.9), rgba(15,23,42,.85));
+      border:1px solid rgba(34,48,67,.75);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 14px 10px;
+      border-bottom:1px solid rgba(34,48,67,.6);
+      display:flex; justify-content:space-between; align-items:flex-start; gap:12px;
+      flex-wrap:wrap;
+    }
+    .title{
+      display:flex; flex-direction:column; gap:4px;
+    }
+    .title h2{margin:0; font-size:14px}
+    .title small{color:var(--muted)}
+    .card .bd{padding:14px}
+    .kpis{display:grid; grid-template-columns: repeat(4,1fr); gap:10px}
+    @media(max-width: 700px){ .kpis{grid-template-columns: repeat(2,1fr)} }
+    .kpi{
+      background: rgba(2,6,23,.35);
+      border:1px solid rgba(34,48,67,.55);
+      border-radius: 16px;
+      padding:12px;
+    }
+    .kpi .v{font-size:18px; font-weight:800}
+    .kpi .l{font-size:12px; color:var(--muted); margin-top:2px}
+    .row{display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+    .row > *{flex: 0 0 auto}
+    input[type="text"]{min-width: 250px}
+    .muted{color:var(--muted)}
+    .hint{font-size:12px; color:var(--muted); line-height:1.35}
+    table{
+      width:100%;
+      border-collapse:separate;
+      border-spacing:0;
+      overflow:hidden;
+      border-radius: 16px;
+      border:1px solid rgba(34,48,67,.55);
+      background: rgba(2,6,23,.25);
+    }
+    thead th{
+      position:sticky; top:0;
+      background: rgba(15,23,42,.9);
+      border-bottom:1px solid rgba(34,48,67,.7);
+      text-align:left;
+      padding:10px;
+      font-size:12px;
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    tbody td{
+      border-bottom:1px solid rgba(34,48,67,.35);
+      padding:10px;
+      font-size:13px;
+      vertical-align:middle;
+    }
+    tbody tr:hover{background: rgba(34,197,94,.06)}
+    .tag{
+      font-size:11px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid rgba(34,48,67,.65);
+      background: rgba(2,6,23,.35);
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      color: var(--text);
+      white-space:nowrap;
+    }
+    .tag.good{border-color: rgba(34,197,94,.5); background: rgba(34,197,94,.11)}
+    .tag.warn{border-color: rgba(245,158,11,.5); background: rgba(245,158,11,.10)}
+    .tag.bad{border-color: rgba(239,68,68,.5); background: rgba(239,68,68,.10)}
+    .mono{font-family:var(--mono)}
+    .split{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:10px;
+    }
+    .detail{
+      display:grid;
+      grid-template-columns: 1fr;
+      gap:12px;
+    }
+    .detail .box{
+      background: rgba(2,6,23,.35);
+      border:1px solid rgba(34,48,67,.55);
+      border-radius: 16px;
+      padding:12px;
+    }
+    canvas{width:100%; height:90px; display:block}
+    .chat{
+      height: 360px;
+      overflow:auto;
+      padding:12px;
+      background: rgba(2,6,23,.35);
+      border:1px solid rgba(34,48,67,.55);
+      border-radius: 16px;
+    }
+    .msg{margin:0 0 10px; display:flex; gap:10px}
+    .bubble{
+      max-width: 92%;
+      padding:10px 12px;
+      border-radius: 16px;
+      border:1px solid rgba(34,48,67,.6);
+      background: rgba(15,23,42,.7);
+      line-height:1.35;
+      font-size:13px;
+    }
+    .me .bubble{background: rgba(34,197,94,.12); border-color: rgba(34,197,94,.45)}
+    .ai .bubble{background: rgba(59,130,246,.10); border-color: rgba(59,130,246,.35)}
+    .who{
+      width:30px; height:30px; border-radius:12px;
+      display:grid; place-items:center;
+      font-weight:900; font-size:12px;
+      background: rgba(148,163,184,.12);
+      border:1px solid rgba(34,48,67,.65);
+      flex: 0 0 auto;
+    }
+    .me .who{background: rgba(34,197,94,.15); border-color: rgba(34,197,94,.4)}
+    .ai .who{background: rgba(59,130,246,.14); border-color: rgba(59,130,246,.35)}
+    .chatbar{display:flex; gap:10px; margin-top:10px}
+    .chatbar input{flex:1 1 auto; min-width:0}
+    .small{font-size:12px}
+    .right{justify-content:flex-end}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 10px; border-radius:999px;
+      border:1px solid rgba(34,48,67,.55);
+      background: rgba(2,6,23,.30);
+      font-size:12px; color:var(--muted);
+    }
+    .divider{height:1px; background: rgba(34,48,67,.6); margin:12px 0}
+    .warnbox{
+      background: rgba(245,158,11,.10);
+      border:1px solid rgba(245,158,11,.35);
+      border-radius: 16px;
+      padding:12px;
+    }
+    .okbox{
+      background: rgba(34,197,94,.10);
+      border:1px solid rgba(34,197,94,.35);
+      border-radius: 16px;
+      padding:12px;
+    }
+  </style>
 </head>
 <body>
-<script type="application/json" id="cicloslot-json">[]</script>
 
-<!-- Splash / Login -->
-<div class="splash" id="splash">
-  <div class="float f1">🎰</div><div class="float f2">📊</div><div class="float f3">💸</div><div class="float f4">🧮</div>
-  <div class="login-card">
-    <div class="brand">AWP Fine Ciclo</div>
-    <div class="subtitle">Analyzer Pro · Accesso riservato</div>
-    <div class="pinbox">
-      <input type="text" id="user" placeholder="User" autocomplete="off"/>
-      <input type="password" id="pin" maxlength="16" placeholder="PIN" autocomplete="off"/>
-      <button class="btn" id="enterBtn" type="button">Entra</button>
-    </div>
-    <div id="pinMsg" class="error" style="display:none;">Credenziali errate o non abilitate</div>
-    <div class="login-footer">Versione: <span class="version" id="version"></span></div>
-  </div>
-</div>
-
-<!-- App -->
-<div class="app hidden" id="app">
-  <div class="card">
-    <div class="row" style="justify-content:space-between;align-items:flex-start;">
-      <div>
-        <h1>Analisi Fine Ciclo</h1>
-        <div class="muted">Payout default: <b>65%</b> · Formato date: <b>DD-MM-YYYY</b></div>
-        <div id="lastRead" class="muted" style="margin-top:4px;"></div>
-        <div id="staleWarn" class="error hidden" style="margin-top:6px;">Attenzione: alcune macchine non sono aggiornate a oggi.</div>
-        <div class="tabs" id="tabs" style="margin-top:10px;">
-          <button class="tab active" data-tab="dashboard">Dashboard</button>
-          <button class="tab" data-tab="nonaggiornate">Non aggiornate oggi</button>
-          <button class="tab" data-tab="aggregati">Aggregati</button>
-          <button class="tab" data-tab="impostazioni">Impostazioni</button>
+<header>
+  <div class="wrap">
+    <div class="topbar">
+      <div class="brand">
+        <div class="logo">SA</div>
+        <div>
+          <h1>Sinottico Analyzer + <span class="mono">S.A.G.A.</span></h1>
+          <p class="muted">Tutto in RAM. Import XLSX. Storico in memoria. Impostazioni in cache. 🔧</p>
         </div>
       </div>
-      <div style="text-align:right;">
-        <div class="themebar">
-          <span class="muted" style="font-size:12px;">Tema:</span>
-          <button class="pill" data-theme="light">Chiaro</button>
-          <button class="pill" data-theme="dark">Scuro</button>
-          <button class="pill" data-theme="mint">Mint</button>
-          <button class="pill" data-theme="amber">Ambra</button>
-        </div>
-        <div class="row" style="justify-content:flex-end;margin-top:8px;">
-          <input id="search" class="search" placeholder='Cerca (es: provincia:VE modello:"novo matic")...'/>
-        </div>
-        <div id="who" style="margin-top:8px;font-size:13px;"></div>
-        <div id="expireWarn" class="error hidden">Abbonamento scaduto: accesso in modalità Base.</div>
-        <div id="adminBar" class="row" style="justify-content:flex-end;margin-top:8px;display:none;">
-          <button class="pill" id="btnExportCSV" type="button">Esporta CSV</button>
-          <button class="pill" id="btnExportXLSX" type="button">Esporta XLSX</button>
-          <button class="pill" id="btnUnmapped" type="button">Codici non mappati</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="toolbar" id="statsBar">
-      <div class="stat" id="statStatus">Stato: in attesa dati…</div>
-      <div class="stat" id="statCount">Macchine: 0</div>
-      <div class="stat" id="statGood">Top (OUT&gt;IN): 0</div>
-      <div class="stat" id="statWarn">Equilibrate (±10%): 0</div>
-      <div class="stat" id="statAI">IA: —</div>
-      <div class="stat" id="statMap">Mappate/scartate: 0/0</div>
-    </div>
-
-    <div class="progress hidden" id="loadProgress">
-      <div class="progress-meta">
-        <span id="loadText">Caricamento sinottici…</span>
-        <span id="loadPct">0%</span>
-      </div>
-      <div class="progress-track"><div class="progress-bar" id="loadBar"></div></div>
-    </div>
-
-    <div class="actionbar">
-      <button class="btn-secondary" id="btnAI" type="button">Analizza con IA</button>
-      <span class="ai-pill" id="aiStatus">IA: in attesa dati completi…</span>
-      <span class="muted" style="font-size:12px;">Suggerimento: l’analisi IA usa tutti i sinottici in <b>Dati/manifest.json</b>.</span>
-    </div>
-
-    <div class="analysis-grid" id="aiSummary" style="display:none;">
-      <div class="analysis-card">
-        <h4>Algoritmo di pagamento (ipotesi)</h4>
-        <div id="aiAlgo" class="muted">—</div>
-      </div>
-      <div class="analysis-card">
-        <h4>Precisione stimata</h4>
-        <div id="aiPrecision" class="muted">—</div>
-      </div>
-      <div class="analysis-card">
-        <h4>Cluster per modello</h4>
-        <div id="aiClusters" class="muted">—</div>
-      </div>
-      <div class="analysis-card">
-        <h4>Locali simili</h4>
-        <div id="aiLocales" class="muted">—</div>
-      </div>
-    </div>
-
-    <!-- DASHBOARD -->
-    <div id="view-dashboard">
-      <div class="table-wrap">
-        <table id="resultTable">
-          <thead>
-            <tr>
-              <th data-k="flag" class="col-calc">⚑</th>
-              <th data-k="_signal" class="col-calc">Semaforo</th>
-              <th data-k="perc_cycle" class="col-calc">Percentuale Ciclo</th>
-              <th data-k="cycle_idx" class="col-calc">Ciclo Corrente</th>
-              <th data-k="resid_in" class="col-calc">Residuo IN</th>
-              <th data-k="resid_out" class="col-calc">Residuo OUT</th>
-              <th data-k="need65" class="col-calc">Residuo al 65%</th>
-              <th data-k="forecast_date" class="col-calc">Fine Ciclo Stimata</th>
-              <th data-k="ID">CODEID</th>
-              <th data-k="MODELLO">MODELLO</th>
-              <th data-k="DENOMIN_SEDE">DENOMIN. SEDE</th>
-              <th data-k="SEDE">SEDE</th>
-              <th data-k="INDIRIZZO" class="optcol">INDIRIZZO</th>
-              <th data-k="PROVINCIA" class="optcol">PROVINCIA</th>
-              <th data-k="_stato">Stato</th>
-              <th data-k="_ts_str">Ultima Lettura</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="muted" id="footNote" style="margin-top:8px;">Residuo OUT negativo → <b>€0</b>. IN/OUT divisi per <b>100</b>. Timestamp da <b>“DATA ULTIMA LETTURA VAL.”</b>.</div>
-    </div>
-
-    <!-- NON AGGIORNATE -->
-    <div id="view-nonaggiornate" class="hidden" style="margin-top:10px;">
-      <div class="table-wrap">
-        <table id="staleTable">
-          <thead><tr><th>CODEID</th><th>MODELLO</th><th>DENOMIN. SEDE</th><th>SEDE</th><th>INDIRIZZO</th><th>PROVINCIA</th><th>Ultima Lettura</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- AGGREGATI -->
-    <div id="view-aggregati" class="hidden" style="margin-top:10px;">
-      <div class="row" style="gap:10px;">
-        <label>Raggruppa per:</label>
-        <select id="aggField" class="pill">
-          <option value="DENOMIN_SEDE">DENOMIN. SEDE</option>
-          <option value="SEDE">SEDE (Comune)</option>
-          <option value="PROVINCIA">PROVINCIA</option>
-          <option value="MODELLO">MODELLO</option>
-        </select>
-        <button class="pill" id="btnAggExport">Esporta aggregati (XLSX)</button>
-      </div>
-      <div class="table-wrap" style="margin-top:8px;">
-        <table id="aggTable">
-          <thead><tr><th>Gruppo</th><th>Macchine</th><th>IN tot</th><th>OUT tot</th><th>Payout medio</th><th>Residuo IN medio</th><th>Residuo OUT medio</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- IMPOSTAZIONI -->
-    <div id="view-impostazioni" class="hidden" style="margin-top:10px;">
-      <div class="row" style="gap:10px;align-items:center;">
-        <label>Soglia “buone” (Δ OUT-IN) €:</label><input id="thrAbs" type="number" step="10" class="pill" style="width:120px"/>
-        <label>oppure % su residuo IN:</label><input id="thrPct" type="number" step="1" class="pill" style="width:100px"/>
-        <label>Giorni per avviso dati vecchi:</label><input id="staleDays" type="number" step="1" class="pill" style="width:90px"/>
-        <label><input type="checkbox" class="colToggle" data-col="INDIRIZZO" checked/> Indirizzo</label>
-        <label><input type="checkbox" class="colToggle" data-col="PROVINCIA" checked/> Provincia</label>
-        <button class="pill" id="btnSaveSettings">Salva</button>
-        <button class="pill" id="btnResetSettings">Reset</button>
+      <div class="actions">
+        <label class="btn ghost">
+          Importa Sinottico XLSX
+          <input id="file" type="file" accept=".xlsx,.xls" style="display:none" />
+        </label>
+        <button id="btnDemo" class="btn ghost">Modalità test (fake storico)</button>
+        <button id="btnClear" class="btn danger">Svuota RAM</button>
       </div>
     </div>
   </div>
-</div>
+</header>
 
-<!-- Modal scheda -->
-<div class="hidden" id="modal" style="position:fixed;inset:0;background:var(--overlay);display:flex;align-items:center;justify-content:center;z-index:10;">
-  <div class="panel" style="width:min(900px,95vw);background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;">
-    <button class="pill" id="closeModal" style="float:right">Chiudi</button>
-    <h3 id="m_title" style="margin:0 0 8px;">Scheda macchina</h3>
-    <div class="row" style="gap:20px;align-items:flex-start;flex-wrap:wrap;">
-      <div style="flex:1;min-width:260px;">
-        <div><b>CODEID</b>: <span id="m_id"></span></div>
-        <div><b>Codice Modello</b>: <span id="m_code" style="font-family:ui-monospace,Menlo,Consolas,monospace;"></span></div>
-        <div><b>Modello</b>: <span id="m_model"></span></div>
-        <div><b>Locale</b>: <span id="m_locale"></span></div>
-        <div><b>Indirizzo</b>: <span id="m_addr"></span></div>
-        <div><b>Comune/Prov.</b>: <span id="m_city"></span></div>
-        <div><b>Ciclo</b>: <span id="m_cycle"></span> · <b>Payout</b>: <span id="m_payout">65%</span></div>
-        <div><b>Residuo IN</b>: <span id="m_resid_in"></span> · <b>Residuo OUT</b>: <span id="m_resid_out"></span></div>
-        <div><b>Percentuale Ciclo</b>: <span id="m_perc"></span> · <b>Fine Ciclo Stimata</b>: <span id="m_forecast"></span></div>
-        <div><b>Confidenza IA</b>: <span id="m_ai"></span></div>
-        <div><b>Similarità modello</b>: <span id="m_sim"></span></div>
-        <div><b>Payout modello medio</b>: <span id="m_model_payout"></span></div>
-      </div>
-      <div style="flex:1;min-width:320px;">
-        <canvas id="m_chart" width="640" height="240"></canvas>
-      </div>
+<main>
+  <div class="wrap">
+    <div class="grid">
+
+      <!-- LEFT: dashboard -->
+      <section class="card">
+        <div class="hd">
+          <div class="title">
+            <h2>Macchine</h2>
+            <small id="status" class="muted">Nessun sinottico caricato.</small>
+          </div>
+
+          <div class="row">
+            <input id="q" type="text" placeholder="Cerca: bar, comune, modello, CODEID…" />
+            <select id="sort">
+              <option value="scoreDesc">Ordina: Score payout ↓</option>
+              <option value="scoreAsc">Ordina: Score payout ↑</option>
+              <option value="pctDesc">Ordina: % OUT ↓</option>
+              <option value="pctAsc">Ordina: % OUT ↑</option>
+              <option value="incDesc">Ordina: Incasso giorn. ↓</option>
+              <option value="incAsc">Ordina: Incasso giorn. ↑</option>
+              <option value="bar">Ordina: Esercente A-Z</option>
+              <option value="model">Ordina: Modello A-Z</option>
+            </select>
+            <select id="filterPay">
+              <option value="all">Filtro: Tutte</option>
+              <option value="hot">In pagamento (alta)</option>
+              <option value="warm">In pagamento (media)</option>
+              <option value="cold">Non in pagamento</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="bd">
+          <div class="kpis">
+            <div class="kpi"><div class="v" id="kMachines">0</div><div class="l">macchine (valide)</div></div>
+            <div class="kpi"><div class="v" id="kUploads">0</div><div class="l">sinottici in RAM</div></div>
+            <div class="kpi"><div class="v" id="kHot">0</div><div class="l">hot payout</div></div>
+            <div class="kpi"><div class="v" id="kIssues">0</div><div class="l">righe scartate</div></div>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="row">
+            <span class="pill">Soglia HOT: <span class="mono" id="pillHot">80</span></span>
+            <span class="pill">Soglia WARM: <span class="mono" id="pillWarm">60</span></span>
+            <span class="pill">Min storico: <span class="mono" id="pillMinHist">2</span></span>
+            <button class="btn ghost" id="btnSettings">Impostazioni</button>
+          </div>
+
+          <div style="margin-top:12px; overflow:auto; max-height: 520px; border-radius:16px;">
+            <table>
+              <thead>
+                <tr>
+                  <th>Score</th>
+                  <th>CODEID</th>
+                  <th>Esercente</th>
+                  <th>Modello</th>
+                  <th>% OUT</th>
+                  <th>Inc. giorn.</th>
+                  <th>Storico</th>
+                  <th>Stato</th>
+                </tr>
+              </thead>
+              <tbody id="tbody"></tbody>
+            </table>
+          </div>
+
+          <div class="divider"></div>
+
+          <div class="hint">
+            <b>Nota:</b> lo storico si costruisce caricando più sinottici nel tempo. È tutto in RAM: se ricarichi la pagina si azzera (tranne impostazioni).<br>
+            Se vuoi “allenare” meglio l’algoritmo, carica sinottici di giorni diversi e poi usa la chat: S.A.G.A. confronterà trend e deviazioni.
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: detail + chat -->
+      <aside class="split">
+        <section class="card">
+          <div class="hd">
+            <div class="title">
+              <h2>Dettaglio macchina</h2>
+              <small class="muted" id="detailHint">Seleziona una riga dalla tabella.</small>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="detail" id="detail"></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="hd">
+            <div class="title">
+              <h2>Chat con <span class="mono">S.A.G.A.</span></h2>
+              <small class="muted">Chiedi cose sul programma: payout, top macchine, dettagli, confronti.</small>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="chat" id="chat"></div>
+            <div class="chatbar">
+              <input id="chatIn" type="text" placeholder="Es: Quale macchina è in pagamento oggi?" />
+              <button id="chatSend" class="btn primary">Invia</button>
+            </div>
+            <div class="hint" style="margin-top:10px">
+              Esempi: “Quando paga la <b>CODEID 12345</b>?” • “Mostrami <b>Marim Fire</b> al <b>Bar Fortini</b>” • “Top 10 in pagamento”
+            </div>
+          </div>
+        </section>
+      </aside>
+
     </div>
-    <h4 style="margin-top:12px;">Storico letture</h4>
-    <div id="m_history" style="max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
   </div>
-</div>
+</main>
+
+<!-- SheetJS -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
 <script>
-/* ====== Versione ====== */
-document.getElementById('version').textContent="v1.13.0 — semaforo + IA + progress";
+/* ===========================
+   State (RAM only)
+=========================== */
+const RAM = {
+  uploads: [],        // {id, name, date, rowsTotal, rowsValid, rowsDropped, machinesSnapshot: Map(codeId -> row)}
+  machines: new Map(),// codeId -> { meta..., history: [{date, pctOut, totIn, totOut, incDay, mediaInc, raw}], groupKey }
+  selected: null,
+  droppedTotal: 0
+};
 
-/* ====== Utility ====== */
-const norm=s=>(s??"").toString().trim();
-const lowerKeys=o=>{const r={};for(const k in o)r[norm(k).toLowerCase()]=o[k];return r};
-const normalize=s=>(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
-const euro=n=>new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n||0);
-const fmtDMY=iso=>{if(!iso)return'—';const d=new Date(iso);if(isNaN(d))return'—';const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'),yy=d.getFullYear();return`${dd}-${mm}-${yy}`};
-const todayIso=()=>new Date().toISOString().slice(0,10);
-const daysDiff=iso=>{if(!iso)return null;const t=new Date(iso);if(isNaN(t))return null;const ms=new Date().setHours(0,0,0,0)-new Date(t.getFullYear(),t.getMonth(),t.getDate()).getTime();return Math.max(0,Math.round(ms/86400000))}
-function toast(m){const d=document.createElement('div');d.textContent=m;d.style.cssText='position:fixed;bottom:12px;left:12px;right:12px;padding:10px 14px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;z-index:9999;font-weight:700';document.body.appendChild(d);setTimeout(()=>d.remove(),4500)}
-function escapeHTML(s){return(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
-function clamp(n,min,max){return Math.min(max,Math.max(min,n))}
+const SETTINGS_KEY = "sinottico_settings_v3";
+const Settings = loadSettings();
 
-/* ====== Tema ====== */
-document.querySelectorAll('.pill[data-theme]').forEach(b=>b.onclick=()=>{document.documentElement.setAttribute('data-theme',b.dataset.theme);localStorage.setItem('awp_theme',b.dataset.theme)});
-const savedTheme=localStorage.getItem('awp_theme');if(savedTheme)document.documentElement.setAttribute('data-theme',savedTheme);
-
-/* ====== Login ====== */
-let CURRENT_USER=null;
-document.getElementById('enterBtn').onclick=auth;
-document.getElementById('pin').addEventListener('keydown',e=>{if(e.key==='Enter')auth()});
-function badgeHTML(l){l=(l||'Base').toLowerCase();return l==='admin'?'<span class="badge admin">Admin</span>':(l==='abbonato'?'<span class="badge sub">Abbonato</span>':'<span class="badge base">Base</span>')}
-async function sha256Hex(s){const enc=new TextEncoder().encode(s);const buf=await crypto.subtle.digest('SHA-256',enc);return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('')}
-function loginErr(){const m=document.getElementById('pinMsg');m.style.display='block';setTimeout(()=>m.style.display='none',1500)}
-async function auth(){
-  const u=norm(document.getElementById('user').value).toLowerCase(),p=norm(document.getElementById('pin').value);
-
-  let list=[];
+/* ===========================
+   Utilities
+=========================== */
+function loadSettings(){
+  const def = { hot: 80, warm: 60, minHist: 2, pctNeutral: 0.60, debug: false };
   try{
-    const candidates=['Dati/users.json','/Dati/users.json','./Dati/users.json'];
-    let resp=null;
-    for(const path of candidates){
-      const r=await fetch(path,{cache:'no-store'});
-      if(r.ok){ resp=r; break; }
-    }
-    if(!resp) throw new Error('missing users.json');
-    list=await resp.json();
-  }catch{
-    toast('Errore lettura users.json (controlla Dati/users.json e server)');
-    return;
-  }
-
-  const rec=list.find(x=>String(x.user||'').toLowerCase()===u);if(!rec)return loginErr();
-  let ok=false;if(rec.pin_hash){ok=(await sha256Hex(p)).toLowerCase()===String(rec.pin_hash).toLowerCase()}else if(rec.pin){ok=String(rec.pin)===p}
-  if(!ok)return loginErr();
-
-  let level=(rec.level||'Base').trim();
-  const exp=rec.expires?String(rec.expires):null;
-  const now=todayIso();
-  const expired=!!(exp && exp<now);
-  if(expired) level='Base';
-
-  CURRENT_USER={user:rec.user,level,expires:exp,expiredFlag:expired};
-  document.getElementById('splash').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
-  document.getElementById('who').innerHTML=`Utente: <b>${CURRENT_USER.user}</b> · ${badgeHTML(level)} · Scadenza: <b>${CURRENT_USER.expires||'—'}</b>`;
-  document.getElementById('expireWarn').classList.toggle('hidden',!expired);
-
-  const pro=(level.toLowerCase()==='abbonato'||level.toLowerCase()==='admin');
-  document.querySelectorAll('.col-calc').forEach(el=>el.style.display=pro?'':'none');
-  document.getElementById('statsBar').style.display=pro?'flex':'none';
-  document.getElementById('footNote').style.display=pro?'block':'none';
-  document.getElementById('adminBar').style.display=(level.toLowerCase()==='admin')?'flex':'none';
-  initAuto();
+    const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+    return Object.assign(def, saved || {});
+  }catch(e){ return def; }
 }
+function saveSettings(){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(Settings)); }
 
-/* ====== Tabs ====== */
-function showTab(name){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
-  for(const id of ['dashboard','nonaggiornate','aggregati','impostazioni'])
-    document.getElementById('view-'+id).classList.toggle('hidden',id!==name);
-  if(name==='aggregati')renderAggregati();
-  if(name==='nonaggiornate')renderStale();
+function normKey(k){
+  return String(k||"")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g,"");
 }
-document.getElementById('tabs').addEventListener('click',e=>{
-  const b=e.target.closest('button.tab');if(!b)return;showTab(b.dataset.tab);
-});
-
-/* ====== Ciclo Slot ====== */
-let CICLOSLOT=[];try{const el=document.getElementById('cicloslot-json');if(el&&el.textContent.trim())CICLOSLOT=JSON.parse(el.textContent)}catch{}
-const cleanCode=s=>(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/^0+/,'');
-const cleanID=s=>(s||'').trim();
-function parsePayout(v){if(v==null||v==='')return null;let s=String(v).replace('%','').trim();let n=parseFloat(s);if(isNaN(n))return null;if(n>1)n/=100;return Math.max(0,Math.min(1,n))}
-function buildCicloMaps(arr){const byModelCode=new Map(),payoutByModelCode=new Map(),cicloByModelName=new Map(),payoutByModelName=new Map();
-  arr.forEach(x=>{
-    const mc=cleanCode(x.code||x['codice modello']||x['CODICE MODELLO']);
-    const mdl=norm(x.model||x.modello||x['MODELLO']||'');
-    const cyc=+x.cycle||+x.ciclo||+x['CICLO'];
-    const py=parsePayout(x['PAYOUT %']??x['PAYOUT']??x['payout']);
-    if(mc&&cyc){byModelCode.set(mc,cyc);if(py!=null)payoutByModelCode.set(mc,py)}
-    const mkey=normalize(mdl);if(mkey&&cyc)cicloByModelName.set(mkey,cyc);if(mkey&&py!=null)payoutByModelName.set(mkey,py)
-  });return{byModelCode,payoutByModelCode,cicloByModelName,payoutByModelName}
-}
-let CYCLE=buildCicloMaps(CICLOSLOT);
-
-/* ====== Lettura XLS/XLSX ====== */
-async function fetchXLSX(url){
-  const res=await fetch(url,{cache:'no-store'});if(!res.ok)throw new Error('fetch '+url);
-  const buf=await res.arrayBuffer();const wb=XLSX.read(buf,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];
-  const json=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false,blankrows:false,skipHidden:false});
-  return json.map(lowerKeys);
-}
-
-/* colonne del sinottico (in minuscolo) */
-function pickCols(map){
-  const keys=Object.keys(map); const pick=a=>a.find(k=>keys.includes(k));
-  return{
-    idKey: pick(['codeid','id','id awp','id macchina','matricola','codiceid'])||null,
-    modelCodeKey: keys.includes('codice modello')? 'codice modello': null,
-    inKey: keys.includes('cnttotin')? 'cnttotin': null,
-    outKey: keys.includes('cnttotot')? 'cnttotot': null,
-    modelloKey: pick(['modello','descrizione modello','model','desc modello','descr. modello']),
-    denomSedeKey: pick(['denomin. sede','denominazione sede','denom. sede','denominazione','denonim. sede']),
-    sedeKey: pick(['sede','comune','località','localita','città','citta','city']),
-    indirKey: pick(['indirizzo','indirizzo sede','via','via/piazza','indir.','address']),
-    provKey: pick(['provincia','prov.','prov','sigla provincia']),
-    validKey: pick(['data ultima lettura val.','data ultima lettura val','data ultima lettura','ultima lettura val.','ultima lettura']),
-    timeKey: pick(['ora lettura','ora','time','orario'])
-  };
-}
-
-/* parse contatori (÷100) */
-const parseCnt=v=>{if(typeof v==='number')return v/100;let s=(v||'').toString().trim();if(!s)return 0;s=s.replace(/\s+/g,'');if(s.includes('.')&&s.includes(','))s=s.replace(/\./g,'').replace(',', '.');else if(s.includes(','))s=s.replace('.', '').replace(',', '.');const n=parseFloat(s);return isNaN(n)?0:n/100};
-
-/* parse data/ora */
-function parseTSValue(val, fallbackISO){
-  if(!val){ return fallbackISO; }
-  const s = String(val).trim();
-  let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if(m){
-    const dd=m[1].padStart(2,'0'),mm=m[2].padStart(2,'0'),yy=(m[3].length===2?('20'+m[3]):m[3]);
-    const HH=(m[4]??'00').padStart(2,'0'), MM=(m[5]??'00').padStart(2,'0'), SS=(m[6]??'00').padStart(2,'0');
-    return `${yy}-${mm}-${dd}T${HH}:${MM}:${SS}`;
-  }
-  if(/^\d{4}-\d{2}-\d{2}T/.test(s) || /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s)){
-    return s.replace(' ','T').replace(/(\d{2}:\d{2})(?!:)/,'$1:00');
-  }
-  let m2 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-  if(m2){
-    const dd=m2[1].padStart(2,'0'),mm=m2[2].padStart(2,'0'),yy=(m2[3].length===2?('20'+m2[3]):m2[3]);
-    return `${yy}-${mm}-${dd}T00:00:00`;
-  }
-  return fallbackISO;
-}
-
-/* fallback dal nome file */
-function parseStampFromName(name){
-  const d=name.match(/(\d{4})-(\d{2})-(\d{2})(?:[_\s\-T]?(\d{2})[:\-]?(\d{2}))?/);
-  if(!d) return new Date().toISOString();
-  const[,Y,M,D,h,m]=d; return `${Y}-${M}-${D}T${h??'00'}:${m??'00'}:00`;
-}
-
-/* ====== Storico ====== */
-const payoutDefault=0.65, HIST_KEY='awp_history_by_id_v1';
-let history={}; try{ history=JSON.parse(localStorage.getItem(HIST_KEY)||'{}'); }catch{ history={}; }
-function pushHistory(ID,ts,IN,OUT,meta){
-  ID = cleanID(ID); if(!ID) return;
-  if(!history[ID]) history[ID]=[];
-  const arr=history[ID];
-  if(arr.some(r=> r.ts===ts)) return;
-  arr.push({ts,IN,OUT,meta});
-  arr.sort((a,b)=> new Date(a.ts)-new Date(b.ts));
-}
-function getLatestStateForAll(){
-  const out=[];
-  for(const ID in history){
-    const arr=history[ID]; if(!arr?.length) continue;
-    const last=arr[arr.length-1], m=last.meta||{};
-    out.push({ ID, IN:last.IN, OUT:last.OUT, MODELLO:m.MODELLO||'', MODEL_CODE:m.MODEL_CODE||'', DENOMIN_SEDE:m.DENOMIN_SEDE||'', SEDE:m.SEDE||'',
-               INDIRIZZO:m.INDIRIZZO||'', PROVINCIA:m.PROVINCIA||'', _ts:last.ts });
+function normalizeRow(row){
+  const out = {};
+  for(const [k,v] of Object.entries(row)){
+    out[normKey(k)] = v;
   }
   return out;
 }
-function forecastDate(ID, resid_in){
-  const h=history[ID]||[]; if(h.length<2) return '—';
-  const last=h.slice(-6);
-  let sumIn=0, sumHrs=0;
-  for(let i=1;i<last.length;i++){
-    const t1=new Date(last[i-1].ts), t2=new Date(last[i].ts);
-    const dtHrs=Math.max(1,(t2-t1)/36e5); const dIn=Math.max(0,last[i].IN - last[i-1].IN);
-    sumIn+=dIn; sumHrs+=dtHrs;
-  }
-  const avg = sumHrs>0 ? sumIn/sumHrs : 0;
-  if(avg<=0 || resid_in<=0) return '—';
-  const hrs = Math.ceil(resid_in/avg);
-  const est=new Date(); est.setHours(est.getHours()+hrs);
-  return fmtDMY(est.toISOString());
+function parseItNumber(v){
+  if(v===null || v===undefined || v==="") return null;
+  if(typeof v==="number") return Number.isFinite(v)? v : null;
+  const s = String(v).trim()
+    .replace(/\s/g,"")
+    .replace(/\./g,"")
+    .replace(",",".");
+  const n = Number(s);
+  return Number.isFinite(n) ? n : null;
+}
+function safeStr(v){ return (v===null || v===undefined) ? "" : String(v).trim(); }
+
+function guessDateFromFilename(name){
+  // prova: Sinottico-2025-12-27-0845.xlsx
+  const m = name.match(/(\d{4})[-_\.](\d{2})[-_\.](\d{2})/);
+  if(m) return new Date(`${m[1]}-${m[2]}-${m[3]}T00:00:00`);
+  return new Date(); // fallback: oggi
+}
+function fmtDate(d){
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const day=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
 }
 
-/* ====== “IA” locale (senza server): forecast lineare + benchmark ====== */
-let MODEL_BENCH=new Map();
-let LOCALE_BENCH=new Map();
+function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+function sigmoid(x){ return 1/(1+Math.exp(-x)); }
+function median(arr){
+  const a = arr.filter(x=>Number.isFinite(x)).slice().sort((x,y)=>x-y);
+  if(!a.length) return null;
+  const mid = Math.floor(a.length/2);
+  return (a.length%2)? a[mid] : (a[mid-1]+a[mid])/2;
+}
+function percentile(arr, p){
+  const a = arr.filter(x=>Number.isFinite(x)).slice().sort((x,y)=>x-y);
+  if(!a.length) return null;
+  const idx = (a.length-1)*p;
+  const lo = Math.floor(idx), hi = Math.ceil(idx);
+  if(lo===hi) return a[lo];
+  return a[lo] + (a[hi]-a[lo])*(idx-lo);
+}
+function stdev(arr){
+  const a = arr.filter(x=>Number.isFinite(x));
+  if(a.length<2) return 0;
+  const mean = a.reduce((s,x)=>s+x,0)/a.length;
+  const v = a.reduce((s,x)=>s+(x-mean)*(x-mean),0)/(a.length-1);
+  return Math.sqrt(v);
+}
+function last(arr){ return arr && arr.length ? arr[arr.length-1] : null; }
 
-function aiForecastInfo(ID, resid_in){
-  const h=history[ID]||[]; if(h.length<3 || resid_in<=0) return {date:null, confidence:null};
-  const series=h.slice(-10);
-  const t0=+new Date(series[0].ts);
-  const pts=series.map(p=>({x:(+new Date(p.ts)-t0)/36e5, y:p.IN}));
-  const n=pts.length;
-  let sumX=0,sumY=0,sumXX=0,sumXY=0;
-  for(const p of pts){ sumX+=p.x; sumY+=p.y; sumXX+=p.x*p.x; sumXY+=p.x*p.y; }
-  const denom=(n*sumXX - sumX*sumX);
-  if(denom===0) return {date:null, confidence:null};
-  const slope=(n*sumXY - sumX*sumY)/denom;
-  const intercept=(sumY - slope*sumX)/n;
-  if(!isFinite(slope) || slope<=0) return {date:null, confidence:null};
-  const target=pts[pts.length-1].y + resid_in;
-  const tTarget=(target - intercept)/slope;
-  if(!isFinite(tTarget) || tTarget < pts[pts.length-1].x) return {date:null, confidence:null};
-  const estimate=new Date(t0 + tTarget*36e5);
-
-  const meanY=sumY/n;
-  let ssTot=0, ssRes=0;
-  for(const p of pts){
-    const yHat=intercept + slope*p.x;
-    ssTot += (p.y-meanY)**2;
-    ssRes += (p.y-yHat)**2;
-  }
-  const r2=ssTot>0 ? clamp(1-(ssRes/ssTot),0,1) : null;
-  return {date: fmtDMY(estimate.toISOString()), confidence: r2};
+function tagForScore(score){
+  if(score>=Settings.hot) return {cls:"good", label:"HOT"};
+  if(score>=Settings.warm) return {cls:"warn", label:"WARM"};
+  return {cls:"bad", label:"COLD"};
 }
 
-function computeBenchmarks(){
-  MODEL_BENCH=new Map();
-  LOCALE_BENCH=new Map();
-  const latest=getLatestStateForAll();
-  const modelAgg=new Map();
-  const localeAgg=new Map();
-  latest.forEach(r=>{
-    const modelKey=normalize(r.MODELLO||'') || cleanCode(r.MODEL_CODE) || '—';
-    const localeKey=normalize(r.DENOMIN_SEDE||r.SEDE||'') || '—';
-    if(!modelAgg.has(modelKey)) modelAgg.set(modelKey,{in:0,out:0,n:0,label:r.MODELLO||r.MODEL_CODE||'—'});
-    if(!localeAgg.has(localeKey)) localeAgg.set(localeKey,{in:0,out:0,n:0,label:r.DENOMIN_SEDE||r.SEDE||'—'});
-    const m=modelAgg.get(modelKey); m.in+=r.IN||0; m.out+=r.OUT||0; m.n++;
-    const l=localeAgg.get(localeKey); l.in+=r.IN||0; l.out+=r.OUT||0; l.n++;
+/* ===========================
+   Parsing: XLSX row -> machine snapshot
+=========================== */
+function toMachineSnapshot(rowRaw){
+  const r = normalizeRow(rowRaw);
+
+  // alias fondamentali
+  const codeId = safeStr(r.CODEID);
+  if(!codeId) return null;
+
+  const modello = safeStr(r.MODELLO);
+  const sede = safeStr(r.DENOMINSEDE);
+  const comune = safeStr(r.COMUNE);
+  const provincia = safeStr(r.PROVINCIA);
+  const stato = safeStr(r.DESCRSTATO || r.STATO || r.STATUS);
+
+  const totIn  = parseItNumber(r.CNTTOTIN);
+  // nel tuo file: CNTTOTOT è TOT OUT (colonna “Totale Out”)
+  const totOut = parseItNumber(r.CNTTOTOUT ?? r.CNTTOTOT ?? r.TOTALEOUT ?? r.TOTOUT);
+
+  // % OUT nel file arriva come “% OUT” => chiave normalizzata “OUT”
+  const pctOut = parseItNumber(
+    r.OUT ?? r.PCTOUT ?? r.PERCENTOUT ?? r.PEROUT ?? r.PERCENTUALEOUT
+  );
+
+  const incDay = parseItNumber(r.INCASSOGIORNALIERO ?? r.INCASSOGIORNAL);
+  const mediaInc = parseItNumber(r.MEDIAINCASSOGGESERCIZIO ?? r.MEDIAINCASSO);
+
+  // Se il foglio ha righe header/spazzatura, qui le scartiamo
+  // Non pretendiamo pctOut per essere valida, ma almeno uno tra totIn/totOut/incDay deve esserci
+  const hasSignal = Number.isFinite(totIn) || Number.isFinite(totOut) || Number.isFinite(incDay) || Number.isFinite(pctOut);
+  if(!hasSignal) return null;
+
+  // pctOut: se nel file è tipo 168,04 significa 168.04% -> convertiamo in frazione
+  let pctFrac = null;
+  if(Number.isFinite(pctOut)){
+    pctFrac = pctOut > 3 ? (pctOut/100) : pctOut; // 1.68 o 168 -> gestito
+    if(pctFrac>5) pctFrac = pctFrac/100; // safety (in caso di 16804)
+  }
+
+  return {
+    codeId, modello, sede, comune, provincia, stato,
+    totIn, totOut, pctOutFrac: pctFrac,
+    incDay, mediaInc,
+    raw: rowRaw
+  };
+}
+
+/* ===========================
+   Model: add upload + update history
+=========================== */
+function upsertMachine(snapshot, dateObj){
+  const codeId = snapshot.codeId;
+  const groupKey = `${(snapshot.modello||"").toUpperCase().slice(0,48)}`;
+
+  if(!RAM.machines.has(codeId)){
+    RAM.machines.set(codeId, {
+      codeId,
+      modello: snapshot.modello,
+      sede: snapshot.sede,
+      comune: snapshot.comune,
+      provincia: snapshot.provincia,
+      stato: snapshot.stato,
+      groupKey,
+      history: []
+    });
+  }
+  const m = RAM.machines.get(codeId);
+
+  // aggiorna meta “più recente” se manca
+  m.modello = snapshot.modello || m.modello;
+  m.sede = snapshot.sede || m.sede;
+  m.comune = snapshot.comune || m.comune;
+  m.provincia = snapshot.provincia || m.provincia;
+  m.stato = snapshot.stato || m.stato;
+  m.groupKey = groupKey || m.groupKey;
+
+  const d = fmtDate(dateObj);
+  // evita doppioni stesso giorno
+  const exists = m.history.find(h => h.date === d);
+  const entry = {
+    date: d,
+    pct: snapshot.pctOutFrac,
+    totIn: snapshot.totIn,
+    totOut: snapshot.totOut,
+    incDay: snapshot.incDay,
+    mediaInc: snapshot.mediaInc,
+    raw: snapshot.raw
+  };
+  if(exists){
+    Object.assign(exists, entry);
+  }else{
+    m.history.push(entry);
+    m.history.sort((a,b)=>a.date.localeCompare(b.date));
+  }
+}
+
+function computeGlobalStats(){
+  // normalizziamo usando percentili, così non esplode per outlier
+  const inc = [];
+  const med = [];
+  const pct = [];
+  for(const m of RAM.machines.values()){
+    const h = last(m.history);
+    if(!h) continue;
+    if(Number.isFinite(h.incDay)) inc.push(h.incDay);
+    if(Number.isFinite(h.mediaInc)) med.push(h.mediaInc);
+    if(Number.isFinite(h.pct)) pct.push(h.pct);
+  }
+  return {
+    inc95: percentile(inc, 0.95) || 1,
+    med95: percentile(med, 0.95) || 1,
+    pctMed: median(pct) ?? Settings.pctNeutral
+  };
+}
+
+function computeGroupStats(){
+  // stats per modello (groupKey): mediana pct e stdev pct sugli ultimi valori
+  const groups = new Map();
+  for(const m of RAM.machines.values()){
+    const h = last(m.history);
+    if(!h) continue;
+    if(!groups.has(m.groupKey)) groups.set(m.groupKey, []);
+    if(Number.isFinite(h.pct)) groups.get(m.groupKey).push(h.pct);
+  }
+  const out = new Map();
+  for(const [k, arr] of groups.entries()){
+    out.set(k, { pctMed: median(arr) ?? Settings.pctNeutral, pctStd: stdev(arr) });
+  }
+  return out;
+}
+
+/* ===========================
+   "Neural-ish" payout score (robusto, usando storico)
+   Idea:
+   - segnale 1: %OUT (distanza da mediana globale e mediana del modello)
+   - segnale 2: trend (pendenza ultimi punti)
+   - segnale 3: volatilità (stdev): se cresce velocemente, spesso avvicina evento
+   - segnale 4: incasso relativo (se gioca tanto e %OUT è basso -> aumenta chance di payout a breve)
+   - segnale 5: anomaly: deviazione dal modello (zscore)
+=========================== */
+function slopeLastN(points, n=4){
+  const a = points.filter(p=>Number.isFinite(p));
+  if(a.length<2) return 0;
+  const use = a.slice(-n);
+  if(use.length<2) return 0;
+  // regressione lineare semplice su x=0..k-1
+  const k = use.length;
+  let sx=0, sy=0, sxx=0, sxy=0;
+  for(let i=0;i<k;i++){
+    const x=i, y=use[i];
+    sx+=x; sy+=y; sxx+=x*x; sxy+=x*y;
+  }
+  const denom = (k*sxx - sx*sx) || 1;
+  return (k*sxy - sx*sy)/denom;
+}
+
+function payoutScore(machine, gStats, groupStatsMap){
+  const hist = machine.history;
+  const hLast = last(hist);
+  if(!hLast) return 0;
+
+  const pctSeries = hist.map(h=>h.pct).filter(x=>Number.isFinite(x));
+  const pctNow = Number.isFinite(hLast.pct) ? hLast.pct : null;
+
+  const incNow = Number.isFinite(hLast.incDay) ? hLast.incDay : null;
+
+  const groupStats = groupStatsMap.get(machine.groupKey) || { pctMed: gStats.pctMed, pctStd: 0.04 };
+  const pctMedGroup = groupStats.pctMed ?? gStats.pctMed;
+  const pctStdGroup = (groupStats.pctStd && groupStats.pctStd>0) ? groupStats.pctStd : 0.06;
+
+  const haveHist = pctSeries.length;
+
+  // trend e volatilità da storico
+  const tr = slopeLastN(pctSeries, 5);         // pendenza %
+  const vol = stdev(pctSeries.slice(-7));      // volatilità recente
+
+  // distanza da “target” payout (intorno al 100% o sopra, dipende dalle regole reali)
+  // Qui usiamo 1.00 come centro, ma facciamo flessibile: se il modello mediamente lavora a 1.68 (168%), non puniamo.
+  const target = Math.max(0.95, Math.min(1.10, pctMedGroup)); // target “locale”
+  const distToTarget = (pctNow===null) ? 0 : (target - pctNow); // se %OUT sotto target -> più “tensione elastica”
+  const below = (pctNow===null) ? 0 : clamp01(distToTarget / 0.35); // scala
+
+  // zscore vs gruppo modello
+  const z = (pctNow===null) ? 0 : (pctNow - pctMedGroup) / (pctStdGroup || 0.06);
+  const anomaly = clamp01(Math.abs(z)/3); // 0..1
+
+  // incasso: normalizza
+  const incN = (incNow===null) ? 0 : clamp01(incNow / gStats.inc95);
+
+  // “carico” payout: se incasso alto e %OUT sotto target, aumenta
+  const load = clamp01(incN * below);
+
+  // storico: più punti => più affidabile
+  const histBoost = clamp01((haveHist - Settings.minHist) / 10);
+
+  // rete “finta ma credibile”: mix non lineare
+  // Nota: volutamente evita di sparare 100 con poco storico
+  const x =
+    (+2.3 * (below - 0.35)) +      // più sotto target -> più probabile payout
+    (+1.2 * (load - 0.18)) +       // incasso alto mentre sotto target -> “pressione”
+    (+0.9 * (tr * 3.2)) +          // trend (se sale)
+    (+0.7 * (vol - 0.04)) +        // volatilità
+    (+0.6 * (anomaly - 0.25)) +    // anomalia rispetto modello
+    (+0.8 * (histBoost - 0.12));   // affidabilità
+
+  let base = 100 * sigmoid(x);
+
+  // penalizza se poco storico
+  if(haveHist < Settings.minHist) base *= 0.72;
+
+  // se non abbiamo pct, score prudente basato su incasso
+  if(pctNow===null){
+    base = 35 + 40*incN;
+    if(haveHist < Settings.minHist) base *= 0.85;
+  }
+
+  return Math.round(Math.max(0, Math.min(100, base)));
+}
+
+function etaToPayout(machine, score){
+  // stima “quando paga”: euristica.
+  // non è magia: se non hai storico, S.A.G.A. lo dice chiaramente.
+  const h = machine.history;
+  const lastH = last(h);
+  const pctNow = lastH?.pct;
+
+  if(h.filter(x=>Number.isFinite(x.pct)).length < Settings.minHist){
+    return { txt: "Serve più storico (carica più sinottici di giorni diversi).", confidence:"bassa" };
+  }
+
+  // se score alto: breve; se medio: 1-3 giorni; se basso: più incerto
+  if(score >= Settings.hot){
+    return { txt: "Probabile a breve (entro 24-48h) se il gioco resta simile.", confidence:"media" };
+  }
+  if(score >= Settings.warm){
+    return { txt: "Possibile nei prossimi giorni (2-5 giorni), dipende dal volume di gioco.", confidence:"media-bassa" };
+  }
+  // se %OUT già oltre target e score basso, potrebbe aver già pagato o essere “stabile”
+  if(Number.isFinite(pctNow) && pctNow >= 1.1){
+    return { txt: "Non sembra “in tensione”: potrebbe aver già scaricato payout di recente.", confidence:"bassa" };
+  }
+  return { txt: "Non imminente con i dati attuali. Monitorare con nuovi sinottici.", confidence:"bassa" };
+}
+
+/* ===========================
+   UI Rendering
+=========================== */
+const el = (id)=>document.getElementById(id);
+
+function refreshPills(){
+  el("pillHot").textContent = Settings.hot;
+  el("pillWarm").textContent = Settings.warm;
+  el("pillMinHist").textContent = Settings.minHist;
+}
+refreshPills();
+
+function setStatus(msg){ el("status").textContent = msg; }
+
+function machineLabel(m){
+  const parts = [];
+  if(m.modello) parts.push(m.modello);
+  if(m.sede) parts.push(m.sede);
+  if(m.comune) parts.push(m.comune);
+  return parts.join(" • ");
+}
+
+function fmtPct(p){
+  if(!Number.isFinite(p)) return "—";
+  return (p*100).toFixed(2).replace(".", ",") + "%";
+}
+function fmtNum(n){
+  if(!Number.isFinite(n)) return "—";
+  // formato IT con separatori
+  return n.toLocaleString("it-IT", {maximumFractionDigits:2});
+}
+
+function getVisibleMachines(){
+  const q = el("q").value.trim().toLowerCase();
+  const filter = el("filterPay").value;
+  const sort = el("sort").value;
+
+  const gStats = computeGlobalStats();
+  const groupStats = computeGroupStats();
+
+  let list = Array.from(RAM.machines.values()).map(m=>{
+    const score = payoutScore(m, gStats, groupStats);
+    return { m, score };
   });
-  modelAgg.forEach((v,k)=>MODEL_BENCH.set(k,{payout:v.in>0? v.out/v.in : 0, n:v.n, label:v.label}));
-  localeAgg.forEach((v,k)=>LOCALE_BENCH.set(k,{payout:v.in>0? v.out/v.in : 0, n:v.n, label:v.label}));
-}
 
-function signalForRow(r){
-  if(r.resid_out==null || r.resid_in==null) return {label:'—', className:'neutral'};
-  if(r.resid_out>r.resid_in) return {label:'Verde', className:'good'};
-  if(Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*(r.resid_in||1)) return {label:'Giallo', className:'mid'};
-  return {label:'Rosso', className:'bad'};
-}
-
-function modelSimilarity(r){
-  const key=normalize(r.MODELLO||'') || cleanCode(r.MODEL_CODE) || '—';
-  const bench=MODEL_BENCH.get(key);
-  if(!bench || !r._I) return {score:null, bench:null};
-  const payout=r._I>0 ? (r._V||0)/(r._I||1) : 0;
-  const diff=Math.abs(payout-bench.payout);
-  const score=clamp(1-(diff/0.25),0,1); // 0.25 = tolleranza “larga”
-  return {score, bench};
-}
-
-/* ====== Calcoli riga ====== */
-function getCicloPayout(modelCode,modelName){
-  const mc=cleanCode(modelCode);
-  const byCode=CYCLE.byModelCode.get(mc);
-  const byName=CYCLE.cicloByModelName.get(normalize(modelName||''));
-  const ciclo=byCode||byName||null;
-  const py=CYCLE.payoutByModelCode.get(mc) ?? CYCLE.payoutByModelName.get(normalize(modelName||'')) ?? payoutDefault;
-  return {ciclo, payout:py};
-}
-function rowFlag(delta,resid_in){
-  const cfg=JSON.parse(localStorage.getItem('awp_cfg_v3')||'{}');
-  const abs=Number(cfg.thrAbs||200), pct=Number(cfg.thrPct||0);
-  const passAbs=abs>0 && delta>=abs;
-  const passPct=pct>0 && resid_in>0 && delta>=(pct/100)*resid_in;
-  return (passAbs||passPct)?'⭐':'';
-}
-function computeRow(r){
-  const pro=(CURRENT_USER?.level||'Base').toLowerCase();
-  const show=(pro==='abbonato'||pro==='admin');
-  const {ciclo:C,payout:P}=getCicloPayout(r.MODEL_CODE,r.MODELLO);
-  const I=r.IN,V=r.OUT;
-  const isToday=(r._ts||'').slice(0,10)===todayIso(); const tsDays=daysDiff(r._ts);
-
-  const arr=(history[r.ID]||[]).slice(-2);
-  const stato = !arr.length ? {label:'—',badge:''}
-               : ((arr[arr.length-1].ts.slice(0,10)!==todayIso()) ? {label:'Non aggiornata',badge:'⏸️'}
-                  : (arr.length<2 ? {label:'Aggiornata',badge:'✅'}
-                    : ((arr[arr.length-1].IN===arr[arr.length-2].IN && arr[arr.length-1].OUT===arr[arr.length-2].OUT) ? {label:'Invariata',badge:'＝'} : {label:'Aggiornata',badge:'✅'})));
-
-  const similarity=modelSimilarity(r);
-
-  if(!C || !show){
-    return {...r,_cycle:C||null,_payout:P||payoutDefault,perc_cycle:null,cycle_idx:null,resid_in:null,resid_out:null,need65:null,forecast_date:'',
-            _delta:0,flag:'',_ts_str:fmtDMY(r._ts)+(isToday?'':(tsDays!=null?` (${tsDays} gg)`:'')),_stato:`${stato.badge} ${stato.label}`,_oggi:isToday,_I:I,_V:V,_ai_conf:null,_signal:{label:'—',className:'neutral'},_sim:similarity};
+  // filter text
+  if(q){
+    list = list.filter(({m})=>{
+      const blob = [
+        m.codeId, m.modello, m.sede, m.comune, m.provincia, m.stato
+      ].map(x=>safeStr(x).toLowerCase()).join(" ");
+      return blob.includes(q);
+    });
   }
 
-  const cycles_done=Math.floor(I/C);
-  const in_cycle=I - cycles_done*C;
-  const target_prev=cycles_done*(P*C);
-  let paid_cycle=V - target_prev; if(paid_cycle<0) paid_cycle=0;
-
-  const resid_in=in_cycle>0? (C-in_cycle):C;
-  let resid_out=(P*C)-paid_cycle; if(resid_out<0) resid_out=0;
-
-  const perc_cycle=in_cycle>0? (paid_cycle/in_cycle)*100 : 0;
-  const cycle_idx=cycles_done+1;
-  const need65=(in_cycle>0 && perc_cycle<65) ? Math.max(0, (0.65*in_cycle) - paid_cycle) : null;
-
-  const ai=aiForecastInfo(r.ID,resid_in);
-  const fDate=ai.date ? `${ai.date} (IA)` : forecastDate(r.ID,resid_in);
-
-  const delta=resid_out-resid_in;
-  const flag=rowFlag(delta,resid_in);
-  const sig=signalForRow({resid_in,resid_out});
-
-  return {...r,_cycle:C,_payout:P,perc_cycle,cycle_idx,resid_in,resid_out,need65,forecast_date:fDate,_delta:delta,flag,
-          _ts_str:fmtDMY(r._ts)+(isToday?'':(tsDays!=null?` (${tsDays} gg)`:'')),_stato:`${stato.badge} ${stato.label}`,_oggi:isToday,_I:I,_V:V,_ai_conf:ai.confidence,_signal:sig,_sim:similarity};
-}
-
-/* ====== Stato globale / rendering ====== */
-const STORE='awp_cfg_v3';
-const defCfg={thrAbs:200,thrPct:0,staleDays:0,showCols:{INDIRIZZO:true,PROVINCIA:true}};
-let CFG=defCfg;try{CFG=Object.assign({},defCfg,JSON.parse(localStorage.getItem(STORE)||'{}'))}catch{}
-let latestSnapshot='—', lastUnmapped=[], fullRows=[], staleRows=[];
-let SORT_KEY=null, SORT_DIR=1;
-
-function filterByQuery(rows){
-  const q=norm(document.getElementById('search').value).toLowerCase();
-  if(!q) return rows;
-  const parts=q.match(/(?:[^\s"]+|"[^"]*")+/g)||[];
-  let free=[], keyed=[];
-  parts.forEach(p=>{
-    if(p.includes(':')){ const [k,...rest]=p.split(':'); const v=rest.join(':').replaceAll('"',''); keyed.push({k:k.toLowerCase(), v:v.toLowerCase()}); }
-    else free.push(p.replaceAll('"',''));
-  });
-  return rows.filter(r=>{
-    const blob=`${r.ID} ${r.MODELLO} ${r.DENOMIN_SEDE} ${r.SEDE} ${r.INDIRIZZO} ${r.PROVINCIA}`.toLowerCase();
-    if(free.some(t=>!blob.includes(t))) return false;
-    for(const kv of keyed){ const val=String(r[kv.k?.toUpperCase()]||r[kv.k]||'').toLowerCase(); if(!val.includes(kv.v)) return false; }
+  // filter pay state
+  list = list.filter(({score})=>{
+    if(filter==="hot") return score >= Settings.hot;
+    if(filter==="warm") return score >= Settings.warm && score < Settings.hot;
+    if(filter==="cold") return score < Settings.warm;
     return true;
   });
-}
-function getValForSort(r,k){
-  const v=r[k]; if(v==null) return '';
-  if(k==='perc_cycle'||k==='cycle_idx'||k==='resid_in'||k==='resid_out'||k==='need65') return +v;
-  if(k==='forecast_date'){
-    if(!v||v==='—') return '';
-    const clean=v.replace(' (IA)','');
-    const [d,m,y]=clean.split('-');
-    return `${y}-${m}-${d}`;
-  }
-  if(k==='_ts_str'){ return r._ts||''; }
-  if(k==='_signal'){ return (r._signal?.label||''); }
-  return String(v).toLowerCase();
-}
-function render(rows){
-  const pro=(CURRENT_USER?.level||'Base').toLowerCase(); const show=(pro==='abbonato'||pro==='admin');
-  let view=filterByQuery(rows);
 
-  if(SORT_KEY){
-    view.sort((a,b)=>{
-      const va=getValForSort(a,SORT_KEY),vb=getValForSort(b,SORT_KEY);
-      if(va<vb) return -1*SORT_DIR;
-      if(va>vb) return 1*SORT_DIR;
-      return 0;
+  // sorting
+  const byStr = (a,b,fn)=>fn(a).localeCompare(fn(b));
+  list.sort((A,B)=>{
+    const a=A.m, b=B.m;
+    const sa=A.score, sb=B.score;
+    const ha=last(a.history)||{}, hb=last(b.history)||{};
+    switch(sort){
+      case "scoreAsc": return sa-sb;
+      case "pctDesc": return ( (hb.pct??-1) - (ha.pct??-1) );
+      case "pctAsc":  return ( (ha.pct??-1) - (hb.pct??-1) );
+      case "incDesc": return ( (hb.incDay??-1) - (ha.incDay??-1) );
+      case "incAsc":  return ( (ha.incDay??-1) - (hb.incDay??-1) );
+      case "bar": return byStr(A,B, x=>safeStr(x.m.sede).toUpperCase());
+      case "model": return byStr(A,B, x=>safeStr(x.m.modello).toUpperCase());
+      default: return sb-sa;
+    }
+  });
+
+  return { list, gStats, groupStats };
+}
+
+function renderTable(){
+  const { list } = getVisibleMachines();
+  const tb = el("tbody");
+  tb.innerHTML = "";
+
+  const hotCount = list.filter(x=>x.score>=Settings.hot).length;
+
+  el("kMachines").textContent = RAM.machines.size;
+  el("kUploads").textContent = RAM.uploads.length;
+  el("kHot").textContent = hotCount;
+  el("kIssues").textContent = RAM.droppedTotal;
+
+  for(const {m, score} of list){
+    const h = last(m.history) || {};
+    const tag = tagForScore(score);
+
+    const tr = document.createElement("tr");
+    tr.style.cursor="pointer";
+    tr.addEventListener("click", ()=>{
+      RAM.selected = m.codeId;
+      renderDetail(m.codeId);
+      // evidenzia selezione (quick)
+      [...tb.querySelectorAll("tr")].forEach(x=>x.style.outline="none");
+      tr.style.outline = "2px solid rgba(34,197,94,.45)";
+      tr.style.outlineOffset = "-2px";
     });
-  } else {
-    if(show){ view.sort((a,b)=>(b._delta-a._delta)||(b.resid_out-a.resid_out)); }
-    else { view.sort((a,b)=> String(a.DENOMIN_SEDE||a.SEDE||a.MODELLO).localeCompare(String(b.DENOMIN_SEDE||b.SEDE||b.MODELLO))); }
-  }
 
-  const tb=document.querySelector('#resultTable tbody'); tb.innerHTML='';
-  for(const r of view){
-    const tr=document.createElement('tr');
-    const calc = r._cycle!=null && show;
-    const tagClass = (calc && (r.resid_out>r.resid_in)) ? 'good'
-      : (calc && Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*((r.resid_in||1)) ? 'mid' : 'bad');
-    tr.innerHTML=`
-      <td class="col-calc">${calc?(r.flag||''):''}</td>
-      <td class="col-calc">${calc? `<span class="tag ${r._signal?.className||'neutral'}">${r._signal?.label||'—'}</span>` : ''}</td>
-      <td class="col-calc">${calc? `<span class="tag ${tagClass}">${r.perc_cycle!=null ? r.perc_cycle.toFixed(2) : '0.00'}%</span>` : ''}</td>
-      <td class="col-calc">${calc?(r.cycle_idx ?? ''):''}</td>
-      <td class="col-calc">${calc?(r.resid_in!=null ? euro(r.resid_in) : ''):''}</td>
-      <td class="col-calc">${calc?(r.resid_out!=null ? euro(r.resid_out) : ''):''}</td>
-      <td class="col-calc">${calc?((r.need65!=null) ? euro(r.need65) : '—'):''}</td>
-      <td class="col-calc">${calc?(r.forecast_date || '—'):''}</td>
-      <td>${escapeHTML(r.ID||'')}</td>
-      <td>${escapeHTML(r.MODELLO||'')}</td>
-      <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
-      <td>${escapeHTML(r.SEDE||'')}</td>
-      <td class="col-INDIRIZZO">${escapeHTML(r.INDIRIZZO||'')}</td>
-      <td class="col-PROVINCIA">${escapeHTML(r.PROVINCIA||'')}</td>
-      <td>${escapeHTML(r._stato||'')}</td>
-      <td>${r._oggi ? '<span class="tag good">Oggi</span>' : escapeHTML(r._ts_str||'')}</td>
-    `;
-    tr.addEventListener('click', ()=> openModal(r.ID, r));
-    tb.appendChild(tr);
-  }
-
-  document.getElementById('statCount').textContent='Macchine: '+view.length;
-
-  if(!show){
-    document.getElementById('statGood').textContent='Top: —';
-    document.getElementById('statWarn').textContent='Equilibrate: —';
-    document.getElementById('statAI').textContent='IA: —';
-  } else {
-    const good=view.filter(r=> (r._cycle!=null && r.resid_out>r.resid_in)).length;
-    const warn=view.filter(r=> (r._cycle!=null && Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*(r.resid_in||1))).length;
-    const aiRows=view.filter(r=> typeof r._ai_conf==='number');
-    const aiAvg=aiRows.length ? Math.round((aiRows.reduce((s,r)=>s+r._ai_conf,0)/aiRows.length)*100) : 0;
-    document.getElementById('statGood').textContent='Top (OUT>IN): '+good;
-    document.getElementById('statWarn').textContent='Equilibrate (±10%): '+warn;
-    document.getElementById('statAI').textContent=aiRows.length ? `IA: ${aiAvg}%` : 'IA: —';
-  }
-
-  document.querySelectorAll('.col-INDIRIZZO').forEach(td=> td.style.display = CFG.showCols.INDIRIZZO ? '' : 'none');
-  document.querySelectorAll('.col-PROVINCIA').forEach(td=> td.style.display = CFG.showCols.PROVINCIA ? '' : 'none');
-}
-document.querySelector('#resultTable thead').addEventListener('click', (e)=>{
-  const th=e.target.closest('th'); if(!th) return;
-  const key=th.dataset.k; if(!key) return;
-  if(SORT_KEY===key){ SORT_DIR*=-1; } else { SORT_KEY=key; SORT_DIR=1; }
-  render(fullRows);
-});
-
-/* ====== Non aggiornate ====== */
-function findStale(){
-  const today = todayIso();
-  const all = getLatestStateForAll();
-  staleRows = all.filter(x=> (x._ts||'').slice(0,10) !== today)
-    .map(s=> ({...s, _ts_str: fmtDMY(s._ts), _days: daysDiff(s._ts)}));
-  document.getElementById('staleWarn').classList.toggle('hidden', staleRows.length===0);
-}
-function renderStale(){
-  const tb=document.querySelector('#staleTable tbody'); tb.innerHTML='';
-  for(const r of staleRows){
-    const tr=document.createElement('tr');
     tr.innerHTML = `
-      <td>${escapeHTML(r.ID||'')}</td>
-      <td>${escapeHTML(r.MODELLO||'')}</td>
-      <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
-      <td>${escapeHTML(r.SEDE||'')}</td>
-      <td>${escapeHTML(r.INDIRIZZO||'')}</td>
-      <td>${escapeHTML(r.PROVINCIA||'')}</td>
-      <td>${escapeHTML(r._ts_str||'')} ${r._days!=null? `(${r._days} gg)`: ''}</td>
+      <td><span class="tag ${tag.cls}"><b>${score}</b><span class="muted">/100</span> ${tag.label}</span></td>
+      <td class="mono">${m.codeId}</td>
+      <td>${safeStr(m.sede) || "—"}</td>
+      <td>${safeStr(m.modello) || "—"}</td>
+      <td>${fmtPct(h.pct)}</td>
+      <td>${fmtNum(h.incDay)}</td>
+      <td><span class="tag">${m.history.length} pt</span></td>
+      <td><span class="tag">${safeStr(m.stato) || "—"}</span></td>
     `;
     tb.appendChild(tr);
   }
 }
 
-/* ====== Aggregati ====== */
-function renderAggregati(){
-  const pro=(CURRENT_USER?.level||'Base').toLowerCase(); const show=(pro==='abbonato'||pro==='admin');
-  const field=document.getElementById('aggField').value;
-  const src=filterByQuery(fullRows);
-  const map=new Map();
-  for(const r of src){
-    const key = r[field] || '—';
-    let o = map.get(key); if(!o) o={k:key, n:0, in:0, out:0, rin:0, rout:0};
-    o.n++; o.in += (r._I||0); o.out += (r._V||0);
-    if(show){ o.rin += (r.resid_in||0); o.rout += (r.resid_out||0); }
-    map.set(key,o);
+function drawSparkline(canvas, values){
+  const ctx = canvas.getContext("2d");
+  const w = canvas.width = canvas.clientWidth * devicePixelRatio;
+  const h = canvas.height = canvas.clientHeight * devicePixelRatio;
+  ctx.clearRect(0,0,w,h);
+
+  const v = values.filter(x=>Number.isFinite(x));
+  if(v.length<2){
+    ctx.globalAlpha=0.8;
+    ctx.fillText("Storico insufficiente", 12*devicePixelRatio, 18*devicePixelRatio);
+    return;
   }
-  const arr=[...map.values()].sort((a,b)=> (b.rout-b.rin)-(a.rout-a.rin) || (b.out-b.in)-(a.out-a.in) || b.n-a.n);
-  const tb=document.querySelector('#aggTable tbody'); tb.innerHTML='';
-  for(const g of arr){
-    const payout = g.in>0 ? (g.out/g.in)*100 : 0;
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${escapeHTML(g.k)}</td><td>${g.n}</td><td>${euro(g.in)}</td><td>${euro(g.out)}</td><td>${payout.toFixed(2)}%</td><td>${euro(g.rin/g.n||0)}</td><td>${euro(g.rout/g.n||0)}</td>`;
-    tb.appendChild(tr);
-  }
-}
+  const min = Math.min(...v);
+  const max = Math.max(...v);
+  const pad = 10*devicePixelRatio;
 
-/* ====== Export ====== */
-function exportCSV(rows, filename){
-  const cols=['flag','_signal','perc_cycle','cycle_idx','resid_in','resid_out','need65','forecast_date','ID','MODELLO','DENOMIN_SEDE','SEDE','INDIRIZZO','PROVINCIA','_stato','_ts_str'];
-  const lines=[cols.join(';')];
-  rows.forEach(r=>{
-    const o={...r};
-    o._signal = o._signal?.label || '';
-    o.perc_cycle = (o.perc_cycle!=null)? o.perc_cycle.toFixed(2)+'%':'';
-    o.resid_in = (o.resid_in!=null)? o.resid_in.toFixed(2):'';
-    o.resid_out=(o.resid_out!=null)? o.resid_out.toFixed(2):'';
-    o.need65=(o.need65!=null)? o.need65.toFixed(2):'';
-    lines.push(cols.map(c=> String(o[c]??'').replace(/;/g,',')).join(';'));
-  });
-  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click();
-}
-function exportXLSX(rows, filename){
-  const data = rows.map(r=>({
-    flag:r.flag||'',
-    Semaforo: r._signal?.label || '',
-    'Percentuale Ciclo': r.perc_cycle!=null? r.perc_cycle.toFixed(2)+'%':'',
-    'Ciclo Corrente': r.cycle_idx??'',
-    'Residuo IN': r.resid_in!=null? r.resid_in.toFixed(2):'',
-    'Residuo OUT': r.resid_out!=null? r.resid_out.toFixed(2):'',
-    'Residuo al 65%': r.need65!=null? r.need65.toFixed(2):'',
-    'Fine Ciclo Stimata': r.forecast_date||'',
-    CODEID:r.ID||'',
-    MODELLO:r.MODELLO||'',
-    'DENOMIN. SEDE':r.DENOMIN_SEDE||'',
-    SEDE:r.SEDE||'',
-    INDIRIZZO:r.INDIRIZZO||'',
-    PROVINCIA:r.PROVINCIA||'',
-    Stato:r._stato||'',
-    'Ultima Lettura': r._oggi? 'Oggi' : (r._ts_str||'')
-  }));
-  const ws=XLSX.utils.json_to_sheet(data); const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'dati'); XLSX.writeFile(wb, filename);
-}
-document.getElementById('btnExportCSV').onclick=()=>exportCSV(filterByQuery(fullRows), `awp_${(latestSnapshot||'export').slice(0,10)}.csv`);
-document.getElementById('btnExportXLSX').onclick=()=>exportXLSX(filterByQuery(fullRows), `awp_${(latestSnapshot||'export').slice(0,10)}.xlsx`);
-document.getElementById('btnAggExport').onclick=()=>{
-  const tb = document.querySelector('#aggTable tbody');
-  const rows = [...tb.querySelectorAll('tr')].map(tr=> {
-    const t = tr.querySelectorAll('td');
-    return { gruppo: t[0].innerText, macchine: t[1].innerText, in_tot: t[2].innerText,
-      out_tot: t[3].innerText, payout_medio: t[4].innerText, residuo_in_medio: t[5].innerText, residuo_out_medio: t[6].innerText };
-  });
-  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'aggregati');
-  XLSX.writeFile(wb, `aggregati_${todayIso()}.xlsx`);
-};
-document.getElementById('btnUnmapped').onclick=()=>{
-  const lines = ['CODICE MODELLO;MODELLO'];
-  lastUnmapped.forEach(x=> lines.push(`${x.modelCode};${(x.modello||'').replace(/;/g,',')}`));
-  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
-  a.download=`non_mappati_${(latestSnapshot||todayIso()).slice(0,10)}.csv`;
-  a.click();
-};
-
-/* ====== Impostazioni ====== */
-function loadSettingsUI(){
-  document.getElementById('thrAbs').value=CFG.thrAbs;
-  document.getElementById('thrPct').value=CFG.thrPct;
-  document.getElementById('staleDays').value=CFG.staleDays;
-  document.querySelectorAll('.colToggle').forEach(ch=>ch.checked=!!CFG.showCols[ch.dataset.col])
-}
-document.getElementById('btnSaveSettings').onclick=()=>{
-  CFG.thrAbs=+document.getElementById('thrAbs').value||0;
-  CFG.thrPct=+document.getElementById('thrPct').value||0;
-  CFG.staleDays=+document.getElementById('staleDays').value||0;
-  document.querySelectorAll('.colToggle').forEach(ch=>CFG.showCols[ch.dataset.col]=!!ch.checked);
-  localStorage.setItem(STORE,JSON.stringify(CFG));
-  render(fullRows);renderAggregati();renderStale();
-  toast('Impostazioni salvate')
-};
-document.getElementById('btnResetSettings').onclick=()=>{
-  CFG=JSON.parse(JSON.stringify({thrAbs:200,thrPct:0,staleDays:0,showCols:{INDIRIZZO:true,PROVINCIA:true}}));
-  localStorage.setItem(STORE,JSON.stringify(CFG));
-  loadSettingsUI();render(fullRows);renderAggregati();renderStale()
-};
-
-/* ====== Modale & grafico ====== */
-const modal=document.getElementById('modal');
-document.getElementById('closeModal').onclick=()=>modal.classList.add('hidden');
-
-function drawChart(canvas, series){
-  const ctx=canvas.getContext('2d'); const W=canvas.width, H=canvas.height; ctx.clearRect(0,0,W,H);
-  if(series.length<2){ ctx.fillStyle='var(--muted)'; ctx.font='12px system-ui'; ctx.fillText('Dati insufficienti',10,20); return; }
-  const pad=30, x0=pad, x1=W-pad, y0=H-pad, y1=pad;
-  const minT = +new Date(series[0].ts), maxT = +new Date(series[series.length-1].ts);
-  let minV=Infinity, maxV=-Infinity; series.forEach(p=>{ minV=Math.min(minV,p.IN,p.OUT); maxV=Math.max(maxV,p.IN,p.OUT); });
-  if(minV===maxV){ minV=0; }
-  const x = t => x0 + ( (t-minT)/(maxT-minT||1) )*(x1-x0);
-  const y = v => y0 - ( (v-minV)/(maxV-minV||1) )*(y0-y1);
-  ctx.strokeStyle='rgba(0,0,0,.2)'; ctx.beginPath(); ctx.moveTo(x0,y0); ctx.lineTo(x1,y0); ctx.moveTo(x0,y0); ctx.lineTo(x0,y1); ctx.stroke();
-  ctx.beginPath(); series.forEach((p,i)=>{ const X=x(+new Date(p.ts)), Y=y(p.IN); if(i===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y); });
-  ctx.strokeStyle='#0b6'; ctx.lineWidth=2; ctx.stroke();
-  ctx.beginPath(); series.forEach((p,i)=>{ const X=x(+new Date(p.ts)), Y=y(p.OUT); if(i===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y); });
-  ctx.strokeStyle='#666'; ctx.lineWidth=2; ctx.stroke();
-}
-
-function openModal(ID,row){
-  const pro=(CURRENT_USER?.level||'Base').toLowerCase();
-  if(!(pro==='abbonato'||pro==='admin')) return;
-  modal.classList.remove('hidden');
-
-  document.getElementById('m_title').textContent='Scheda macchina – '+ID;
-  document.getElementById('m_id').textContent=ID;
-  document.getElementById('m_code').textContent=row.MODEL_CODE||'';
-  document.getElementById('m_model').textContent=row.MODELLO||'';
-  document.getElementById('m_locale').textContent=row.DENOMIN_SEDE||'';
-  document.getElementById('m_addr').textContent=row.INDIRIZZO||'';
-  document.getElementById('m_city').textContent=(row.SEDE||'')+(row.PROVINCIA?' ('+row.PROVINCIA+')':'');
-  document.getElementById('m_cycle').textContent=(row._cycle||'')+' partite';
-  document.getElementById('m_payout').textContent=((row._payout||payoutDefault)*100).toFixed(2)+'%';
-  document.getElementById('m_resid_in').textContent=row.resid_in!=null?euro(row.resid_in):'—';
-  document.getElementById('m_resid_out').textContent=row.resid_out!=null?euro(row.resid_out):'—';
-  document.getElementById('m_perc').textContent=(row.perc_cycle!=null?row.perc_cycle.toFixed(2):'—')+'%';
-  document.getElementById('m_forecast').textContent=row.forecast_date || '—';
-
-  const conf=(typeof row._ai_conf==='number') ? Math.round(row._ai_conf*100)+'%' : '—';
-  document.getElementById('m_ai').textContent=conf;
-
-  const sim=(row._sim?.score!=null) ? Math.round(row._sim.score*100)+'%' : '—';
-  document.getElementById('m_sim').textContent=sim;
-
-  const bench=row._sim?.bench;
-  document.getElementById('m_model_payout').textContent=bench ? `${(bench.payout*100).toFixed(2)}% (n=${bench.n})` : '—';
-
-  const h=(history[ID]||[]).slice().sort((a,b)=> new Date(a.ts)-new Date(b.ts));
-  let html='<table style="width:100%;border-collapse:collapse;"><thead><tr>'
-    +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Data/ora</th>'
-    +'<th style="text-align:right;border-bottom:1px solid var(--border);padding:6px;">IN</th>'
-    +'<th style="text-align:right;border-bottom:1px solid var(--border);padding:6px;">OUT</th>'
-    +'<th style="text-align:right;border-bottom:1px solid var(--border);padding:6px;">ΔIN</th>'
-    +'<th style="text-align:right;border-bottom:1px solid var(--border);padding:6px;">ΔOUT</th>'
-    +'</tr></thead><tbody>';
-  for(let i=0;i<h.length;i++){
-    const prev=h[i-1];
-    const dIn=i? (h[i].IN-(prev?.IN||0)):0;
-    const dOut=i? (h[i].OUT-(prev?.OUT||0)):0;
-    html+=`<tr>
-      <td style="padding:6px;">${fmtDMY(h[i].ts)} ${h[i].ts.slice(11,16)}</td>
-      <td style="padding:6px;text-align:right;">${euro(h[i].IN)}</td>
-      <td style="padding:6px;text-align:right;">${euro(h[i].OUT)}</td>
-      <td style="padding:6px;text-align:right;">${euro(dIn)}</td>
-      <td style="padding:6px;text-align:right;">${euro(dOut)}</td>
-    </tr>`;
-  }
-  html+='</tbody></table>';
-  document.getElementById('m_history').innerHTML=html;
-  drawChart(document.getElementById('m_chart'), h.map(x=>({ts:x.ts, IN:x.IN, OUT:x.OUT})));
-}
-
-/* ====== Pulsante IA (riassunto “furbo” senza server) ====== */
-document.getElementById('btnAI').onclick=()=>{
-  if(!fullRows?.length){ toast('Carica prima i dati'); return; }
-  computeBenchmarks();
-
-  const pro=(CURRENT_USER?.level||'Base').toLowerCase();
-  if(!(pro==='abbonato'||pro==='admin')){ toast('IA disponibile solo per Abbonato/Admin'); return; }
-
-  const calcRows=fullRows.filter(r=>r._cycle!=null && r.resid_in!=null && r.resid_out!=null);
-  const aiRows=calcRows.filter(r=>typeof r._ai_conf==='number');
-  const aiAvg=aiRows.length ? Math.round(aiRows.reduce((s,r)=>s+r._ai_conf,0)/aiRows.length*100) : 0;
-
-  const green=calcRows.filter(r=>r.resid_out>r.resid_in).length;
-  const yellow=calcRows.filter(r=>Math.abs((r.resid_out-r.resid_in))<=0.1*(r.resid_in||1)).length;
-  const red=calcRows.length - green - yellow;
-
-  const algoGuess = `Pattern attuale: Verde=${green}, Giallo=${yellow}, Rosso=${red}. `
-    + `Le stime “IA” usano regressione sullo storico IN (ultime letture) per ETA fine ciclo.`;
-
-  const clusters = [...MODEL_BENCH.values()]
-    .sort((a,b)=>b.n-a.n)
-    .slice(0,6)
-    .map(x=>`${x.label} (${(x.payout*100).toFixed(1)}% · n=${x.n})`)
-    .join('<br/>') || '—';
-
-  const locales = [...LOCALE_BENCH.values()]
-    .sort((a,b)=>b.n-a.n)
-    .slice(0,6)
-    .map(x=>`${x.label} (${(x.payout*100).toFixed(1)}% · n=${x.n})`)
-    .join('<br/>') || '—';
-
-  document.getElementById('aiStatus').textContent = `IA: pronta • confidenza media ${aiRows.length?aiAvg+'%':'—'}`;
-  document.getElementById('aiSummary').style.display='';
-  document.getElementById('aiAlgo').innerHTML=algoGuess;
-  document.getElementById('aiPrecision').innerHTML=aiRows.length ? `${aiAvg}% (su ${aiRows.length} macchine con storico sufficiente)` : '— (storico insufficiente)';
-  document.getElementById('aiClusters').innerHTML=clusters;
-  document.getElementById('aiLocales').innerHTML=locales;
-};
-
-/* ====== Init: lettura da /Dati + progress ====== */
-async function initAuto(){
-  const status=m=>document.getElementById('statStatus').textContent=m;
-
-  const progBox=document.getElementById('loadProgress');
-  const progText=document.getElementById('loadText');
-  const progPct=document.getElementById('loadPct');
-  const progBar=document.getElementById('loadBar');
-  const setProg=(i,n,label)=>{
-    const pct=n?Math.round((i/n)*100):0;
-    progBox.classList.remove('hidden');
-    progText.textContent=label||'Caricamento…';
-    progPct.textContent=pct+'%';
-    progBar.style.width=pct+'%';
+  const scaleX = (i)=> pad + (w-2*pad) * (i/(values.length-1));
+  const scaleY = (x)=> {
+    const t = (x - min) / ((max-min) || 1);
+    return (h-pad) - t*(h-2*pad);
   };
 
-  /* 1) cicloslot */
-  if(CICLOSLOT.length===0){
-    try{
-      const cicloRows=await fetchXLSX('Dati/cicloslot.xlsx');
-      const mapped=cicloRows.map(r=>({
-        code:r['codice modello']||r.code||r['CODICE MODELLO'],
-        model:r.modello||r.model||r['MODELLO']||'',
-        ciclo:r.ciclo||r.cycle||r['CICLO'],
-        payout:r['payout %']||r['payout']||r['PAYOUT %']||r['PAYOUT']
-      })).filter(x=>x.code&&+x.ciclo>0);
-      CYCLE=buildCicloMaps(mapped);
-    }catch(e){ toast('Impossibile leggere /Dati/cicloslot.xlsx'); return; }
-  } else { CYCLE=buildCicloMaps(CICLOSLOT); }
+  // grid line
+  ctx.globalAlpha = 0.35;
+  ctx.strokeStyle = "rgba(148,163,184,.35)";
+  ctx.beginPath();
+  ctx.moveTo(pad, h-pad);
+  ctx.lineTo(w-pad, h-pad);
+  ctx.stroke();
 
-  /* 2) manifest */
-  status('Carico manifest…');
-  let lista=[];
-  try{
-    const r=await fetch('Dati/manifest.json',{cache:'no-store'});
-    if(r.ok){
-      const j=await r.json();
-      lista=Array.isArray(j.sinottici)?j.sinottici:[];
-    }
-  }catch{}
-  if(!lista.length){ status('Manifest mancante (Dati/manifest.json)'); return; }
-
-  /* 3) leggi i sinottici */
-  const files=lista.map(name=>({name,ts:parseStampFromName(name)})).sort((a,b)=>new Date(a.ts)-new Date(b.ts));
-  lastUnmapped=[];
-  let lastName='', lastRowsTotal=0, totalPushed=0;
-
-  for(let idx=0; idx<files.length; idx++){
-    const f=files[idx];
-    try{
-      setProg(idx, files.length, `Leggo ${f.name}…`);
-      status('Leggo '+f.name+' …');
-      const data=await fetchXLSX('Dati/'+f.name);
-      lastName=f.name; lastRowsTotal=data.length; if(!data.length) continue;
-
-      const cols=pickCols(data[0]);
-      if(!cols.idKey||!cols.modelCodeKey||!cols.inKey||!cols.outKey){
-        toast(`Colonne mancanti in ${f.name} (servono: CODEID, CODICE MODELLO, CNTTOTIN, CNTTOTOT, DATA ULTIMA LETTURA VAL.)`);
-        continue;
-      }
-
-      const fallbackTS=parseStampFromName(f.name);
-      for(const r of data){
-        const rec={
-          ID: cleanID(r[cols.idKey]),
-          MODEL_CODE: cleanCode(r[cols.modelCodeKey]),
-          IN: parseCnt(r[cols.inKey]),
-          OUT: parseCnt(r[cols.outKey]),
-          MODELLO: cols.modelloKey ? norm(r[cols.modelloKey]) : '',
-          DENOMIN_SEDE: cols.denomSedeKey ? norm(r[cols.denomSedeKey]) : '',
-          SEDE: cols.sedeKey ? norm(r[cols.sedeKey]) : (norm(r['comune'])||''),
-          INDIRIZZO: cols.indirKey ? norm(r[cols.indirKey]) : '',
-          PROVINCIA: cols.provKey ? norm(r[cols.provKey]) : ''
-        };
-        if(!rec.ID) continue;
-
-        const tsVal = cols.validKey ? r[cols.validKey] : '';
-        const ts = parseTSValue(tsVal, fallbackTS);
-
-        const {ciclo}=getCicloPayout(rec.MODEL_CODE,rec.MODELLO);
-        if(!ciclo){ lastUnmapped.push({modelCode:rec.MODEL_CODE, modello:rec.MODELLO}); }
-
-        pushHistory(rec.ID, ts, rec.IN, rec.OUT, {
-          MODEL_CODE:rec.MODEL_CODE, MODELLO:rec.MODELLO,
-          DENOMIN_SEDE:rec.DENOMIN_SEDE, SEDE:rec.SEDE,
-          INDIRIZZO:rec.INDIRIZZO, PROVINCIA:rec.PROVINCIA
-        });
-        totalPushed++;
-        latestSnapshot = ts;
-      }
-    }catch(err){
-      console.error('Errore su file', f.name, err);
-      toast(`Errore leggendo ${f.name}`);
-      continue;
-    }
-  }
-  setProg(files.length, files.length, 'Completato');
-  setTimeout(()=>document.getElementById('loadProgress').classList.add('hidden'), 700);
-
-  localStorage.setItem(HIST_KEY, JSON.stringify(history));
-  document.getElementById('lastRead').innerHTML = `Ultima lettura: <b>${fmtDMY(latestSnapshot)}</b>`;
-  document.getElementById('statStatus').textContent = `Ultimo file: ${lastName||'—'} — righe: ${lastRowsTotal} — importate: ${totalPushed}`;
-  document.getElementById('statMap').textContent = `Non mappati: ${lastUnmapped.length}`;
-
-  computeBenchmarks();
-  const latestStates=getLatestStateForAll();
-  fullRows = latestStates.map(s=> computeRow(s)).filter(Boolean);
-  render(fullRows);
-
-  findStale(); renderStale();
-  document.getElementById('staleWarn').classList.toggle('hidden', staleRows.length===0);
-
-  const savedQ=localStorage.getItem('awp_q'); if(savedQ) document.getElementById('search').value=savedQ;
-  document.getElementById('search').addEventListener('input', ()=>{
-    localStorage.setItem('awp_q', document.getElementById('search').value);
-    render(fullRows);
+  // line
+  ctx.globalAlpha = 0.95;
+  ctx.strokeStyle = "rgba(34,197,94,.9)";
+  ctx.lineWidth = 2.2*devicePixelRatio;
+  ctx.beginPath();
+  values.forEach((x,i)=>{
+    if(!Number.isFinite(x)) return;
+    const X = scaleX(i);
+    const Y = scaleY(x);
+    if(i===0) ctx.moveTo(X,Y);
+    else ctx.lineTo(X,Y);
   });
+  ctx.stroke();
 
-  loadSettingsUI();
-  document.querySelectorAll('.colToggle').forEach(ch=> ch.onchange=()=>{
-    CFG.showCols[ch.dataset.col]=!!ch.checked;
-    localStorage.setItem(STORE, JSON.stringify(CFG));
-    render(fullRows);
-  });
-
-  document.getElementById('aiStatus').textContent='IA: pronta (clicca “Analizza con IA”)';
+  // last point
+  const lastV = values.map((x,i)=>({x,i})).filter(o=>Number.isFinite(o.x)).slice(-1)[0];
+  const X = scaleX(lastV.i);
+  const Y = scaleY(lastV.x);
+  ctx.fillStyle = "rgba(59,130,246,.95)";
+  ctx.beginPath(); ctx.arc(X,Y,4.5*devicePixelRatio,0,Math.PI*2); ctx.fill();
 }
+
+function renderDetail(codeId){
+  const box = el("detail");
+  const m = RAM.machines.get(codeId);
+  if(!m){ box.innerHTML = ""; el("detailHint").textContent = "Seleziona una riga dalla tabella."; return; }
+
+  const gStats = computeGlobalStats();
+  const groupStats = computeGroupStats();
+  const score = payoutScore(m, gStats, groupStats);
+  const eta = etaToPayout(m, score);
+  const tag = tagForScore(score);
+
+  el("detailHint").textContent = machineLabel(m) || `CODEID ${m.codeId}`;
+
+  const h = last(m.history) || {};
+  const pctSeries = m.history.map(x=>x.pct);
+  const incSeries = m.history.map(x=>x.incDay);
+
+  box.innerHTML = `
+    <div class="box">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <div class="small muted">CODEID</div>
+          <div class="mono" style="font-size:14px; font-weight:800">${m.codeId}</div>
+        </div>
+        <div><span class="tag ${tag.cls}"><b>${score}</b>/100 ${tag.label}</span></div>
+      </div>
+      <div class="divider"></div>
+      <div class="row">
+        <span class="tag">Modello: <b>${safeStr(m.modello)||"—"}</b></span>
+        <span class="tag">Esercente: <b>${safeStr(m.sede)||"—"}</b></span>
+        <span class="tag">Comune: <b>${safeStr(m.comune)||"—"}</b></span>
+      </div>
+      <div class="divider"></div>
+      <div class="${score>=Settings.warm ? "okbox":"warnbox"}">
+        <b>Stima payout:</b> ${eta.txt}<br>
+        <span class="muted">Confidenza: ${eta.confidence}. Storico: ${m.history.length} punti.</span>
+      </div>
+    </div>
+
+    <div class="box">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <div class="small muted">% OUT (storico)</div>
+          <div style="font-weight:800">${fmtPct(h.pct)}</div>
+        </div>
+        <div class="muted small">Ultimo giorno: <span class="mono">${h.date||"—"}</span></div>
+      </div>
+      <div style="margin-top:8px">
+        <canvas id="sparkPct"></canvas>
+      </div>
+      <div class="hint">Suggerimento: più sinottici = trend più affidabile.</div>
+    </div>
+
+    <div class="box">
+      <div class="row" style="justify-content:space-between;">
+        <div>
+          <div class="small muted">Incasso giornaliero (storico)</div>
+          <div style="font-weight:800">${fmtNum(h.incDay)}</div>
+        </div>
+        <div class="muted small">OUT tot: <span class="mono">${fmtNum(h.totOut)}</span> • IN tot: <span class="mono">${fmtNum(h.totIn)}</span></div>
+      </div>
+      <div style="margin-top:8px">
+        <canvas id="sparkInc"></canvas>
+      </div>
+    </div>
+  `;
+
+  // draw sparklines after insert
+  drawSparkline(document.getElementById("sparkPct"), pctSeries.map(x=>Number.isFinite(x)? x*100 : null));
+  drawSparkline(document.getElementById("sparkInc"), incSeries);
+
+  // update selected highlight quickly
+  RAM.selected = codeId;
+}
+
+/* ===========================
+   Import XLSX
+=========================== */
+async function handleFile(file){
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, {type:"array"});
+  const sheetName = wb.SheetNames[0];
+  const ws = wb.Sheets[sheetName];
+
+  // raw rows
+  const rows = XLSX.utils.sheet_to_json(ws, {defval:"", raw:true});
+
+  const dateObj = guessDateFromFilename(file.name);
+
+  let valid=0, dropped=0;
+  const snap = new Map();
+
+  for(const r of rows){
+    const s = toMachineSnapshot(r);
+    if(!s){ dropped++; continue; }
+    valid++;
+    snap.set(s.codeId, s);
+    upsertMachine(s, dateObj);
+  }
+
+  RAM.uploads.push({
+    id: crypto.randomUUID(),
+    name: file.name,
+    date: fmtDate(dateObj),
+    rowsTotal: rows.length,
+    rowsValid: valid,
+    rowsDropped: dropped,
+    machinesSnapshot: snap
+  });
+  RAM.droppedTotal += dropped;
+
+  setStatus(`Caricato: ${file.name} • ${fmtDate(dateObj)} • righe: ${rows.length} • valide: ${valid} • scartate: ${dropped}`);
+  renderTable();
+
+  // auto-select top machine
+  const { list } = getVisibleMachines();
+  if(list.length){
+    renderDetail(list[0].m.codeId);
+  }
+
+  sagaSay(`Sinottico importato ✅ (${file.name}). Ho trovato ${valid} macchine valide. Se vuoi, chiedimi: “Top 10 in pagamento” oppure “Quando paga la CODEID 12345?”`);
+}
+
+/* ===========================
+   Demo generator (fake history)
+=========================== */
+function demoData(){
+  RAM.uploads = [];
+  RAM.machines.clear();
+  RAM.droppedTotal = 0;
+
+  const names = [
+    ["Bar Fortini","Molini di Triora","IM","Marim Fire"],
+    ["Bar Centrale","Triora","IM","VLT Nova"],
+    ["Birreria Sette","Taggia","IM","Marim Fire"],
+    ["Caffè Aurora","Sanremo","IM","Lucky X"],
+    ["Bar Alpino","Molini di Triora","IM","Lucky X"]
+  ];
+
+  const start = new Date();
+  start.setDate(start.getDate()-12);
+
+  for(let d=0; d<10; d++){
+    const dateObj = new Date(start); dateObj.setDate(start.getDate()+d);
+    const fileName = `Sinottico-${fmtDate(dateObj)}.xlsx`;
+    let total=0, valid=0, dropped=0;
+    const snap = new Map();
+
+    for(let i=0;i<75;i++){
+      const pick = names[i%names.length];
+      const codeId = String(10000+i);
+      // crea pattern diversi per “payout tension”
+      const basePct = (i%7===0) ? 0.72 : (i%9===0 ? 1.25 : 0.92);
+      const drift = (i%7===0) ? (d*0.03) : (d*0.01);
+      const noise = (Math.random()-0.5)*0.08;
+      const pct = Math.max(0.35, Math.min(1.85, basePct + drift + noise));
+
+      const inc = Math.max(0, (Math.random()*450) + (i%7===0? 160: 60));
+      const s = {
+        codeId,
+        sede: pick[0],
+        comune: pick[1],
+        provincia: pick[2],
+        modello: pick[3],
+        stato: "ATTIVA",
+        totIn: 10000 + d*200 + i*20,
+        totOut: 9800 + d*200 + i*19,
+        pctOutFrac: pct,
+        incDay: inc,
+        mediaInc: inc*0.75,
+        raw:{}
+      };
+      total++; valid++;
+      snap.set(codeId, s);
+      upsertMachine(s, dateObj);
+    }
+
+    RAM.uploads.push({
+      id: crypto.randomUUID(),
+      name: fileName,
+      date: fmtDate(dateObj),
+      rowsTotal: total,
+      rowsValid: valid,
+      rowsDropped: dropped,
+      machinesSnapshot: snap
+    });
+  }
+
+  setStatus("Modalità test attiva: creato storico finto (10 sinottici).");
+  renderTable();
+  const { list } = getVisibleMachines();
+  if(list.length) renderDetail(list[0].m.codeId);
+  sagaSay("Ho generato uno storico di test 🧪. Prova: “Quale macchina è in pagamento?” oppure “Mostrami Marim Fire al Bar Fortini”.");
+}
+
+/* ===========================
+   S.A.G.A. Chat (rule-based + data-driven)
+=========================== */
+const chatEl = el("chat");
+
+function addMsg(role, text){
+  const row = document.createElement("div");
+  row.className = `msg ${role}`;
+  row.innerHTML = `
+    <div class="who">${role==="me" ? "TU" : "SA"}</div>
+    <div class="bubble">${text}</div>
+  `;
+  chatEl.appendChild(row);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+
+function sagaSay(text){ addMsg("ai", text); }
+
+function helpText(){
+  return `
+  Posso aiutarti solo su dati del sinottico e funzioni del programma. Prova con:
+  <ul>
+    <li><b>“Quale macchina è in pagamento?”</b> (o “Top 10 in pagamento”)</li>
+    <li><b>“Quando paga CODEID 12345?”</b></li>
+    <li><b>“Mostrami Marim Fire al Bar Fortini”</b></li>
+    <li><b>“Confronta Marim Fire”</b> (modello) o <b>“Confronta Molini di Triora”</b> (comune)</li>
+  </ul>
+  `;
+}
+
+function findMachineByText(text){
+  text = text.toLowerCase();
+
+  // 1) CODEID diretto
+  const mCode = text.match(/\bcodeid\s*([0-9]{3,})\b/i) || text.match(/\b([0-9]{4,})\b/);
+  if(mCode){
+    const id = mCode[1];
+    if(RAM.machines.has(id)) return RAM.machines.get(id);
+  }
+
+  // 2) match su modello + esercente/comune
+  const candidates = [];
+  for(const m of RAM.machines.values()){
+    const blob = [m.codeId,m.modello,m.sede,m.comune].map(x=>safeStr(x).toLowerCase()).join(" ");
+    let score=0;
+    if(m.modello && text.includes(m.modello.toLowerCase())) score+=3;
+    if(m.sede && text.includes(m.sede.toLowerCase())) score+=3;
+    if(m.comune && text.includes(m.comune.toLowerCase())) score+=2;
+    // fallback fuzzy: parole in comune
+    const words = text.split(/\s+/).filter(w=>w.length>=4);
+    for(const w of words){
+      if(blob.includes(w)) score+=1;
+    }
+    if(score>0) candidates.push({m, score});
+  }
+  candidates.sort((a,b)=>b.score-a.score);
+  return candidates[0]?.m || null;
+}
+
+function topMachines(n=10){
+  const { list } = getVisibleMachines();
+  return list.slice(0,n);
+}
+
+function compareByModel(modelName){
+  const name = modelName.toLowerCase();
+  const group = [];
+  for(const m of RAM.machines.values()){
+    if(safeStr(m.modello).toLowerCase().includes(name)) group.push(m);
+  }
+  return group;
+}
+
+function compareByComune(comuneName){
+  const name = comuneName.toLowerCase();
+  const group = [];
+  for(const m of RAM.machines.values()){
+    if(safeStr(m.comune).toLowerCase().includes(name)) group.push(m);
+  }
+  return group;
+}
+
+function sagaAnswer(userText){
+  const t = userText.trim();
+  const low = t.toLowerCase();
+
+  if(RAM.machines.size===0){
+    sagaSay(`Non ho dati in RAM ancora. Importa un sinottico XLSX e poi chiedimi. ${helpText()}`);
+    return;
+  }
+
+  const gStats = computeGlobalStats();
+  const groupStats = computeGroupStats();
+
+  const intents = {
+    whichPay: /quale.*(pag|in\s+pagamento)|in\s+pagamento|top\s*\d*/i.test(t),
+    whenPay: /quando.*(pag|paga)|tra\s+quanto.*(pag|paga)|prevede.*pag/i.test(t),
+    show: /mostra|dettaglio|info|apr/i.test(t),
+    compare: /confronta|paragona|metti\s+a\s+confronto/i.test(t),
+    clear: /svuota|reset|cancella\s+ram/i.test(t)
+  };
+
+  if(intents.clear){
+    RAM.uploads=[]; RAM.machines.clear(); RAM.droppedTotal=0; RAM.selected=null;
+    renderTable(); el("detail").innerHTML=""; setStatus("RAM svuotata.");
+    sagaSay("Fatto. RAM svuotata 🧹. Ora importa un sinottico XLSX.");
+    return;
+  }
+
+  // TOP payout
+  if(intents.whichPay){
+    const mTop = topMachines(10);
+    const lines = mTop.map(({m,score},i)=>{
+      const tag = tagForScore(score);
+      const h = last(m.history)||{};
+      return `${i+1}) <b>${score}</b> ${tag.label} • <span class="mono">${m.codeId}</span> • ${safeStr(m.sede)||"—"} • ${safeStr(m.modello)||"—"} • %OUT ${fmtPct(h.pct)}`;
+    }).join("<br>");
+    sagaSay(`Ecco le <b>Top 10</b> più “in pagamento” (score payout):<br><br>${lines}<br><br>Vuoi che apra il dettaglio di una? Dimmi “Apri CODEID 12345”.`);
+    return;
+  }
+
+  // WHEN payout per macchina
+  if(intents.whenPay){
+    const m = findMachineByText(t);
+    if(!m){
+      sagaSay(`Mi serve una macchina precisa (CODEID o nome modello + esercente). Esempio: “Quando paga <b>CODEID 12345</b>?” oppure “Quando paga <b>Marim Fire</b> al <b>Bar Fortini</b>?”`);
+      return;
+    }
+    const score = payoutScore(m, gStats, groupStats);
+    const eta = etaToPayout(m, score);
+    renderDetail(m.codeId);
+    sagaSay(`Per <b>${safeStr(m.modello)||"macchina"}</b> (${safeStr(m.sede)||"—"}, <span class="mono">${m.codeId}</span>):<br>
+      • Score payout: <b>${score}</b>/100 (${tagForScore(score).label})<br>
+      • Stima: <b>${eta.txt}</b><br>
+      <span class="muted">Confidenza: ${eta.confidence}. Storico: ${m.history.length}.</span>`);
+    return;
+  }
+
+  // SHOW detail
+  if(intents.show){
+    const m = findMachineByText(t);
+    if(!m){
+      sagaSay(`Dimmi quale: “Apri <b>CODEID 12345</b>” oppure “Mostra <b>Marim Fire</b> al <b>Bar Fortini</b>”.`);
+      return;
+    }
+    renderDetail(m.codeId);
+    const score = payoutScore(m, gStats, groupStats);
+    sagaSay(`Aperto dettaglio per <span class="mono">${m.codeId}</span> • ${safeStr(m.sede)||"—"} • ${safeStr(m.modello)||"—"}.
+      Score payout attuale: <b>${score}</b>/100.`);
+    return;
+  }
+
+  // COMPARE
+  if(intents.compare){
+    // prova a capire se è un modello o un comune
+    // se contiene "modello" assume modello, se contiene "comune" assume comune, altrimenti tenta entrambe
+    let group = [];
+    let label = "";
+
+    const mm = t.match(/confronta\s+(.*)$/i);
+    const key = mm ? mm[1].trim() : t.replace(/confronta/i,"").trim();
+
+    if(/comune/i.test(low)){
+      group = compareByComune(key);
+      label = `Comune: ${key}`;
+    }else if(/modello/i.test(low)){
+      group = compareByModel(key);
+      label = `Modello: ${key}`;
+    }else{
+      const byModel = compareByModel(key);
+      const byComune = compareByComune(key);
+      group = (byModel.length >= byComune.length) ? byModel : byComune;
+      label = (byModel.length >= byComune.length) ? `Modello: ${key}` : `Comune: ${key}`;
+    }
+
+    if(group.length<2){
+      sagaSay(`Non trovo abbastanza elementi per confrontare “${key}”. Prova con un modello esatto o un comune presente nei dati.`);
+      return;
+    }
+
+    // calcola medie score
+    const scored = group.map(m=>({m, score: payoutScore(m, gStats, groupStats)}))
+                        .sort((a,b)=>b.score-a.score);
+    const top5 = scored.slice(0,5).map((x,i)=>{
+      return `${i+1}) <b>${x.score}</b> • <span class="mono">${x.m.codeId}</span> • ${safeStr(x.m.sede)||"—"} • ${safeStr(x.m.modello)||"—"}`;
+    }).join("<br>");
+
+    const avg = Math.round(scored.reduce((s,x)=>s+x.score,0)/scored.length);
+
+    sagaSay(`<b>Confronto</b> (${label})<br>
+      • Elementi: <b>${scored.length}</b><br>
+      • Score medio payout: <b>${avg}</b>/100<br><br>
+      Top 5:<br>${top5}<br><br>
+      Vuoi che evidenzi solo i “HOT”? Dimmi: “Quale macchina è in pagamento”.`);
+    return;
+  }
+
+  // fallback: prova comunque a trovare macchina e dare qualcosa di utile
+  const maybe = findMachineByText(t);
+  if(maybe){
+    const score = payoutScore(maybe, gStats, groupStats);
+    renderDetail(maybe.codeId);
+    sagaSay(`Ho capito che parli di <span class="mono">${maybe.codeId}</span>. Score payout: <b>${score}</b>/100. Se vuoi: “Quando paga?” oppure “Mostra dettagli”.`);
+    return;
+  }
+
+  sagaSay(`Questa richiesta non sembra collegata ai dati del sinottico. ${helpText()}`);
+}
+
+/* ===========================
+   Settings UI (simple prompt)
+=========================== */
+function openSettings(){
+  const hot = Number(prompt("Soglia HOT (0-100):", Settings.hot));
+  if(Number.isFinite(hot)) Settings.hot = Math.max(0, Math.min(100, hot));
+
+  const warm = Number(prompt("Soglia WARM (0-100):", Settings.warm));
+  if(Number.isFinite(warm)) Settings.warm = Math.max(0, Math.min(100, warm));
+
+  const minHist = Number(prompt("Min storico (punti) per score affidabile:", Settings.minHist));
+  if(Number.isFinite(minHist)) Settings.minHist = Math.max(1, Math.min(30, minHist));
+
+  saveSettings();
+  refreshPills();
+  renderTable();
+  sagaSay("Impostazioni aggiornate ✅. (Ricorda: solo le impostazioni restano in cache, i dati rimangono in RAM).");
+}
+
+/* ===========================
+   Wire events
+=========================== */
+el("file").addEventListener("change", (e)=>{
+  const f = e.target.files?.[0];
+  if(!f) return;
+  handleFile(f).catch(err=>{
+    console.error(err);
+    sagaSay("Ho avuto un errore importando il file. Se vuoi, dimmi che colonne vedi nel foglio o incollami uno screenshot delle intestazioni.");
+  }).finally(()=>{
+    e.target.value = "";
+  });
+});
+
+["q","sort","filterPay"].forEach(id=>{
+  el(id).addEventListener("input", renderTable);
+  el(id).addEventListener("change", renderTable);
+});
+
+el("btnClear").addEventListener("click", ()=>{
+  RAM.uploads=[]; RAM.machines.clear(); RAM.droppedTotal=0; RAM.selected=null;
+  renderTable();
+  el("detail").innerHTML="";
+  setStatus("RAM svuotata.");
+  sagaSay("RAM svuotata 🧹. Importa un sinottico XLSX per ripartire.");
+});
+
+el("btnDemo").addEventListener("click", demoData);
+
+el("btnSettings").addEventListener("click", openSettings);
+
+el("chatSend").addEventListener("click", ()=>{
+  const v = el("chatIn").value.trim();
+  if(!v) return;
+  addMsg("me", v);
+  el("chatIn").value="";
+  sagaAnswer(v);
+});
+el("chatIn").addEventListener("keydown", (e)=>{
+  if(e.key==="Enter"){
+    e.preventDefault();
+    el("chatSend").click();
+  }
+});
+
+// first greet
+sagaSay(`Ciao! Sono <b>S.A.G.A.</b> (Slot Analysis & Guidance Assistant). Importa un sinottico XLSX e poi chiedimi: “Quale macchina è in pagamento?” 🙂`);
+
+renderTable();
 </script>
 </body>
 </html>
