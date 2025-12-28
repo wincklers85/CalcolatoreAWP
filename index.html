@@ -41,6 +41,18 @@ tbody tr:hover td{background:var(--hover)}
 .tag.good{background:color-mix(in oklab,var(--ok) 15%,transparent);color:var(--ok);border:1px solid color-mix(in oklab,var(--ok) 40%,transparent)}
 .tag.mid{background:color-mix(in oklab,var(--warn) 15%,transparent);color:var(--warn);border:1px solid color-mix(in oklab,var(--warn) 40%,transparent)}
 .tag.bad{background:color-mix(in oklab,var(--bad) 15%,transparent);color:var(--bad);border:1px solid color-mix(in oklab,var(--bad) 40%,transparent)}
+.tag.neutral{background:color-mix(in oklab,var(--muted) 12%,transparent);color:var(--muted);border:1px solid color-mix(in oklab,var(--muted) 35%,transparent)}
+.progress{margin-top:10px;border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--card)}
+.progress-meta{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:6px}
+.progress-track{height:8px;background:var(--thead);border-radius:999px;overflow:hidden}
+.progress-bar{height:100%;width:0%;background:linear-gradient(90deg,var(--accent),#60a5fa);transition:width .2s ease}
+.actionbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:12px}
+.actionbar .btn-secondary{border:1px solid var(--border);background:var(--card);color:var(--ink);padding:8px 12px;border-radius:12px;cursor:pointer;font-weight:700}
+.actionbar .btn-secondary:hover{box-shadow:var(--glow)}
+.actionbar .ai-pill{padding:6px 10px;border-radius:999px;border:1px solid var(--border);font-size:12px;color:var(--muted)}
+.analysis-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:10px}
+.analysis-card{border:1px solid var(--border);border-radius:12px;padding:10px;background:var(--card)}
+.analysis-card h4{margin:0 0 6px;font-size:13px}
 /* Splash/Login */
 .splash{position:fixed;inset:0;display:grid;place-items:center;overflow:hidden;background:radial-gradient(1200px 700px at 50% 0%,var(--thead) 0,var(--bg) 60%,var(--bg) 100%);z-index:5}
 .login-card{position:relative;text-align:center;max-width:680px;width:min(94vw,680px);padding:26px 22px 18px;border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.75));box-shadow:0 10px 40px rgba(0,0,0,.12),var(--glow);border:1px solid var(--border)}
@@ -127,7 +139,41 @@ tbody tr:hover td{background:var(--hover)}
       <div class="stat" id="statCount">Macchine: 0</div>
       <div class="stat" id="statGood">Top (OUT&gt;IN): 0</div>
       <div class="stat" id="statWarn">Equilibrate (±10%): 0</div>
+      <div class="stat" id="statAI">IA: —</div>
       <div class="stat" id="statMap">Mappate/scartate: 0/0</div>
+    </div>
+
+    <div class="progress hidden" id="loadProgress">
+      <div class="progress-meta">
+        <span id="loadText">Caricamento sinottici…</span>
+        <span id="loadPct">0%</span>
+      </div>
+      <div class="progress-track"><div class="progress-bar" id="loadBar"></div></div>
+    </div>
+
+    <div class="actionbar">
+      <button class="btn-secondary" id="btnAI" type="button">Analizza con IA</button>
+      <span class="ai-pill" id="aiStatus">IA: in attesa dati completi…</span>
+      <span class="muted" style="font-size:12px;">Suggerimento: l’analisi IA usa tutti i sinottici in <b>Dati/manifest.json</b>.</span>
+    </div>
+
+    <div class="analysis-grid" id="aiSummary" style="display:none;">
+      <div class="analysis-card">
+        <h4>Algoritmo di pagamento (ipotesi)</h4>
+        <div id="aiAlgo" class="muted">—</div>
+      </div>
+      <div class="analysis-card">
+        <h4>Precisione stimata</h4>
+        <div id="aiPrecision" class="muted">—</div>
+      </div>
+      <div class="analysis-card">
+        <h4>Cluster per modello</h4>
+        <div id="aiClusters" class="muted">—</div>
+      </div>
+      <div class="analysis-card">
+        <h4>Locali simili</h4>
+        <div id="aiLocales" class="muted">—</div>
+      </div>
     </div>
 
     <!-- DASHBOARD -->
@@ -137,6 +183,7 @@ tbody tr:hover td{background:var(--hover)}
           <thead>
             <tr>
               <th data-k="flag" class="col-calc">⚑</th>
+              <th data-k="_signal" class="col-calc">Semaforo</th>
               <th data-k="perc_cycle" class="col-calc">Percentuale Ciclo</th>
               <th data-k="cycle_idx" class="col-calc">Ciclo Corrente</th>
               <th data-k="resid_in" class="col-calc">Residuo IN</th>
@@ -179,7 +226,7 @@ tbody tr:hover td{background:var(--hover)}
           <option value="PROVINCIA">PROVINCIA</option>
           <option value="MODELLO">MODELLO</option>
         </select>
-        <button class="pill" id="btnAggExport">Esporta aggregati (CSV)</button>
+        <button class="pill" id="btnAggExport">Esporta aggregati (XLSX)</button>
       </div>
       <div class="table-wrap" style="margin-top:8px;">
         <table id="aggTable">
@@ -220,6 +267,9 @@ tbody tr:hover td{background:var(--hover)}
         <div><b>Ciclo</b>: <span id="m_cycle"></span> · <b>Payout</b>: <span id="m_payout">65%</span></div>
         <div><b>Residuo IN</b>: <span id="m_resid_in"></span> · <b>Residuo OUT</b>: <span id="m_resid_out"></span></div>
         <div><b>Percentuale Ciclo</b>: <span id="m_perc"></span> · <b>Fine Ciclo Stimata</b>: <span id="m_forecast"></span></div>
+        <div><b>Confidenza IA</b>: <span id="m_ai"></span></div>
+        <div><b>Similarità modello</b>: <span id="m_sim"></span></div>
+        <div><b>Payout modello medio</b>: <span id="m_model_payout"></span></div>
       </div>
       <div style="flex:1;min-width:320px;">
         <canvas id="m_chart" width="640" height="240"></canvas>
@@ -232,7 +282,7 @@ tbody tr:hover td{background:var(--hover)}
 
 <script>
 /* ====== Versione ====== */
-document.getElementById('version').textContent="v1.11.0 — timestamp per riga + mobile";
+document.getElementById('version').textContent="v1.13.0 — semaforo + IA + progress";
 
 /* ====== Utility ====== */
 const norm=s=>(s??"").toString().trim();
@@ -244,6 +294,7 @@ const todayIso=()=>new Date().toISOString().slice(0,10);
 const daysDiff=iso=>{if(!iso)return null;const t=new Date(iso);if(isNaN(t))return null;const ms=new Date().setHours(0,0,0,0)-new Date(t.getFullYear(),t.getMonth(),t.getDate()).getTime();return Math.max(0,Math.round(ms/86400000))}
 function toast(m){const d=document.createElement('div');d.textContent=m;d.style.cssText='position:fixed;bottom:12px;left:12px;right:12px;padding:10px 14px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;z-index:9999;font-weight:700';document.body.appendChild(d);setTimeout(()=>d.remove(),4500)}
 function escapeHTML(s){return(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function clamp(n,min,max){return Math.min(max,Math.max(min,n))}
 
 /* ====== Tema ====== */
 document.querySelectorAll('.pill[data-theme]').forEach(b=>b.onclick=()=>{document.documentElement.setAttribute('data-theme',b.dataset.theme);localStorage.setItem('awp_theme',b.dataset.theme)});
@@ -258,15 +309,38 @@ async function sha256Hex(s){const enc=new TextEncoder().encode(s);const buf=awai
 function loginErr(){const m=document.getElementById('pinMsg');m.style.display='block';setTimeout(()=>m.style.display='none',1500)}
 async function auth(){
   const u=norm(document.getElementById('user').value).toLowerCase(),p=norm(document.getElementById('pin').value);
-  let list=[];try{const r=await fetch('Dati/users.json',{cache:'no-store'});if(!r.ok)throw 0;list=await r.json()}catch{toast('Errore lettura Dati/users.json');return}
+
+  let list=[];
+  try{
+    const candidates=['Dati/users.json','/Dati/users.json','./Dati/users.json'];
+    let resp=null;
+    for(const path of candidates){
+      const r=await fetch(path,{cache:'no-store'});
+      if(r.ok){ resp=r; break; }
+    }
+    if(!resp) throw new Error('missing users.json');
+    list=await resp.json();
+  }catch{
+    toast('Errore lettura users.json (controlla Dati/users.json e server)');
+    return;
+  }
+
   const rec=list.find(x=>String(x.user||'').toLowerCase()===u);if(!rec)return loginErr();
   let ok=false;if(rec.pin_hash){ok=(await sha256Hex(p)).toLowerCase()===String(rec.pin_hash).toLowerCase()}else if(rec.pin){ok=String(rec.pin)===p}
   if(!ok)return loginErr();
-  let level=(rec.level||'Base').trim();const exp=rec.expires?String(rec.expires):null;const now=todayIso();const expired=!!(exp && exp<now);if(expired)level='Base';
+
+  let level=(rec.level||'Base').trim();
+  const exp=rec.expires?String(rec.expires):null;
+  const now=todayIso();
+  const expired=!!(exp && exp<now);
+  if(expired) level='Base';
+
   CURRENT_USER={user:rec.user,level,expires:exp,expiredFlag:expired};
-  document.getElementById('splash').classList.add('hidden');document.getElementById('app').classList.remove('hidden');
+  document.getElementById('splash').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
   document.getElementById('who').innerHTML=`Utente: <b>${CURRENT_USER.user}</b> · ${badgeHTML(level)} · Scadenza: <b>${CURRENT_USER.expires||'—'}</b>`;
   document.getElementById('expireWarn').classList.toggle('hidden',!expired);
+
   const pro=(level.toLowerCase()==='abbonato'||level.toLowerCase()==='admin');
   document.querySelectorAll('.col-calc').forEach(el=>el.style.display=pro?'':'none');
   document.getElementById('statsBar').style.display=pro?'flex':'none';
@@ -325,32 +399,27 @@ function pickCols(map){
     sedeKey: pick(['sede','comune','località','localita','città','citta','city']),
     indirKey: pick(['indirizzo','indirizzo sede','via','via/piazza','indir.','address']),
     provKey: pick(['provincia','prov.','prov','sigla provincia']),
-    /* Timestamp REALE per riga */
     validKey: pick(['data ultima lettura val.','data ultima lettura val','data ultima lettura','ultima lettura val.','ultima lettura']),
-    timeKey: pick(['ora lettura','ora','time','orario']) /* se esistono campi separati */
+    timeKey: pick(['ora lettura','ora','time','orario'])
   };
 }
 
 /* parse contatori (÷100) */
 const parseCnt=v=>{if(typeof v==='number')return v/100;let s=(v||'').toString().trim();if(!s)return 0;s=s.replace(/\s+/g,'');if(s.includes('.')&&s.includes(','))s=s.replace(/\./g,'').replace(',', '.');else if(s.includes(','))s=s.replace('.', '').replace(',', '.');const n=parseFloat(s);return isNaN(n)?0:n/100};
 
-/* parse data/ora dal valore della colonna validKey
-   supporta: DD-MM-YYYY HH:mm, DD/MM/YYYY HH:mm,  YYYY-MM-DDTHH:mm:ss, ecc. */
+/* parse data/ora */
 function parseTSValue(val, fallbackISO){
   if(!val){ return fallbackISO; }
   const s = String(val).trim();
-  // formati comuni italiani
   let m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
   if(m){
     const dd=m[1].padStart(2,'0'),mm=m[2].padStart(2,'0'),yy=(m[3].length===2?('20'+m[3]):m[3]);
     const HH=(m[4]??'00').padStart(2,'0'), MM=(m[5]??'00').padStart(2,'0'), SS=(m[6]??'00').padStart(2,'0');
     return `${yy}-${mm}-${dd}T${HH}:${MM}:${SS}`;
   }
-  // ISO-like
   if(/^\d{4}-\d{2}-\d{2}T/.test(s) || /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s)){
     return s.replace(' ','T').replace(/(\d{2}:\d{2})(?!:)/,'$1:00');
   }
-  // solo data
   let m2 = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
   if(m2){
     const dd=m2[1].padStart(2,'0'),mm=m2[2].padStart(2,'0'),yy=(m2[3].length===2?('20'+m2[3]):m2[3]);
@@ -359,7 +428,7 @@ function parseTSValue(val, fallbackISO){
   return fallbackISO;
 }
 
-/* fallback quando il file non ha la colonna valida */
+/* fallback dal nome file */
 function parseStampFromName(name){
   const d=name.match(/(\d{4})-(\d{2})-(\d{2})(?:[_\s\-T]?(\d{2})[:\-]?(\d{2}))?/);
   if(!d) return new Date().toISOString();
@@ -373,7 +442,7 @@ function pushHistory(ID,ts,IN,OUT,meta){
   ID = cleanID(ID); if(!ID) return;
   if(!history[ID]) history[ID]=[];
   const arr=history[ID];
-  if(arr.some(r=> r.ts===ts)) return; // stessa "ultima lettura valida" -> evita doppione
+  if(arr.some(r=> r.ts===ts)) return;
   arr.push({ts,IN,OUT,meta});
   arr.sort((a,b)=> new Date(a.ts)-new Date(b.ts));
 }
@@ -401,6 +470,74 @@ function forecastDate(ID, resid_in){
   const hrs = Math.ceil(resid_in/avg);
   const est=new Date(); est.setHours(est.getHours()+hrs);
   return fmtDMY(est.toISOString());
+}
+
+/* ====== “IA” locale (senza server): forecast lineare + benchmark ====== */
+let MODEL_BENCH=new Map();
+let LOCALE_BENCH=new Map();
+
+function aiForecastInfo(ID, resid_in){
+  const h=history[ID]||[]; if(h.length<3 || resid_in<=0) return {date:null, confidence:null};
+  const series=h.slice(-10);
+  const t0=+new Date(series[0].ts);
+  const pts=series.map(p=>({x:(+new Date(p.ts)-t0)/36e5, y:p.IN}));
+  const n=pts.length;
+  let sumX=0,sumY=0,sumXX=0,sumXY=0;
+  for(const p of pts){ sumX+=p.x; sumY+=p.y; sumXX+=p.x*p.x; sumXY+=p.x*p.y; }
+  const denom=(n*sumXX - sumX*sumX);
+  if(denom===0) return {date:null, confidence:null};
+  const slope=(n*sumXY - sumX*sumY)/denom;
+  const intercept=(sumY - slope*sumX)/n;
+  if(!isFinite(slope) || slope<=0) return {date:null, confidence:null};
+  const target=pts[pts.length-1].y + resid_in;
+  const tTarget=(target - intercept)/slope;
+  if(!isFinite(tTarget) || tTarget < pts[pts.length-1].x) return {date:null, confidence:null};
+  const estimate=new Date(t0 + tTarget*36e5);
+
+  const meanY=sumY/n;
+  let ssTot=0, ssRes=0;
+  for(const p of pts){
+    const yHat=intercept + slope*p.x;
+    ssTot += (p.y-meanY)**2;
+    ssRes += (p.y-yHat)**2;
+  }
+  const r2=ssTot>0 ? clamp(1-(ssRes/ssTot),0,1) : null;
+  return {date: fmtDMY(estimate.toISOString()), confidence: r2};
+}
+
+function computeBenchmarks(){
+  MODEL_BENCH=new Map();
+  LOCALE_BENCH=new Map();
+  const latest=getLatestStateForAll();
+  const modelAgg=new Map();
+  const localeAgg=new Map();
+  latest.forEach(r=>{
+    const modelKey=normalize(r.MODELLO||'') || cleanCode(r.MODEL_CODE) || '—';
+    const localeKey=normalize(r.DENOMIN_SEDE||r.SEDE||'') || '—';
+    if(!modelAgg.has(modelKey)) modelAgg.set(modelKey,{in:0,out:0,n:0,label:r.MODELLO||r.MODEL_CODE||'—'});
+    if(!localeAgg.has(localeKey)) localeAgg.set(localeKey,{in:0,out:0,n:0,label:r.DENOMIN_SEDE||r.SEDE||'—'});
+    const m=modelAgg.get(modelKey); m.in+=r.IN||0; m.out+=r.OUT||0; m.n++;
+    const l=localeAgg.get(localeKey); l.in+=r.IN||0; l.out+=r.OUT||0; l.n++;
+  });
+  modelAgg.forEach((v,k)=>MODEL_BENCH.set(k,{payout:v.in>0? v.out/v.in : 0, n:v.n, label:v.label}));
+  localeAgg.forEach((v,k)=>LOCALE_BENCH.set(k,{payout:v.in>0? v.out/v.in : 0, n:v.n, label:v.label}));
+}
+
+function signalForRow(r){
+  if(r.resid_out==null || r.resid_in==null) return {label:'—', className:'neutral'};
+  if(r.resid_out>r.resid_in) return {label:'Verde', className:'good'};
+  if(Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*(r.resid_in||1)) return {label:'Giallo', className:'mid'};
+  return {label:'Rosso', className:'bad'};
+}
+
+function modelSimilarity(r){
+  const key=normalize(r.MODELLO||'') || cleanCode(r.MODEL_CODE) || '—';
+  const bench=MODEL_BENCH.get(key);
+  if(!bench || !r._I) return {score:null, bench:null};
+  const payout=r._I>0 ? (r._V||0)/(r._I||1) : 0;
+  const diff=Math.abs(payout-bench.payout);
+  const score=clamp(1-(diff/0.25),0,1); // 0.25 = tolleranza “larga”
+  return {score, bench};
 }
 
 /* ====== Calcoli riga ====== */
@@ -432,25 +569,34 @@ function computeRow(r){
                   : (arr.length<2 ? {label:'Aggiornata',badge:'✅'}
                     : ((arr[arr.length-1].IN===arr[arr.length-2].IN && arr[arr.length-1].OUT===arr[arr.length-2].OUT) ? {label:'Invariata',badge:'＝'} : {label:'Aggiornata',badge:'✅'})));
 
+  const similarity=modelSimilarity(r);
+
   if(!C || !show){
     return {...r,_cycle:C||null,_payout:P||payoutDefault,perc_cycle:null,cycle_idx:null,resid_in:null,resid_out:null,need65:null,forecast_date:'',
-            _delta:0,flag:'',_ts_str:fmtDMY(r._ts)+(isToday?'':(tsDays!=null?` (${tsDays} gg)`:'')),_stato:`${stato.badge} ${stato.label}`,_oggi:isToday,_I:I,_V:V};
+            _delta:0,flag:'',_ts_str:fmtDMY(r._ts)+(isToday?'':(tsDays!=null?` (${tsDays} gg)`:'')),_stato:`${stato.badge} ${stato.label}`,_oggi:isToday,_I:I,_V:V,_ai_conf:null,_signal:{label:'—',className:'neutral'},_sim:similarity};
   }
 
   const cycles_done=Math.floor(I/C);
   const in_cycle=I - cycles_done*C;
   const target_prev=cycles_done*(P*C);
   let paid_cycle=V - target_prev; if(paid_cycle<0) paid_cycle=0;
+
   const resid_in=in_cycle>0? (C-in_cycle):C;
   let resid_out=(P*C)-paid_cycle; if(resid_out<0) resid_out=0;
+
   const perc_cycle=in_cycle>0? (paid_cycle/in_cycle)*100 : 0;
   const cycle_idx=cycles_done+1;
   const need65=(in_cycle>0 && perc_cycle<65) ? Math.max(0, (0.65*in_cycle) - paid_cycle) : null;
-  const fDate=forecastDate(r.ID,resid_in);
+
+  const ai=aiForecastInfo(r.ID,resid_in);
+  const fDate=ai.date ? `${ai.date} (IA)` : forecastDate(r.ID,resid_in);
+
   const delta=resid_out-resid_in;
   const flag=rowFlag(delta,resid_in);
+  const sig=signalForRow({resid_in,resid_out});
+
   return {...r,_cycle:C,_payout:P,perc_cycle,cycle_idx,resid_in,resid_out,need65,forecast_date:fDate,_delta:delta,flag,
-          _ts_str:fmtDMY(r._ts)+(isToday?'':(tsDays!=null?` (${tsDays} gg)`:'')),_stato:`${stato.badge} ${stato.label}`,_oggi:isToday,_I:I,_V:V};
+          _ts_str:fmtDMY(r._ts)+(isToday?'':(tsDays!=null?` (${tsDays} gg)`:'')),_stato:`${stato.badge} ${stato.label}`,_oggi:isToday,_I:I,_V:V,_ai_conf:ai.confidence,_signal:sig,_sim:similarity};
 }
 
 /* ====== Stato globale / rendering ====== */
@@ -479,22 +625,41 @@ function filterByQuery(rows){
 function getValForSort(r,k){
   const v=r[k]; if(v==null) return '';
   if(k==='perc_cycle'||k==='cycle_idx'||k==='resid_in'||k==='resid_out'||k==='need65') return +v;
-  if(k==='forecast_date'){ if(!v||v==='—') return ''; const [d,m,y]=v.split('-'); return `${y}-${m}-${d}`; }
+  if(k==='forecast_date'){
+    if(!v||v==='—') return '';
+    const clean=v.replace(' (IA)','');
+    const [d,m,y]=clean.split('-');
+    return `${y}-${m}-${d}`;
+  }
   if(k==='_ts_str'){ return r._ts||''; }
+  if(k==='_signal'){ return (r._signal?.label||''); }
   return String(v).toLowerCase();
 }
 function render(rows){
   const pro=(CURRENT_USER?.level||'Base').toLowerCase(); const show=(pro==='abbonato'||pro==='admin');
   let view=filterByQuery(rows);
-  if(SORT_KEY){ view.sort((a,b)=>{const va=getValForSort(a,SORT_KEY),vb=getValForSort(b,SORT_KEY); if(va<vb) return -1*SORT_DIR; if(va>vb) return 1*SORT_DIR; return 0; }); }
-  else{ if(show){ view.sort((a,b)=>(b._delta-a._delta)||(b.resid_out-a.resid_out)); } else { view.sort((a,b)=> String(a.DENOMIN_SEDE||a.SEDE||a.MODELLO).localeCompare(String(b.DENOMIN_SEDE||b.SEDE||b.MODELLO))); } }
+
+  if(SORT_KEY){
+    view.sort((a,b)=>{
+      const va=getValForSort(a,SORT_KEY),vb=getValForSort(b,SORT_KEY);
+      if(va<vb) return -1*SORT_DIR;
+      if(va>vb) return 1*SORT_DIR;
+      return 0;
+    });
+  } else {
+    if(show){ view.sort((a,b)=>(b._delta-a._delta)||(b.resid_out-a.resid_out)); }
+    else { view.sort((a,b)=> String(a.DENOMIN_SEDE||a.SEDE||a.MODELLO).localeCompare(String(b.DENOMIN_SEDE||b.SEDE||b.MODELLO))); }
+  }
+
   const tb=document.querySelector('#resultTable tbody'); tb.innerHTML='';
   for(const r of view){
     const tr=document.createElement('tr');
     const calc = r._cycle!=null && show;
-    const tagClass = (calc && (r.resid_out>r.resid_in)) ? 'good' : (calc && Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*((r.resid_in||1)) ? 'mid' : 'bad');
+    const tagClass = (calc && (r.resid_out>r.resid_in)) ? 'good'
+      : (calc && Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*((r.resid_in||1)) ? 'mid' : 'bad');
     tr.innerHTML=`
       <td class="col-calc">${calc?(r.flag||''):''}</td>
+      <td class="col-calc">${calc? `<span class="tag ${r._signal?.className||'neutral'}">${r._signal?.label||'—'}</span>` : ''}</td>
       <td class="col-calc">${calc? `<span class="tag ${tagClass}">${r.perc_cycle!=null ? r.perc_cycle.toFixed(2) : '0.00'}%</span>` : ''}</td>
       <td class="col-calc">${calc?(r.cycle_idx ?? ''):''}</td>
       <td class="col-calc">${calc?(r.resid_in!=null ? euro(r.resid_in) : ''):''}</td>
@@ -513,14 +678,23 @@ function render(rows){
     tr.addEventListener('click', ()=> openModal(r.ID, r));
     tb.appendChild(tr);
   }
+
   document.getElementById('statCount').textContent='Macchine: '+view.length;
-  if(!show){ document.getElementById('statGood').textContent='Top: —'; document.getElementById('statWarn').textContent='Equilibrate: —'; }
-  else {
+
+  if(!show){
+    document.getElementById('statGood').textContent='Top: —';
+    document.getElementById('statWarn').textContent='Equilibrate: —';
+    document.getElementById('statAI').textContent='IA: —';
+  } else {
     const good=view.filter(r=> (r._cycle!=null && r.resid_out>r.resid_in)).length;
     const warn=view.filter(r=> (r._cycle!=null && Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*(r.resid_in||1))).length;
+    const aiRows=view.filter(r=> typeof r._ai_conf==='number');
+    const aiAvg=aiRows.length ? Math.round((aiRows.reduce((s,r)=>s+r._ai_conf,0)/aiRows.length)*100) : 0;
     document.getElementById('statGood').textContent='Top (OUT>IN): '+good;
     document.getElementById('statWarn').textContent='Equilibrate (±10%): '+warn;
+    document.getElementById('statAI').textContent=aiRows.length ? `IA: ${aiAvg}%` : 'IA: —';
   }
+
   document.querySelectorAll('.col-INDIRIZZO').forEach(td=> td.style.display = CFG.showCols.INDIRIZZO ? '' : 'none');
   document.querySelectorAll('.col-PROVINCIA').forEach(td=> td.style.display = CFG.showCols.PROVINCIA ? '' : 'none');
 }
@@ -535,7 +709,8 @@ document.querySelector('#resultTable thead').addEventListener('click', (e)=>{
 function findStale(){
   const today = todayIso();
   const all = getLatestStateForAll();
-  staleRows = all.filter(x=> (x._ts||'').slice(0,10) !== today).map(s=> ({...s, _ts_str: fmtDMY(s._ts), _days: daysDiff(s._ts)}));
+  staleRows = all.filter(x=> (x._ts||'').slice(0,10) !== today)
+    .map(s=> ({...s, _ts_str: fmtDMY(s._ts), _days: daysDiff(s._ts)}));
   document.getElementById('staleWarn').classList.toggle('hidden', staleRows.length===0);
 }
 function renderStale(){
@@ -580,29 +755,44 @@ function renderAggregati(){
 
 /* ====== Export ====== */
 function exportCSV(rows, filename){
-  const cols=['flag','perc_cycle','cycle_idx','resid_in','resid_out','need65','forecast_date','ID','MODELLO','DENOMIN_SEDE','SEDE','INDIRIZZO','PROVINCIA','_stato','_ts_str'];
+  const cols=['flag','_signal','perc_cycle','cycle_idx','resid_in','resid_out','need65','forecast_date','ID','MODELLO','DENOMIN_SEDE','SEDE','INDIRIZZO','PROVINCIA','_stato','_ts_str'];
   const lines=[cols.join(';')];
   rows.forEach(r=>{
-    const o={...r}; o.perc_cycle = (o.perc_cycle!=null)? o.perc_cycle.toFixed(2)+'%':''; 
-    o.resid_in = (o.resid_in!=null)? o.resid_in.toFixed(2):''; o.resid_out=(o.resid_out!=null)? o.resid_out.toFixed(2):'';
+    const o={...r};
+    o._signal = o._signal?.label || '';
+    o.perc_cycle = (o.perc_cycle!=null)? o.perc_cycle.toFixed(2)+'%':'';
+    o.resid_in = (o.resid_in!=null)? o.resid_in.toFixed(2):'';
+    o.resid_out=(o.resid_out!=null)? o.resid_out.toFixed(2):'';
     o.need65=(o.need65!=null)? o.need65.toFixed(2):'';
     lines.push(cols.map(c=> String(o[c]??'').replace(/;/g,',')).join(';'));
   });
-  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click();
+  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click();
 }
 function exportXLSX(rows, filename){
   const data = rows.map(r=>({
-    flag:r.flag||'','Percentuale Ciclo': r.perc_cycle!=null? r.perc_cycle.toFixed(2)+'%':'',
-    'Ciclo Corrente': r.cycle_idx??'','Residuo IN': r.resid_in!=null? r.resid_in.toFixed(2):'',
-    'Residuo OUT': r.resid_out!=null? r.resid_out.toFixed(2):'','Residuo al 65%': r.need65!=null? r.need65.toFixed(2):'',
-    'Fine Ciclo Stimata': r.forecast_date||'', CODEID:r.ID||'', MODELLO:r.MODELLO||'',
-    'DENOMIN. SEDE':r.DENOMIN_SEDE||'', SEDE:r.SEDE||'', INDIRIZZO:r.INDIRIZZO||'', PROVINCIA:r.PROVINCIA||'',
-    Stato:r._stato||'', 'Ultima Lettura': r._oggi? 'Oggi' : (r._ts_str||'')
+    flag:r.flag||'',
+    Semaforo: r._signal?.label || '',
+    'Percentuale Ciclo': r.perc_cycle!=null? r.perc_cycle.toFixed(2)+'%':'',
+    'Ciclo Corrente': r.cycle_idx??'',
+    'Residuo IN': r.resid_in!=null? r.resid_in.toFixed(2):'',
+    'Residuo OUT': r.resid_out!=null? r.resid_out.toFixed(2):'',
+    'Residuo al 65%': r.need65!=null? r.need65.toFixed(2):'',
+    'Fine Ciclo Stimata': r.forecast_date||'',
+    CODEID:r.ID||'',
+    MODELLO:r.MODELLO||'',
+    'DENOMIN. SEDE':r.DENOMIN_SEDE||'',
+    SEDE:r.SEDE||'',
+    INDIRIZZO:r.INDIRIZZO||'',
+    PROVINCIA:r.PROVINCIA||'',
+    Stato:r._stato||'',
+    'Ultima Lettura': r._oggi? 'Oggi' : (r._ts_str||'')
   }));
-  const ws=XLSX.utils.json_to_sheet(data); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'dati'); XLSX.writeFile(wb, filename);
+  const ws=XLSX.utils.json_to_sheet(data); const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'dati'); XLSX.writeFile(wb, filename);
 }
-document.getElementById('btnExportCSV').onclick=()=>exportCSV(filterByQuery(fullRows), `awp_${latestSnapshot||'export'}.csv`);
-document.getElementById('btnExportXLSX').onclick=()=>exportXLSX(filterByQuery(fullRows), `awp_${latestSnapshot||'export'}.xlsx`);
+document.getElementById('btnExportCSV').onclick=()=>exportCSV(filterByQuery(fullRows), `awp_${(latestSnapshot||'export').slice(0,10)}.csv`);
+document.getElementById('btnExportXLSX').onclick=()=>exportXLSX(filterByQuery(fullRows), `awp_${(latestSnapshot||'export').slice(0,10)}.xlsx`);
 document.getElementById('btnAggExport').onclick=()=>{
   const tb = document.querySelector('#aggTable tbody');
   const rows = [...tb.querySelectorAll('tr')].map(tr=> {
@@ -610,20 +800,45 @@ document.getElementById('btnAggExport').onclick=()=>{
     return { gruppo: t[0].innerText, macchine: t[1].innerText, in_tot: t[2].innerText,
       out_tot: t[3].innerText, payout_medio: t[4].innerText, residuo_in_medio: t[5].innerText, residuo_out_medio: t[6].innerText };
   });
-  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'aggregati'); XLSX.writeFile(wb, `aggregati_${todayIso()}.xlsx`);
+  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'aggregati');
+  XLSX.writeFile(wb, `aggregati_${todayIso()}.xlsx`);
 };
 document.getElementById('btnUnmapped').onclick=()=>{
-  const lines = ['CODICE MODELLO;MODELLO']; lastUnmapped.forEach(x=> lines.push(`${x.modelCode};${(x.modello||'').replace(/;/g,',')}`));
-  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`non_mappati_${latestSnapshot||todayIso()}.csv`; a.click();
+  const lines = ['CODICE MODELLO;MODELLO'];
+  lastUnmapped.forEach(x=> lines.push(`${x.modelCode};${(x.modello||'').replace(/;/g,',')}`));
+  const blob = new Blob([lines.join('\n')], {type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download=`non_mappati_${(latestSnapshot||todayIso()).slice(0,10)}.csv`;
+  a.click();
 };
 
 /* ====== Impostazioni ====== */
-function loadSettingsUI(){document.getElementById('thrAbs').value=CFG.thrAbs;document.getElementById('thrPct').value=CFG.thrPct;document.getElementById('staleDays').value=CFG.staleDays;document.querySelectorAll('.colToggle').forEach(ch=>ch.checked=!!CFG.showCols[ch.dataset.col])}
-document.getElementById('btnSaveSettings').onclick=()=>{CFG.thrAbs=+document.getElementById('thrAbs').value||0;CFG.thrPct=+document.getElementById('thrPct').value||0;CFG.staleDays=+document.getElementById('staleDays').value||0;document.querySelectorAll('.colToggle').forEach(ch=>CFG.showCols[ch.dataset.col]=!!ch.checked);localStorage.setItem(STORE,JSON.stringify(CFG));render(fullRows);renderAggregati();renderStale();toast('Impostazioni salvate')};
-document.getElementById('btnResetSettings').onclick=()=>{CFG=JSON.parse(JSON.stringify({thrAbs:200,thrPct:0,staleDays:0,showCols:{INDIRIZZO:true,PROVINCIA:true}}));localStorage.setItem(STORE,JSON.stringify(CFG));loadSettingsUI();render(fullRows);renderAggregati();renderStale()};
+function loadSettingsUI(){
+  document.getElementById('thrAbs').value=CFG.thrAbs;
+  document.getElementById('thrPct').value=CFG.thrPct;
+  document.getElementById('staleDays').value=CFG.staleDays;
+  document.querySelectorAll('.colToggle').forEach(ch=>ch.checked=!!CFG.showCols[ch.dataset.col])
+}
+document.getElementById('btnSaveSettings').onclick=()=>{
+  CFG.thrAbs=+document.getElementById('thrAbs').value||0;
+  CFG.thrPct=+document.getElementById('thrPct').value||0;
+  CFG.staleDays=+document.getElementById('staleDays').value||0;
+  document.querySelectorAll('.colToggle').forEach(ch=>CFG.showCols[ch.dataset.col]=!!ch.checked);
+  localStorage.setItem(STORE,JSON.stringify(CFG));
+  render(fullRows);renderAggregati();renderStale();
+  toast('Impostazioni salvate')
+};
+document.getElementById('btnResetSettings').onclick=()=>{
+  CFG=JSON.parse(JSON.stringify({thrAbs:200,thrPct:0,staleDays:0,showCols:{INDIRIZZO:true,PROVINCIA:true}}));
+  localStorage.setItem(STORE,JSON.stringify(CFG));
+  loadSettingsUI();render(fullRows);renderAggregati();renderStale()
+};
 
 /* ====== Modale & grafico ====== */
-const modal=document.getElementById('modal'); document.getElementById('closeModal').onclick=()=>modal.classList.add('hidden');
+const modal=document.getElementById('modal');
+document.getElementById('closeModal').onclick=()=>modal.classList.add('hidden');
+
 function drawChart(canvas, series){
   const ctx=canvas.getContext('2d'); const W=canvas.width, H=canvas.height; ctx.clearRect(0,0,W,H);
   if(series.length<2){ ctx.fillStyle='var(--muted)'; ctx.font='12px system-ui'; ctx.fillText('Dati insufficienti',10,20); return; }
@@ -639,9 +854,12 @@ function drawChart(canvas, series){
   ctx.beginPath(); series.forEach((p,i)=>{ const X=x(+new Date(p.ts)), Y=y(p.OUT); if(i===0) ctx.moveTo(X,Y); else ctx.lineTo(X,Y); });
   ctx.strokeStyle='#666'; ctx.lineWidth=2; ctx.stroke();
 }
+
 function openModal(ID,row){
-  const pro=(CURRENT_USER?.level||'Base').toLowerCase(); if(!(pro==='abbonato'||pro==='admin')) return;
+  const pro=(CURRENT_USER?.level||'Base').toLowerCase();
+  if(!(pro==='abbonato'||pro==='admin')) return;
   modal.classList.remove('hidden');
+
   document.getElementById('m_title').textContent='Scheda macchina – '+ID;
   document.getElementById('m_id').textContent=ID;
   document.getElementById('m_code').textContent=row.MODEL_CODE||'';
@@ -655,6 +873,16 @@ function openModal(ID,row){
   document.getElementById('m_resid_out').textContent=row.resid_out!=null?euro(row.resid_out):'—';
   document.getElementById('m_perc').textContent=(row.perc_cycle!=null?row.perc_cycle.toFixed(2):'—')+'%';
   document.getElementById('m_forecast').textContent=row.forecast_date || '—';
+
+  const conf=(typeof row._ai_conf==='number') ? Math.round(row._ai_conf*100)+'%' : '—';
+  document.getElementById('m_ai').textContent=conf;
+
+  const sim=(row._sim?.score!=null) ? Math.round(row._sim.score*100)+'%' : '—';
+  document.getElementById('m_sim').textContent=sim;
+
+  const bench=row._sim?.bench;
+  document.getElementById('m_model_payout').textContent=bench ? `${(bench.payout*100).toFixed(2)}% (n=${bench.n})` : '—';
+
   const h=(history[ID]||[]).slice().sort((a,b)=> new Date(a.ts)-new Date(b.ts));
   let html='<table style="width:100%;border-collapse:collapse;"><thead><tr>'
     +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Data/ora</th>'
@@ -664,46 +892,123 @@ function openModal(ID,row){
     +'<th style="text-align:right;border-bottom:1px solid var(--border);padding:6px;">ΔOUT</th>'
     +'</tr></thead><tbody>';
   for(let i=0;i<h.length;i++){
-    const prev=h[i-1]; const dIn=i? (h[i].IN-(prev?.IN||0)):0; const dOut=i? (h[i].OUT-(prev?.OUT||0)):0;
-    html+=`<tr><td style="padding:6px;">${fmtDMY(h[i].ts)} ${h[i].ts.slice(11,16)}</td><td style="padding:6px;text-align:right;">${euro(h[i].IN)}</td><td style="padding:6px;text-align:right;">${euro(h[i].OUT)}</td><td style="padding:6px;text-align:right;">${euro(dIn)}</td><td style="padding:6px;text-align:right;">${euro(dOut)}</td></tr>`;
+    const prev=h[i-1];
+    const dIn=i? (h[i].IN-(prev?.IN||0)):0;
+    const dOut=i? (h[i].OUT-(prev?.OUT||0)):0;
+    html+=`<tr>
+      <td style="padding:6px;">${fmtDMY(h[i].ts)} ${h[i].ts.slice(11,16)}</td>
+      <td style="padding:6px;text-align:right;">${euro(h[i].IN)}</td>
+      <td style="padding:6px;text-align:right;">${euro(h[i].OUT)}</td>
+      <td style="padding:6px;text-align:right;">${euro(dIn)}</td>
+      <td style="padding:6px;text-align:right;">${euro(dOut)}</td>
+    </tr>`;
   }
   html+='</tbody></table>';
   document.getElementById('m_history').innerHTML=html;
   drawChart(document.getElementById('m_chart'), h.map(x=>({ts:x.ts, IN:x.IN, OUT:x.OUT})));
 }
 
-/* ====== Init: lettura da /Dati + timestamp per riga ====== */
+/* ====== Pulsante IA (riassunto “furbo” senza server) ====== */
+document.getElementById('btnAI').onclick=()=>{
+  if(!fullRows?.length){ toast('Carica prima i dati'); return; }
+  computeBenchmarks();
+
+  const pro=(CURRENT_USER?.level||'Base').toLowerCase();
+  if(!(pro==='abbonato'||pro==='admin')){ toast('IA disponibile solo per Abbonato/Admin'); return; }
+
+  const calcRows=fullRows.filter(r=>r._cycle!=null && r.resid_in!=null && r.resid_out!=null);
+  const aiRows=calcRows.filter(r=>typeof r._ai_conf==='number');
+  const aiAvg=aiRows.length ? Math.round(aiRows.reduce((s,r)=>s+r._ai_conf,0)/aiRows.length*100) : 0;
+
+  const green=calcRows.filter(r=>r.resid_out>r.resid_in).length;
+  const yellow=calcRows.filter(r=>Math.abs((r.resid_out-r.resid_in))<=0.1*(r.resid_in||1)).length;
+  const red=calcRows.length - green - yellow;
+
+  const algoGuess = `Pattern attuale: Verde=${green}, Giallo=${yellow}, Rosso=${red}. `
+    + `Le stime “IA” usano regressione sullo storico IN (ultime letture) per ETA fine ciclo.`;
+
+  const clusters = [...MODEL_BENCH.values()]
+    .sort((a,b)=>b.n-a.n)
+    .slice(0,6)
+    .map(x=>`${x.label} (${(x.payout*100).toFixed(1)}% · n=${x.n})`)
+    .join('<br/>') || '—';
+
+  const locales = [...LOCALE_BENCH.values()]
+    .sort((a,b)=>b.n-a.n)
+    .slice(0,6)
+    .map(x=>`${x.label} (${(x.payout*100).toFixed(1)}% · n=${x.n})`)
+    .join('<br/>') || '—';
+
+  document.getElementById('aiStatus').textContent = `IA: pronta • confidenza media ${aiRows.length?aiAvg+'%':'—'}`;
+  document.getElementById('aiSummary').style.display='';
+  document.getElementById('aiAlgo').innerHTML=algoGuess;
+  document.getElementById('aiPrecision').innerHTML=aiRows.length ? `${aiAvg}% (su ${aiRows.length} macchine con storico sufficiente)` : '— (storico insufficiente)';
+  document.getElementById('aiClusters').innerHTML=clusters;
+  document.getElementById('aiLocales').innerHTML=locales;
+};
+
+/* ====== Init: lettura da /Dati + progress ====== */
 async function initAuto(){
   const status=m=>document.getElementById('statStatus').textContent=m;
+
+  const progBox=document.getElementById('loadProgress');
+  const progText=document.getElementById('loadText');
+  const progPct=document.getElementById('loadPct');
+  const progBar=document.getElementById('loadBar');
+  const setProg=(i,n,label)=>{
+    const pct=n?Math.round((i/n)*100):0;
+    progBox.classList.remove('hidden');
+    progText.textContent=label||'Caricamento…';
+    progPct.textContent=pct+'%';
+    progBar.style.width=pct+'%';
+  };
 
   /* 1) cicloslot */
   if(CICLOSLOT.length===0){
     try{
       const cicloRows=await fetchXLSX('Dati/cicloslot.xlsx');
-      const mapped=cicloRows.map(r=>({code:r['codice modello']||r.code||r['CODICE MODELLO'],model:r.modello||r.model||r['MODELLO']||'',ciclo:r.ciclo||r.cycle||r['CICLO'],payout:r['payout %']||r['payout']||r['PAYOUT %']||r['PAYOUT']})).filter(x=>x.code&&+x.ciclo>0);
+      const mapped=cicloRows.map(r=>({
+        code:r['codice modello']||r.code||r['CODICE MODELLO'],
+        model:r.modello||r.model||r['MODELLO']||'',
+        ciclo:r.ciclo||r.cycle||r['CICLO'],
+        payout:r['payout %']||r['payout']||r['PAYOUT %']||r['PAYOUT']
+      })).filter(x=>x.code&&+x.ciclo>0);
       CYCLE=buildCicloMaps(mapped);
     }catch(e){ toast('Impossibile leggere /Dati/cicloslot.xlsx'); return; }
   } else { CYCLE=buildCicloMaps(CICLOSLOT); }
 
   /* 2) manifest */
   status('Carico manifest…');
-  let lista=[]; try{ const r=await fetch('Dati/manifest.json',{cache:'no-store'}); if(r.ok){ const j=await r.json(); lista=Array.isArray(j.sinottici)?j.sinottici:[]; } }catch{}
+  let lista=[];
+  try{
+    const r=await fetch('Dati/manifest.json',{cache:'no-store'});
+    if(r.ok){
+      const j=await r.json();
+      lista=Array.isArray(j.sinottici)?j.sinottici:[];
+    }
+  }catch{}
   if(!lista.length){ status('Manifest mancante (Dati/manifest.json)'); return; }
 
-  /* 3) leggi i sinottici in ordine temporale */
+  /* 3) leggi i sinottici */
   const files=lista.map(name=>({name,ts:parseStampFromName(name)})).sort((a,b)=>new Date(a.ts)-new Date(b.ts));
-  lastUnmapped=[]; let lastName='', lastRowsTotal=0, totalPushed=0;
-  for(const f of files){
+  lastUnmapped=[];
+  let lastName='', lastRowsTotal=0, totalPushed=0;
+
+  for(let idx=0; idx<files.length; idx++){
+    const f=files[idx];
     try{
+      setProg(idx, files.length, `Leggo ${f.name}…`);
       status('Leggo '+f.name+' …');
       const data=await fetchXLSX('Dati/'+f.name);
       lastName=f.name; lastRowsTotal=data.length; if(!data.length) continue;
+
       const cols=pickCols(data[0]);
       if(!cols.idKey||!cols.modelCodeKey||!cols.inKey||!cols.outKey){
         toast(`Colonne mancanti in ${f.name} (servono: CODEID, CODICE MODELLO, CNTTOTIN, CNTTOTOT, DATA ULTIMA LETTURA VAL.)`);
         continue;
       }
-      const fallbackTS=parseStampFromName(f.name); // usato solo se la colonna non c'è o è vuota
+
+      const fallbackTS=parseStampFromName(f.name);
       for(const r of data){
         const rec={
           ID: cleanID(r[cols.idKey]),
@@ -717,26 +1022,36 @@ async function initAuto(){
           PROVINCIA: cols.provKey ? norm(r[cols.provKey]) : ''
         };
         if(!rec.ID) continue;
+
         const tsVal = cols.validKey ? r[cols.validKey] : '';
-        const ts = parseTSValue(tsVal, fallbackTS); // << usa DATA ULTIMA LETTURA VAL.
+        const ts = parseTSValue(tsVal, fallbackTS);
 
         const {ciclo}=getCicloPayout(rec.MODEL_CODE,rec.MODELLO);
-        if(!ciclo){ lastUnmapped.push({modelCode:rec.MODEL_CODE, modello:rec.MODELLO}); } // segnalo ma NON scarto
+        if(!ciclo){ lastUnmapped.push({modelCode:rec.MODEL_CODE, modello:rec.MODELLO}); }
 
         pushHistory(rec.ID, ts, rec.IN, rec.OUT, {
-          MODEL_CODE:rec.MODEL_CODE, MODELLO:rec.MODELLO, DENOMIN_SEDE:rec.DENOMIN_SEDE, SEDE:rec.SEDE, INDIRIZZO:rec.INDIRIZZO, PROVINCIA:rec.PROVINCIA
+          MODEL_CODE:rec.MODEL_CODE, MODELLO:rec.MODELLO,
+          DENOMIN_SEDE:rec.DENOMIN_SEDE, SEDE:rec.SEDE,
+          INDIRIZZO:rec.INDIRIZZO, PROVINCIA:rec.PROVINCIA
         });
         totalPushed++;
         latestSnapshot = ts;
       }
-    }catch(err){ console.error('Errore su file', f.name, err); toast(`Errore leggendo ${f.name}`); continue; }
+    }catch(err){
+      console.error('Errore su file', f.name, err);
+      toast(`Errore leggendo ${f.name}`);
+      continue;
+    }
   }
+  setProg(files.length, files.length, 'Completato');
+  setTimeout(()=>document.getElementById('loadProgress').classList.add('hidden'), 700);
 
-  document.getElementById('lastRead').innerHTML = `Ultima lettura: <b>${fmtDMY(latestSnapshot)}</b>`;
   localStorage.setItem(HIST_KEY, JSON.stringify(history));
+  document.getElementById('lastRead').innerHTML = `Ultima lettura: <b>${fmtDMY(latestSnapshot)}</b>`;
   document.getElementById('statStatus').textContent = `Ultimo file: ${lastName||'—'} — righe: ${lastRowsTotal} — importate: ${totalPushed}`;
-  document.getElementById('statMap').textContent = `Mappate/scartate: —/${lastUnmapped.length}`;
+  document.getElementById('statMap').textContent = `Non mappati: ${lastUnmapped.length}`;
 
+  computeBenchmarks();
   const latestStates=getLatestStateForAll();
   fullRows = latestStates.map(s=> computeRow(s)).filter(Boolean);
   render(fullRows);
@@ -745,12 +1060,19 @@ async function initAuto(){
   document.getElementById('staleWarn').classList.toggle('hidden', staleRows.length===0);
 
   const savedQ=localStorage.getItem('awp_q'); if(savedQ) document.getElementById('search').value=savedQ;
-  document.getElementById('search').addEventListener('input', ()=> { localStorage.setItem('awp_q', document.getElementById('search').value); render(fullRows); });
+  document.getElementById('search').addEventListener('input', ()=>{
+    localStorage.setItem('awp_q', document.getElementById('search').value);
+    render(fullRows);
+  });
 
-  // Impostazioni UI
-  document.getElementById('thrAbs').value=CFG.thrAbs; document.getElementById('thrPct').value=CFG.thrPct; document.getElementById('staleDays').value=CFG.staleDays;
-  document.querySelectorAll('.colToggle').forEach(ch=> ch.checked = !!CFG.showCols[ch.dataset.col]);
-  document.querySelectorAll('.colToggle').forEach(ch=> ch.onchange=()=>{ CFG.showCols[ch.dataset.col]=!!ch.checked; localStorage.setItem(STORE, JSON.stringify(CFG)); render(fullRows); });
+  loadSettingsUI();
+  document.querySelectorAll('.colToggle').forEach(ch=> ch.onchange=()=>{
+    CFG.showCols[ch.dataset.col]=!!ch.checked;
+    localStorage.setItem(STORE, JSON.stringify(CFG));
+    render(fullRows);
+  });
+
+  document.getElementById('aiStatus').textContent='IA: pronta (clicca “Analizza con IA”)';
 }
 </script>
 </body>
