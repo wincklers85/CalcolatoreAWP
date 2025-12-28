@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+  <title>SinotticoLab</title>
+
+  <!-- Libraries (CDN). Works on GitHub Pages. -->
+  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#0f1a30;
+      --card2:#0c1528;
+      --text:#e7eefc;
+      --muted:#a7b5d8;
+      --line:rgba(255,255,255,.09);
+      --good:#19d18b;
+      --warn:#ffcc66;
+      --bad:#ff5c7a;
+      --accent:#77a8ff;
+      --accent2:#b06bff;
+      --shadow: 0 14px 40px rgba(0,0,0,.35);
+      --r:18px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--text);
+      background:
+        radial-gradient(900px 600px at 10% 10%, rgba(119,168,255,.18), transparent 60%),
+        radial-gradient(900px 600px at 90% 20%, rgba(176,107,255,.16), transparent 60%),
+        radial-gradient(800px 600px at 50% 100%, rgba(25,209,139,.10), transparent 60%),
+        var(--bg);
+      min-height:100vh;
+    }
+    a{color:inherit}
+    .app{max-width:1400px;margin:0 auto;padding:18px}
+    .topbar{
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
+      padding:14px 16px;border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border-radius:22px;box-shadow:var(--shadow);
+      position:sticky;top:10px;z-index:10;
+      backdrop-filter: blur(10px);
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{
+      width:38px;height:38px;border-radius:14px;
+      background:conic-gradient(from 200deg, var(--accent), var(--accent2), var(--good), var(--accent));
+      box-shadow:0 10px 25px rgba(119,168,255,.2);
+    }
+    .brand h1{font-size:16px;line-height:1.1;margin:0}
+    .brand .sub{font-size:12px;color:var(--muted);margin-top:2px}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 12px;border-radius:999px;border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      font-size:12px;color:var(--muted);
+      white-space:nowrap;
+    }
+    .pill b{color:var(--text)}
+    .row{display:grid;grid-template-columns: 420px 1fr; gap:14px; margin-top:14px}
+    @media (max-width: 1100px){ .row{grid-template-columns:1fr} }
+    .card{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border-radius:var(--r); box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card .hd{
+      padding:14px 14px 10px 14px;
+      display:flex;align-items:flex-start;justify-content:space-between;gap:10px;
+      border-bottom:1px solid var(--line);
+      background:rgba(255,255,255,.02);
+    }
+    .card .hd h2{margin:0;font-size:14px}
+    .card .hd .meta{font-size:12px;color:var(--muted);margin-top:4px}
+    .card .bd{padding:14px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    @media (max-width:600px){ .grid2,.grid3{grid-template-columns:1fr} }
+    .btn{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.05);
+      color:var(--text);
+      border-radius:14px;
+      padding:10px 12px;
+      font-weight:600;
+      cursor:pointer;
+      transition:transform .06s ease, background .15s ease, border-color .15s ease;
+      user-select:none;
+    }
+    .btn:hover{background:rgba(255,255,255,.08)}
+    .btn:active{transform:scale(.98)}
+    .btn.primary{
+      border-color:rgba(119,168,255,.35);
+      background:linear-gradient(180deg, rgba(119,168,255,.18), rgba(119,168,255,.10));
+    }
+    .btn.danger{
+      border-color:rgba(255,92,122,.35);
+      background:linear-gradient(180deg, rgba(255,92,122,.18), rgba(255,92,122,.10));
+    }
+    .btn.small{padding:8px 10px;font-size:12px;border-radius:12px}
+    .btn:disabled{opacity:.45;cursor:not-allowed}
+    .input, select{
+      width:100%;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      color:var(--text);
+      padding:10px 12px;border-radius:14px;
+      outline:none;
+    }
+    .input::placeholder{color:rgba(167,181,216,.7)}
+    .hint{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.35}
+    .kpi{
+      padding:12px;border-radius:16px;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.12);
+    }
+    .kpi .v{font-size:18px;font-weight:800}
+    .kpi .l{font-size:12px;color:var(--muted);margin-top:4px}
+    .sep{height:1px;background:var(--line);margin:12px 0}
+    .tablewrap{overflow:auto;border-radius:16px;border:1px solid var(--line);background:rgba(0,0,0,.12)}
+    table{width:100%;border-collapse:collapse;min-width:860px}
+    th,td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.06);font-size:12px;vertical-align:top}
+    th{position:sticky;top:0;background:rgba(12,21,40,.92);backdrop-filter: blur(8px);text-align:left}
+    tr:hover td{background:rgba(255,255,255,.03)}
+    .mono{font-family:var(--mono)}
+    .tag{
+      display:inline-flex;align-items:center;gap:6px;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      padding:6px 8px;border-radius:999px;font-size:11px;color:var(--muted);
+      white-space:nowrap;
+    }
+    .dot{width:8px;height:8px;border-radius:999px;background:var(--muted);display:inline-block}
+    .dot.good{background:var(--good)}
+    .dot.warn{background:var(--warn)}
+    .dot.bad{background:var(--bad)}
+    .score{
+      font-weight:800; font-size:12px;
+      padding:6px 10px;border-radius:999px;
+      display:inline-flex;align-items:center;gap:8px;
+      border:1px solid var(--line); background:rgba(255,255,255,.03);
+    }
+    .score.good{border-color:rgba(25,209,139,.35); background:rgba(25,209,139,.10)}
+    .score.warn{border-color:rgba(255,204,102,.35); background:rgba(255,204,102,.10)}
+    .score.bad{border-color:rgba(255,92,122,.35); background:rgba(255,92,122,.10)}
+    .footer{
+      color:var(--muted);font-size:12px;margin:18px 4px 6px 4px;line-height:1.4
+    }
+
+    /* Login */
+    .loginWrap{
+      display:flex;justify-content:center;align-items:center;
+      min-height:calc(100vh - 36px);
+      padding:18px;
+    }
+    .loginCard{
+      width:min(520px, 100%);
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border-radius:24px; box-shadow:var(--shadow);
+      padding:18px;
+    }
+    .loginTitle{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+    .loginTitle h1{margin:0;font-size:18px}
+    .loginTitle .sub{color:var(--muted);font-size:13px;margin-top:4px}
+    .toast{
+      position:fixed;left:50%;transform:translateX(-50%);
+      bottom:18px;z-index:99;
+      padding:10px 12px;border-radius:14px;
+      border:1px solid var(--line);
+      background:rgba(0,0,0,.65);backdrop-filter: blur(8px);
+      color:var(--text); font-size:12px;
+      box-shadow:var(--shadow);
+      max-width:min(720px, calc(100vw - 24px));
+      display:none;
+    }
+
+    /* Chat */
+    .chat{
+      display:flex;flex-direction:column;gap:10px;
+    }
+    .chatlog{
+      height:320px; overflow:auto;
+      border-radius:16px;border:1px solid var(--line);
+      background:rgba(0,0,0,.12);
+      padding:10px;
+    }
+    .msg{display:flex;gap:10px;margin:10px 0}
+    .bubble{
+      padding:10px 12px;border-radius:16px;border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      max-width:90%;
+      font-size:13px;line-height:1.35;
+      white-space:pre-wrap;
+    }
+    .me .bubble{background:rgba(119,168,255,.10);border-color:rgba(119,168,255,.25);margin-left:auto}
+    .bot .bubble{background:rgba(176,107,255,.08);border-color:rgba(176,107,255,.22)}
+    .avatar{
+      width:28px;height:28px;border-radius:12px;
+      display:flex;align-items:center;justify-content:center;
+      font-size:12px;font-weight:900;
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.03);
+      flex:0 0 auto;
+    }
+    .bot .avatar{background:rgba(176,107,255,.12);border-color:rgba(176,107,255,.22)}
+    .me .avatar{background:rgba(119,168,255,.12);border-color:rgba(119,168,255,.22);margin-left:auto}
+    .chatbar{display:flex;gap:10px}
+  </style>
+</head>
+<body>
+
+<div id="loginView" class="loginWrap" hidden>
+  <div class="loginCard">
+    <div class="loginTitle">
+      <div class="logo" aria-hidden="true"></div>
+      <div>
+        <h1>SinotticoLab</h1>
+        <div class="sub">Analisi sinottici AWP in locale (tutto in RAM) + assistente N.O.R.A.</div>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="grid2">
+      <div>
+        <label class="hint">Username</label>
+        <input id="loginUser" class="input" autocomplete="username" placeholder="es. admin"/>
+      </div>
+      <div>
+        <label class="hint">Password</label>
+        <input id="loginPass" class="input" autocomplete="current-password" type="password" placeholder="••••••••"/>
+      </div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="grid2">
+      <button id="btnLogin" class="btn primary">Entra</button>
+      <button id="btnLogoutAll" class="btn danger">Pulisci sessione</button>
+    </div>
+
+    <div class="hint">
+      Le credenziali e le scadenze sono lette da <span class="mono">users.json</span>. Nessun dato viene inviato online.
+    </div>
+  </div>
+</div>
+
+<div id="appView" class="app" hidden>
+  <div class="topbar">
+    <div class="brand">
+      <div class="logo" aria-hidden="true"></div>
+      <div>
+        <h1>SinotticoLab</h1>
+        <div class="sub" id="subline">Pronto</div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+      <div class="pill"><span class="dot good"></span>Utente: <b id="who"></b> <span id="whoRole"></span></div>
+      <div class="pill">Sinottici: <b id="kSinottici">0</b></div>
+      <div class="pill">Macchine: <b id="kMacchine">0</b></div>
+      <button id="btnLogout" class="btn small">Esci</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- Left column -->
+    <div class="card">
+      <div class="hd">
+        <div>
+          <h2>Caricamento</h2>
+          <div class="meta">Legge <span class="mono">manifest.json</span> e analizza i sinottici in <span class="mono">Dati/</span>.</div>
+        </div>
+      </div>
+      <div class="bd">
+        <div class="grid2">
+          <button id="btnLoadManifest" class="btn">Ricarica manifest</button>
+          <button id="btnAnalyzeAll" class="btn primary">Analizza tutti</button>
+        </div>
+
+        <div class="sep"></div>
+
+        <label class="hint">Seleziona un sinottico (per debug o analisi singola)</label>
+        <select id="selSinottico"></select>
+
+        <div class="grid2" style="margin-top:10px">
+          <button id="btnAnalyzeOne" class="btn">Analizza selezionato</button>
+          <button id="btnClearRAM" class="btn danger">Svuota RAM</button>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="grid3">
+          <div class="kpi">
+            <div class="v" id="kSnapshots">0</div>
+            <div class="l">Snapshot (righe) in RAM</div>
+          </div>
+          <div class="kpi">
+            <div class="v" id="kStorici">0</div>
+            <div class="l">Macchine con storico</div>
+          </div>
+          <div class="kpi">
+            <div class="v" id="kLast">—</div>
+            <div class="l">Ultimo file caricato</div>
+          </div>
+        </div>
+
+        <div class="hint" id="statusBox" style="margin-top:12px">
+          Suggerimento: se non vedi macchine, quasi sempre è un problema di intestazioni Excel. Qui facciamo “auto-mapping” delle colonne più comuni.
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column -->
+    <div class="card">
+      <div class="hd">
+        <div>
+          <h2>Macchine</h2>
+          <div class="meta">Filtro + lista. Clicca una riga per i dettagli e il grafico.</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+          <span class="tag"><span class="dot warn"></span>payout score = stima, non certezza</span>
+        </div>
+      </div>
+      <div class="bd">
+        <div class="grid3">
+          <input id="q" class="input" placeholder="Cerca: codice / esercente / comune / ubicazione / modello…"/>
+          <select id="selComune"></select>
+          <select id="selEsercente"></select>
+        </div>
+
+        <div class="grid2" style="margin-top:10px">
+          <select id="selTime">
+            <option value="all">Grafico: tutto lo storico</option>
+            <option value="365">Grafico: ultimi 365 giorni</option>
+            <option value="90">Grafico: ultimi 90 giorni</option>
+            <option value="30">Grafico: ultimi 30 giorni</option>
+          </select>
+          <select id="selSort">
+            <option value="score_desc">Ordina: payout score (↓)</option>
+            <option value="score_asc">Ordina: payout score (↑)</option>
+            <option value="net_desc">Ordina: NET (↓)</option>
+            <option value="in_desc">Ordina: CNTTOTIN (↓)</option>
+            <option value="out_desc">Ordina: CNTTOTOT (↓)</option>
+            <option value="alpha">Ordina: A-Z</option>
+          </select>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="tablewrap">
+          <table id="tbl">
+            <thead>
+              <tr>
+                <th>Score</th>
+                <th>Codice</th>
+                <th>Comune</th>
+                <th>Esercente</th>
+                <th>Ubicazione</th>
+                <th>Modello</th>
+                <th>Ciclo</th>
+                <th class="mono">IN</th>
+                <th class="mono">OUT</th>
+                <th class="mono">NET</th>
+                <th>% OUT</th>
+                <th>Ultimo</th>
+              </tr>
+            </thead>
+            <tbody id="tb"></tbody>
+          </table>
+        </div>
+
+        <div class="sep"></div>
+
+        <div class="card" style="background:rgba(0,0,0,.10)">
+          <div class="hd">
+            <div>
+              <h2>Dettaglio macchina</h2>
+              <div class="meta" id="detailMeta">Seleziona una macchina dalla tabella.</div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end">
+              <button id="btnCopyId" class="btn small" disabled>Copia codice</button>
+              <button id="btnOpenChat" class="btn small">Chiedi a N.O.R.A.</button>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="grid3" id="detailKPIs" style="margin-bottom:10px">
+              <div class="kpi"><div class="v" id="dScore">—</div><div class="l">Payout score</div></div>
+              <div class="kpi"><div class="v mono" id="dNet">—</div><div class="l">NET (IN-OUT)</div></div>
+              <div class="kpi"><div class="v" id="dOutPct">—</div><div class="l">% OUT</div></div>
+            </div>
+            <canvas id="chart" height="130"></canvas>
+            <div class="hint" id="chartHint" style="margin-top:8px"></div>
+
+            <div class="sep"></div>
+
+            <div class="tablewrap">
+              <table id="tblHist">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th class="mono">IN</th>
+                    <th class="mono">OUT</th>
+                    <th class="mono">NET</th>
+                    <th>% OUT</th>
+                    <th>PDV</th>
+                    <th>PDA</th>
+                    <th>Schedule</th>
+                  </tr>
+                </thead>
+                <tbody id="tbHist"></tbody>
+              </table>
+            </div>
+
+            <div class="hint" style="margin-top:10px">
+              Colonne estratte se disponibili: PDV/PDA, Schedule ID/data, ecc. Se un sinottico non le contiene, appare “—”.
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="row" style="grid-template-columns: 1fr 420px">
+    <div class="card">
+      <div class="hd">
+        <div>
+          <h2>Diagnostica</h2>
+          <div class="meta">Se qualcosa non carica, qui trovi i motivi (CORS, percorso, intestazioni, ecc.).</div>
+        </div>
+      </div>
+      <div class="bd">
+        <div class="tablewrap" style="min-height:220px">
+          <table>
+            <thead>
+              <tr><th>Momento</th><th>Evento</th><th>Dettaglio</th></tr>
+            </thead>
+            <tbody id="tbLog"></tbody>
+          </table>
+        </div>
+        <div class="hint" style="margin-top:10px">
+          Nota GitHub Pages: i nomi cartella sono case-sensitive. Se la tua cartella è <span class="mono">dati</span> e non <span class="mono">Dati</span>, cambia la voce in <span class="mono">manifest.json</span> (o rinomina).
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="hd">
+        <div>
+          <h2>Chat N.O.R.A.</h2>
+          <div class="meta">Neural Operational Report Assistant (offline). Usa i dati in RAM.</div>
+        </div>
+      </div>
+      <div class="bd">
+        <div class="chat">
+          <div class="chatlog" id="chatlog"></div>
+          <div class="chatbar">
+            <input id="chatIn" class="input" placeholder="Es: quale macchina è in pagamento? / quando paga 123456?"/>
+            <button id="btnChat" class="btn primary">Invia</button>
+          </div>
+          <div class="hint">
+            Esempi: “Top 10 in pagamento a Molini”, “storico macchina 123…”, “quando paga questa?” (se hai selezionato la macchina).
+            Se chiedi cose fuori dal programma, N.O.R.A. ti riporta sui binari.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div><b>Importante:</b> la stima “in pagamento” è un <i>indicatore</i> basato su ciclo + andamento IN/OUT. Non è un oracolo, ma aiuta a decidere dove guardare prima. 🧠⚙️</div>
+    <div style="margin-top:8px">Salvataggi: solo preferenze UI e sessione in <span class="mono">localStorage</span>.</div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ------------------------------
+  // Utilities
+  // ------------------------------
+  const $ = (q) => document.querySelector(q);
+  const esc = (s) => (s ?? '').toString().replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+  const nowISO = () => new Date().toISOString();
+  const fmtDT = (d) => {
+    try {
+      const x = (d instanceof Date) ? d : new Date(d);
+      return x.toLocaleString('it-IT', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+    } catch { return String(d); }
+  };
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  const toast = (msg) => {
+    const t = $('#toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    clearTimeout(toast._h);
+    toast._h = setTimeout(() => (t.style.display='none'), 3200);
+  };
+
+  const log = (ev, detail='') => {
+    const tb = $('#tbLog');
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="mono">${esc(fmtDT(new Date()))}</td><td>${esc(ev)}</td><td>${esc(detail)}</td>`;
+    tb.prepend(tr);
+  };
+
+  // ------------------------------
+  // Config / Paths
+  // ------------------------------
+  const DEFAULT_DATA_FOLDER = 'Dati';   // fallback if manifest doesn't specify
+  const PATH = {
+    manifest: './manifest.json',
+    users: './users.json',
+    ciclos: './cicloslot.json'
+  };
+
+  // ------------------------------
+  // App State (RAM-only)
+  // ------------------------------
+  const RAM = {
+    user: null,          // {username, role, level, expiresAt}
+    accessLevel: 0,
+    dataFolder: DEFAULT_DATA_FOLDER,
+    manifest: null,      // parsed manifest
+    ciclos: [],          // cicloslot.json list
+    cicloByModel: new Map(), // modelCode -> {ciclo, nomeModello}
+    sinottici: [],       // filenames
+    snapshots: 0,        // total rows ingested
+    machines: new Map(), // machineId -> machineObject (last snapshot + static info)
+    history: new Map(),  // machineId -> [{date,file, in,out,outPct, pdv,pda,scheduleId,scheduleDate, net, rawRow}]
+    selectedId: null,
+    chart: null
+  };
+
+  // ------------------------------
+  // Login
+  // ------------------------------
+  const SESSION_KEY = 'sinotticolab_session_v1';
+
+  async function loadUsers(){
+  const res = await fetch(PATH.users, {cache:'no-store'});
+  if(!res.ok) throw new Error(`users.json non trovato (${res.status})`);
+  const raw = await res.json();
+  const arr = Array.isArray(raw) ? raw : (raw && Array.isArray(raw.users) ? raw.users : []);
+  // Compatibilità: supporta sia {username,password,role,expiresAt} che {user,pin,level,expires}
+  return arr.map(x=>{
+    const username = (x.username ?? x.user ?? '').toString().trim();
+    const password = (x.password ?? x.pin ?? '').toString(); // pin può avere zeri iniziali
+    const role     = (x.role ?? x.level ?? 'Base').toString().trim();
+    const expiresAt = (x.expiresAt ?? x.expires ?? null);
+    return {...x, username, password, role, expiresAt};
+  });
+})();
+</script>
+</body>
+</html>
