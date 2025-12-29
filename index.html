@@ -1,9 +1,9 @@
 <!doctype html>
 <html lang="it">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>Calcolatore AWP analisi pagamento</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Calcolatore AWP • Analisi Pagamento</title>
 
   <!-- SheetJS (XLSX) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -13,1354 +13,1837 @@
 
   <style>
     :root{
-      --bg:#0b1020; --panel:#111a33; --panel2:#0e1630;
-      --text:#eaf0ff; --muted:#a9b6df; --line:rgba(255,255,255,.12);
-      --accent:#7aa7ff; --good:#4ade80; --warn:#fbbf24; --bad:#fb7185;
-      --chip:#1b2a57;
-      --shadow: 0 16px 50px rgba(0,0,0,.35);
-      --radius:16px;
-      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-    }
-    [data-theme="light"]{
-      --bg:#f6f8ff; --panel:#ffffff; --panel2:#f1f4ff;
-      --text:#121a33; --muted:#4c5a82; --line:rgba(10,20,60,.12);
-      --accent:#2b5bff; --chip:#e9eeff;
-      --shadow: 0 16px 50px rgba(20,40,120,.10);
-    }
-    [data-theme="amber"]{
-      --bg:#0d0a05; --panel:#17110a; --panel2:#140f08;
-      --text:#fff3da; --muted:#d7c3a1; --line:rgba(255,214,153,.16);
-      --accent:#ffb000; --chip:#24190d;
-    }
-    [data-theme="lime"]{
-      --bg:#071008; --panel:#0d1c10; --panel2:#0a160c;
-      --text:#eaffea; --muted:#b6d8b9; --line:rgba(200,255,210,.14);
-      --accent:#77ff77; --chip:#102616;
+      --bg: #0b0e14;
+      --panel: rgba(255,255,255,.06);
+      --panel2: rgba(255,255,255,.08);
+      --text: rgba(255,255,255,.92);
+      --muted: rgba(255,255,255,.65);
+      --faint: rgba(255,255,255,.45);
+      --line: rgba(255,255,255,.12);
+      --accent: #7dd3fc;
+      --accent2:#a78bfa;
+      --bad:#fb7185;
+      --ok:#34d399;
+      --warn:#fbbf24;
+      --chip:#111827;
+      --shadow: 0 12px 40px rgba(0,0,0,.35);
+      --radius: 18px;
+      --radius2: 14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
     }
 
-    *{box-sizing:border-box}
-    body{margin:0;font-family:var(--font);background:radial-gradient(1200px 600px at 10% -10%, rgba(122,167,255,.22), transparent 55%),
-      radial-gradient(900px 500px at 95% 0%, rgba(251,191,36,.12), transparent 55%),
-      var(--bg); color:var(--text);}
-    a{color:inherit}
-    .wrap{max-width:1250px;margin:0 auto;padding:18px}
+    /* Themes */
+    html[data-theme="light"]{
+      --bg: #f7fafc;
+      --panel: rgba(0,0,0,.05);
+      --panel2: rgba(0,0,0,.07);
+      --text: rgba(0,0,0,.88);
+      --muted: rgba(0,0,0,.62);
+      --faint: rgba(0,0,0,.45);
+      --line: rgba(0,0,0,.12);
+      --chip:#ffffff;
+      --shadow: 0 12px 40px rgba(0,0,0,.10);
+      --accent:#2563eb;
+      --accent2:#7c3aed;
+    }
+    html[data-theme="amber"]{ --accent:#f59e0b; --accent2:#fb7185; }
+    html[data-theme="lime"]{ --accent:#84cc16; --accent2:#22c55e; }
+    html[data-theme="cyan"]{ --accent:#06b6d4; --accent2:#a78bfa; }
+    html[data-theme="rose"]{ --accent:#fb7185; --accent2:#f59e0b; }
+    html[data-theme="slate"]{ --accent:#94a3b8; --accent2:#38bdf8; }
+    html[data-theme="violet"]{ --accent:#a78bfa; --accent2:#22c55e; }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: var(--sans);
+      background:
+        radial-gradient(1200px 800px at 10% 10%, rgba(125,211,252,.14), transparent 55%),
+        radial-gradient(900px 700px at 90% 20%, rgba(167,139,250,.14), transparent 55%),
+        radial-gradient(800px 600px at 50% 100%, rgba(251,191,36,.12), transparent 60%),
+        var(--bg);
+      color: var(--text);
+      min-height:100vh;
+    }
+
+    a{ color: var(--accent); text-decoration:none; }
+    a:hover{ text-decoration:underline; }
+
+    .wrap{ max-width: 1400px; margin: 0 auto; padding: 18px; }
+
     .topbar{
-      display:flex;gap:12px;align-items:center;justify-content:space-between;
-      padding:14px 16px;background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
-      border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
-      position:sticky;top:12px;z-index:10;backdrop-filter: blur(10px);
-    }
-    .brand{display:flex;align-items:center;gap:10px}
-    .logo{
-      width:40px;height:40px;border-radius:12px;
-      background:conic-gradient(from 210deg, var(--accent), rgba(255,255,255,.10), var(--accent));
-      box-shadow:0 10px 25px rgba(0,0,0,.25);
-      display:grid;place-items:center;
+      display:flex; align-items:center; justify-content:space-between;
+      gap: 12px;
+      padding: 14px 16px;
       border:1px solid var(--line);
+      background: linear-gradient(180deg, var(--panel2), var(--panel));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      position: sticky;
+      top: 10px;
+      z-index: 20;
+      backdrop-filter: blur(10px);
     }
-    .logo b{font-size:14px;letter-spacing:.6px}
-    .brand h1{font-size:14px;margin:0;line-height:1.15}
-    .brand .sub{font-size:12px;color:var(--muted)}
-    .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .btn, button{
+
+    .brand{
+      display:flex; flex-direction:column; line-height:1.05;
+      gap:6px;
+    }
+    .brand h1{
+      margin:0;
+      font-size: 15px;
+      letter-spacing:.4px;
+      font-weight: 800;
+    }
+    .brand .sub{
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .row{ display:flex; gap: 12px; flex-wrap: wrap; align-items:center; }
+    .chip{
+      display:inline-flex; align-items:center; gap:8px;
+      padding: 8px 10px;
+      border-radius: 999px;
       border:1px solid var(--line);
-      background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.03));
-      color:var(--text);
-      border-radius:12px;padding:10px 12px;
+      background: var(--chip);
+      color: var(--muted);
+      font-size:12px;
+      white-space:nowrap;
+    }
+    .dot{ width:10px; height:10px; border-radius:99px; background: var(--accent); box-shadow: 0 0 0 4px rgba(125,211,252,.10); }
+
+    .btn{
+      border:1px solid var(--line);
+      background: linear-gradient(180deg, var(--panel2), var(--panel));
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
       cursor:pointer;
-      transition:transform .06s ease, border-color .2s ease, background .2s ease;
-      font-weight:650;
+      font-weight: 700;
+      font-size: 13px;
+      transition: transform .04s ease, border-color .2s ease;
+      user-select:none;
     }
-    .btn:hover, button:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.22)}
-    .btn:active, button:active{transform:translateY(0px)}
-    select,input{
+    .btn:hover{ border-color: rgba(255,255,255,.22); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      border-color: rgba(125,211,252,.35);
+      box-shadow: 0 0 0 4px rgba(125,211,252,.10);
+    }
+    .btn.bad{
+      border-color: rgba(251,113,133,.35);
+      box-shadow: 0 0 0 4px rgba(251,113,133,.10);
+    }
+    .btn:disabled{
+      opacity:.55; cursor:not-allowed;
+    }
+
+    select, input, textarea{
       border:1px solid var(--line);
-      background:rgba(255,255,255,.04);
-      color:var(--text);
-      border-radius:12px;padding:10px 12px;
+      background: rgba(0,0,0,.18);
+      color: var(--text);
+      padding: 10px 12px;
+      border-radius: 12px;
       outline:none;
+      font-size: 13px;
+      width: 100%;
     }
-    input::placeholder{color:rgba(170,190,230,.65)}
-    .grid{display:grid;grid-template-columns: 420px 1fr; gap:14px; margin-top:14px}
-    @media (max-width:1100px){.grid{grid-template-columns:1fr}}
+    html[data-theme="light"] select,
+    html[data-theme="light"] input,
+    html[data-theme="light"] textarea{
+      background: rgba(255,255,255,.75);
+    }
+    input::placeholder, textarea::placeholder{ color: var(--faint); }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 390px 1fr;
+      gap: 14px;
+      margin-top: 14px;
+      align-items:start;
+    }
+    @media (max-width: 1100px){
+      .grid{ grid-template-columns: 1fr; }
+    }
+
     .card{
-      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
       border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
+      background: linear-gradient(180deg, var(--panel2), var(--panel));
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
       overflow:hidden;
+      backdrop-filter: blur(10px);
     }
     .card .hd{
-      padding:12px 14px;
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
-      border-bottom:1px solid var(--line);
-      background:rgba(255,255,255,.03);
+      padding: 14px 14px 10px 14px;
+      border-bottom: 1px solid var(--line);
+      display:flex; align-items:center; justify-content:space-between; gap: 12px;
     }
-    .card .hd h2{font-size:13px;margin:0}
-    .card .bd{padding:12px 14px}
-    .muted{color:var(--muted)}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .stack{display:flex;flex-direction:column;gap:10px}
-    .chips{display:flex;gap:8px;flex-wrap:wrap}
-    .chip{
-      padding:6px 10px;border-radius:999px;
-      background:var(--chip);border:1px solid var(--line);
-      font-size:12px;color:var(--muted)
+    .card .hd h2{
+      margin:0; font-size: 13px; letter-spacing:.3px; font-weight: 900;
     }
-    .pill{
-      padding:7px 10px;border-radius:999px;font-size:12px;
-      border:1px solid var(--line);background:rgba(255,255,255,.04)
-    }
-    .pill.good{color:var(--good);border-color:rgba(74,222,128,.35)}
-    .pill.warn{color:var(--warn);border-color:rgba(251,191,36,.35)}
-    .pill.bad{color:var(--bad);border-color:rgba(251,113,133,.35)}
-    .table{
-      width:100%;border-collapse:separate;border-spacing:0;
-      overflow:hidden;border:1px solid var(--line);border-radius:14px;
-    }
-    .table th,.table td{padding:10px 10px;border-bottom:1px solid var(--line);font-size:12px;vertical-align:top}
-    .table th{background:rgba(255,255,255,.04);text-align:left;color:var(--muted);font-weight:750}
-    .table tr:hover td{background:rgba(255,255,255,.03)}
-    .table tr:last-child td{border-bottom:none}
-    .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-    @media (max-width:900px){.kpi{grid-template-columns:repeat(2,1fr)}}
-    .kpi .box{
-      padding:10px 12px;border-radius:14px;border:1px solid var(--line);
-      background:rgba(255,255,255,.03)
-    }
-    .kpi .box .t{font-size:11px;color:var(--muted)}
-    .kpi .box .v{font-size:15px;font-weight:850;margin-top:4px}
+    .card .bd{ padding: 14px; }
+
+    .muted{ color: var(--muted); }
+    .small{ font-size: 12px; }
+    .mono{ font-family: var(--mono); }
+
     .log{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size:11px;line-height:1.35;
-      background:rgba(0,0,0,.25);
+      background: rgba(0,0,0,.24);
       border:1px solid var(--line);
-      padding:10px;border-radius:14px;
-      max-height:180px;overflow:auto;white-space:pre-wrap;
+      border-radius: 14px;
+      padding: 10px;
+      height: 150px;
+      overflow:auto;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      white-space: pre-wrap;
     }
-    .divider{height:1px;background:var(--line);margin:10px 0}
-    .login{
-      min-height:100vh;display:grid;place-items:center;padding:20px
+    html[data-theme="light"] .log{ background: rgba(255,255,255,.75); }
+
+    .list{
+      display:flex; flex-direction:column; gap: 8px;
+      max-height: 540px;
+      overflow:auto;
+      padding-right: 6px;
     }
-    .login .panel{
-      width:min(520px, 100%);
-      background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+    .item{
       border:1px solid var(--line);
-      border-radius:22px;
-      box-shadow:var(--shadow);
+      border-radius: 14px;
+      background: rgba(0,0,0,.16);
+      padding: 10px 10px;
+      cursor:pointer;
+      transition: transform .04s ease, border-color .2s ease, background .2s ease;
+    }
+    html[data-theme="light"] .item{ background: rgba(255,255,255,.60); }
+    .item:hover{ border-color: rgba(255,255,255,.22); }
+    .item:active{ transform: translateY(1px); }
+    .item.sel{
+      border-color: rgba(125,211,252,.42);
+      box-shadow: 0 0 0 4px rgba(125,211,252,.10);
+    }
+    .it-top{
+      display:flex; justify-content:space-between; gap:10px; align-items:flex-start;
+    }
+    .it-title{
+      font-weight: 900; font-size: 13px; letter-spacing:.2px;
+    }
+    .it-sub{ color: var(--muted); font-size: 12px; margin-top: 3px; }
+    .badge{
+      font-size: 11px; font-weight: 900;
+      padding: 6px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,.06);
+      white-space:nowrap;
+    }
+    .b-ok{ border-color: rgba(52,211,153,.35); color: var(--ok); }
+    .b-warn{ border-color: rgba(251,191,36,.35); color: var(--warn); }
+    .b-bad{ border-color: rgba(251,113,133,.35); color: var(--bad); }
+
+    .kpis{
+      display:grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    @media (max-width: 1100px){ .kpis{ grid-template-columns: repeat(2, 1fr); } }
+
+    .kpi{
+      border:1px solid var(--line);
+      border-radius: 16px;
+      padding: 10px;
+      background: rgba(0,0,0,.14);
+    }
+    html[data-theme="light"] .kpi{ background: rgba(255,255,255,.60); }
+    .kpi .lab{ font-size: 11px; color: var(--muted); font-weight: 800; letter-spacing:.2px;}
+    .kpi .val{ margin-top: 6px; font-size: 14px; font-weight: 950; }
+    .kpi .hint{ margin-top: 4px; font-size: 11px; color: var(--muted); }
+
+    .split{
+      display:grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 12px;
+    }
+    @media (max-width: 1100px){ .split{ grid-template-columns: 1fr; } }
+
+    .hr{ height:1px; background: var(--line); margin: 10px 0; }
+
+    .chat{
+      display:flex; flex-direction:column;
+      border:1px solid var(--line);
+      border-radius: 16px;
       overflow:hidden;
+      background: rgba(0,0,0,.14);
+      height: 360px;
     }
-    .login .panel .top{
-      padding:18px 18px 12px 18px;border-bottom:1px solid var(--line);
-      display:flex;align-items:center;gap:12px
+    html[data-theme="light"] .chat{ background: rgba(255,255,255,.60); }
+    .chat-log{
+      flex:1;
+      padding: 10px;
+      overflow:auto;
+      display:flex;
+      flex-direction:column;
+      gap: 10px;
     }
-    .login .panel .top h1{font-size:16px;margin:0}
-    .login .panel .top .muted{font-size:12px}
-    .login .panel .body{padding:18px}
-    .login .hint{font-size:12px;color:var(--muted);margin-top:10px}
-    .chatbox{
-      display:flex;flex-direction:column;gap:10px;
+    .msg{
+      max-width: 85%;
+      border:1px solid var(--line);
+      border-radius: 14px;
+      padding: 10px;
+      font-size: 12px;
+      line-height: 1.35;
+      white-space: pre-wrap;
     }
-    .chatlog{
-      height:220px;overflow:auto;border:1px solid var(--line);
-      border-radius:14px;padding:10px;background:rgba(255,255,255,.03)
+    .me{ margin-left:auto; background: rgba(125,211,252,.12); border-color: rgba(125,211,252,.25); }
+    .bot{ background: rgba(167,139,250,.10); border-color: rgba(167,139,250,.22); }
+
+    .chat-in{
+      display:flex;
+      gap: 8px;
+      padding: 10px;
+      border-top:1px solid var(--line);
+      align-items:center;
     }
-    .msg{display:flex;gap:8px;margin:6px 0}
-    .msg .who{min-width:54px;font-weight:850;font-size:12px;color:var(--muted)}
-    .msg .txt{font-size:12px;white-space:pre-wrap}
+    .chat-in input{ flex:1; }
+
+    .hintbox{
+      border: 1px dashed rgba(255,255,255,.20);
+      border-radius: 14px;
+      padding: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      background: rgba(0,0,0,.10);
+    }
+    html[data-theme="light"] .hintbox{ border-color: rgba(0,0,0,.18); }
+
+    .login-wrap{
+      max-width: 520px;
+      margin: 8vh auto 0 auto;
+      padding: 18px;
+    }
+    .login-title{
+      font-weight: 950;
+      letter-spacing:.3px;
+      font-size: 22px;
+      margin: 0 0 6px 0;
+    }
+    .login-sub{
+      margin:0 0 16px 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+    .login-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 560px){ .login-grid{ grid-template-columns: 1fr; } }
+
+    .toast{
+      position: fixed;
+      bottom: 14px; left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 12px;
+      border-radius: 999px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.55);
+      backdrop-filter: blur(10px);
+      color: var(--text);
+      font-size: 12px;
+      z-index: 99;
+      display:none;
+      max-width: 92vw;
+      box-shadow: var(--shadow);
+    }
+    html[data-theme="light"] .toast{ background: rgba(255,255,255,.85); }
   </style>
 </head>
 
 <body>
-<div id="app"></div>
+  <div id="app"></div>
+  <div class="toast" id="toast"></div>
 
 <script>
 /* =========================================================
-   SinotticoLab - tutto in RAM, solo cache impostazioni
+   SINOTTICO LAB (RAM-only) • Login + Manifest + XLSX Parser
+   + CicloSlot + Scoring "Pagamento" + SAGA Chat
    ========================================================= */
 
-const SETTINGS_KEY = "sinotticolab_settings_v3";
-const state = {
-  settings: {
-    theme: "dark",
-    folderOverride: "",     // se vuoi forzare: "Dati" oppure "dati"
-    maxFilesToLoad: 9999,
-    downsamplePoints: 180,  // grafico leggibile
-  },
-  user: null,
+const APP = {
+  session: null,
   users: [],
   manifest: null,
-  folder: null,        // "Dati" / "dati" / "DATI"
-  sinottici: [],       // [{name,url,dt,rowsRaw,rowsNorm}]
-  machines: new Map(), // key = CODEID -> machine object with timeline
-  cicloByModel: new Map(), // codiceModello -> ciclo
-  selectedCodeid: null,
-  lastLoadedAt: null,
+  cicloslot: null,
+
+  // snapshots parsed from XLSX
+  // snapshot = { file, ts, rows: [machineRow], byCodeId: Map(codeId=>row) }
+  snapshots: [],
+  // merged history per machine CODEID:
+  // history[codeId] = [{ts, in€, out€, pctOut, incassoGg, ...}]
+  history: new Map(),
+
+  // last snapshot (most recent by date)
+  latest: null,
+
+  selectedCodeId: null,
+
+  // runtime flags
+  loading: false,
+  debug: true,
+
+  // folder candidates (GitHub case-sensitive)
+  dataFolders: ["dati", "Dati", "DATI", "Data", "data"],
+
+  // UI state
+  ui: {
+    theme: localStorage.getItem("sinottico_theme") || "slate",
+    showAllPoints: false,
+    pointsLimit: 120,
+    search: "",
+    filterComune: "",
+    filterProvincia: "",
+    filterSede: "",
+    filterPdv: "",
+    filterPda: "",
+    filterModel: "",
+    filterState: "",
+    onlyInPagamento: false,
+    onlyWarnings: false,
+    sort: "score_desc", // score_desc | incasso_desc | in_desc | out_desc | sede_asc | model_asc
+  }
 };
 
-function loadSettings(){
-  try{
-    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
-    state.settings = {...state.settings, ...s};
-  }catch(e){}
-  document.documentElement.setAttribute("data-theme", state.settings.theme || "dark");
+function $(sel, root=document){ return root.querySelector(sel); }
+function $all(sel, root=document){ return [...root.querySelectorAll(sel)]; }
+
+function toast(msg){
+  const t = $("#toast");
+  t.textContent = msg;
+  t.style.display = "block";
+  clearTimeout(toast._tm);
+  toast._tm = setTimeout(()=> t.style.display="none", 2600);
 }
-function saveSettings(){
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
-}
+
 function log(msg){
-  const el = document.getElementById("log");
-  const ts = new Date().toLocaleTimeString();
-  const line = `[${ts}] ${msg}\n`;
-  if(el){ el.textContent += line; el.scrollTop = el.scrollHeight; }
-  console.log(msg);
-}
-function money(n){
-  if(n==null || Number.isNaN(n)) return "—";
-  return new Intl.NumberFormat("it-IT",{maximumFractionDigits:0}).format(n);
-}
-function money2(n){
-  if(n==null || Number.isNaN(n)) return "—";
-  return new Intl.NumberFormat("it-IT",{minimumFractionDigits:2, maximumFractionDigits:2}).format(n);
-}
-function pct(n){
-  if(n==null || Number.isNaN(n)) return "—";
-  return (n*100).toFixed(2) + "%";
-}
-function safeUpper(s){ return (s ?? "").toString().trim().toUpperCase(); }
-function normHeader(s){
-  return safeUpper(s)
-    .replaceAll("À","A").replaceAll("È","E").replaceAll("Ì","I").replaceAll("Ò","O").replaceAll("Ù","U")
-    .replace(/[.\-_/()]/g," ")
-    .replace(/\s+/g," ")
-    .trim();
-}
-function parseDateLoose(v){
-  if(v==null || v==="") return null;
-  if(v instanceof Date) return v;
-  if(typeof v === "number"){
-    // Excel serial date
-    // SheetJS often parses date fields as numbers; use SSF?
-    // We'll attempt: Excel epoch 1899-12-30
-    const d = new Date(Math.round((v - 25569) * 86400 * 1000));
-    if(!isNaN(d)) return d;
-  }
-  const s = v.toString().trim();
-  // dd/mm/yyyy hh:mm
-  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if(m){
-    const dd=+m[1], mm=+m[2]-1, yyyy=+(m[3].length===2?("20"+m[3]):m[3]);
-    const hh=+(m[4]||0), mi=+(m[5]||0), ss=+(m[6]||0);
-    const d=new Date(yyyy,mm,dd,hh,mi,ss);
-    return isNaN(d)?null:d;
-  }
-  const d = new Date(s);
-  return isNaN(d)?null:d;
-}
-function toEuroFromCentsish(v){
-  if(v==null || v==="") return null;
-  const n = typeof v==="number" ? v : parseFloat(v.toString().replace(/\./g,"").replace(",","."));
-  if(Number.isNaN(n)) return null;
-  // Nel sinottico gli ultimi 2 zeri sono centesimi: dividiamo per 100
-  return n / 100.0;
-}
-function toNum(v){
-  if(v==null || v==="") return null;
-  const n = typeof v==="number" ? v : parseFloat(v.toString().replace(/\./g,"").replace(",","."));
-  return Number.isNaN(n) ? null : n;
+  const el = $("#logBox");
+  if(!el) return;
+  const line = `[${new Date().toLocaleTimeString()}] ${msg}\n`;
+  el.textContent += line;
+  el.scrollTop = el.scrollHeight;
 }
 
-/* =========================================================
-   Loader file JSON (GitHub Pages)
-   ========================================================= */
-async function fetchJSON(url){
-  const r = await fetch(url, {cache:"no-store"});
-  if(!r.ok) throw new Error(`HTTP ${r.status} su ${url}`);
-  return await r.json();
-}
-async function fetchArrayBuffer(url){
-  const r = await fetch(url, {cache:"no-store"});
-  if(!r.ok) throw new Error(`HTTP ${r.status} su ${url}`);
-  return await r.arrayBuffer();
+function setTheme(theme){
+  APP.ui.theme = theme;
+  localStorage.setItem("sinottico_theme", theme);
+  document.documentElement.setAttribute("data-theme", theme);
 }
 
-/* =========================================================
-   Login / Users
-   ========================================================= */
-async function loadUsers(){
-  // prova users.json nella root
-  const users = await fetchJSON("users.json");
-  state.users = Array.isArray(users) ? users : (users.users || []);
-  log(`Users caricati: ${state.users.length}`);
-}
-function validateLogin(user, pin){
-  const u = state.users.find(x => (x.user||"").toString()===user);
-  if(!u) return {ok:false, msg:"Utente non trovato"};
-  if((u.pin||"").toString() !== pin) return {ok:false, msg:"PIN errato"};
-  if(u.expires){
-    const exp = parseDateLoose(u.expires);
-    if(exp && exp < new Date()) return {ok:false, msg:`Account scaduto (${u.expires})`};
-  }
-  return {ok:true, user:{user:u.user, level:u.level||"Base", expires:u.expires||null}};
-}
+setTheme(APP.ui.theme);
 
-/* =========================================================
-   Manifest + Folder detection
-   ========================================================= */
-function parseManifestList(man){
-  // supporta più formati: array, {files:[]}, {sinottici:[]}
-  if(Array.isArray(man)) return man;
-  if(man?.files && Array.isArray(man.files)) return man.files;
-  if(man?.sinottici && Array.isArray(man.sinottici)) return man.sinottici;
-  if(man?.list && Array.isArray(man.list)) return man.list;
-  // se è oggetto { "Sinottico-...xlsx": "..."} -> keys
-  if(man && typeof man==="object") return Object.keys(man);
-  return [];
-}
-async function detectFolder(list){
-  // se user forza folder, usalo
-  const forced = (state.settings.folderOverride||"").trim();
-  if(forced){
-    log(`Folder override: ${forced}`);
-    return forced;
-  }
-
-  const candidates = ["dati","Dati","DATI"];
-  const probe = list?.[0];
-  if(!probe) return "Dati";
-
-  for(const c of candidates){
-    const url = `${c}/${probe}`;
+/* -------------------- Robust fetch helpers -------------------- */
+async function fetchJSONSmart(paths){
+  // tries multiple paths, returns first JSON that parses
+  let lastErr = null;
+  for (const p of paths){
     try{
-      const r = await fetch(url, {method:"HEAD", cache:"no-store"});
-      if(r.ok){
-        log(`Folder valido trovato: ${c} (probe: ${url})`);
-        return c;
-      } else {
-        log(`NO ${url}: HTTP ${r.status}`);
-      }
+      const res = await fetch(p, {cache:"no-store"});
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      const txt = await res.text();
+      const json = JSON.parse(txt);
+      return {json, path:p};
     }catch(e){
-      log(`NO ${url}: ${e.message}`);
+      lastErr = e;
+      // keep trying
     }
   }
-  // fallback: prova a vedere se esiste la cartella (non sempre possibile)
-  log(`Self-test errore: Nessun folder valido (Dati/dati). Userò "Dati" come fallback.`);
-  return "Dati";
+  throw lastErr || new Error("fetchJSONSmart failed");
 }
 
-/* =========================================================
-   Ciclo Slot
-   ========================================================= */
-async function loadCicloSlot(){
-  const data = await fetchJSON("cicloslot.json");
-  const arr = Array.isArray(data) ? data : (data?.items || []);
-  state.cicloByModel.clear();
-  for(const x of arr){
-    const code = (x.codiceModello ?? x.CODICE_MODELLO ?? "").toString().trim();
-    const ciclo = toNum(x.ciclo ?? x.CICLO);
-    if(code && ciclo) state.cicloByModel.set(code, ciclo);
-  }
-  log(`cicloslot: modelli con ciclo = ${state.cicloByModel.size}`);
-}
-
-/* =========================================================
-   XLSX parsing + mapping colonne
-   ========================================================= */
-function buildColumnMap(headers){
-  // headers: array string originali
-  const normToIdx = new Map();
-  headers.forEach((h,i)=> normToIdx.set(normHeader(h), i));
-
-  const want = {
-    CODEID: ["CODEID"],
-    CODEID_PROVV: ["CODEID PROVV","CODEID PROVVISORIO","CODEID PROVV."],
-    DESCR_STATO: ["DESCR STATO","DESCR. STATO","STATO"],
-    DATA_ATTIVAZIONE: ["DATA ATTIVAZIONE"],
-    DATA_ULTIMO_COLLEGAMENTO: ["DATA ULTIMO COLLEGAMENTO"],
-    GG_MANCATO_COLLEGAMENTO: ["GG MANCATO COLLEGAMENTO"],
-    GG_DECADENZA: ["GG DECADENZA"],
-    DATA_ULTIMA_LETTURA_VAL: ["DATA ULTIMA LETTURA VAL","DATA ULTIMA LETTURA VAL.","DATA ULTIMA LETTURA"],
-    CNTTOTIN: ["CNTTOTIN","CNT TOT IN","CNTTOT IN"],
-    CNTTOTOUT: ["CNTTOTOT","CNTTOTOUT","CNT TOT OUT","CNTTOT OT","CNTTOTOUT EURO"],
-    MS_FERIE: ["M S FERIE","M.S. FERIE","M S / FERIE","M.S. / FERIE"],
-    MAC_PDA: ["MACADDRESS PDA","MAC ADDRESS PDA","MAC PDA"],
-    CODICE_SEDE: ["CODICE SEDE"],
-    CODICE_PDV_AAMS: ["CODICE PDV AAMS","CODICE PDV"],
-    DENOMIN_SEDE: ["DENOMIN SEDE","DENOMIN. SEDE","DENOMINAZIONE SEDE"],
-    INDIRIZZO: ["INDIRIZZO"],
-    PROVINCIA: ["PROVINCIA"],
-    COMUNE: ["COMUNE"],
-    CODICE_IS_ESERCENTE: ["CODICE IS ESERCENTE","CODICE ESERCENTE"],
-    PRATICA_AMMINISTRATIVA: ["PRATICA AMMINISTRATIVA"],
-    STATO_PRATICA: ["STATO PRATICA"],
-    DATA_RILASCIO_NOE: ["DATA RILASCIO N O E","DATA RILASCIO N.O.E.","DATA RILASCIO NOE"],
-    CODICE_MODELLO: ["CODICE MODELLO"],
-    MODELLO: ["MODELLO"],
-    OUT_PCT: ["% OUT","OUT %","PERCENTUALE OUT","PCT OUT"],
-    EM: ["E M","E/M","E M ","ESERCIZIO MAGAZZINO"],
-    NOE: ["NOE"],
-    INCASSO_GIORNALIERO: ["INCASSO GIORNALIERO"],
-    MEDIA_INCASSO: ["MEDIA INCASSO GG ESERCIZIO","MEDIA INCASSO","MEDIA INCASSO GG"],
-    WARNING: ["WARNING"],
-    IR_AWP: ["IR AWP","IRAWP"],
-  };
-
-  const out = {};
-  for(const key of Object.keys(want)){
-    out[key] = null;
-    for(const candidate of want[key]){
-      const idx = normToIdx.get(normHeader(candidate));
-      if(idx!=null){ out[key]=idx; break; }
+async function fetchArrayBufferSmart(paths){
+  let lastErr = null;
+  for (const p of paths){
+    try{
+      const res = await fetch(p, {cache:"no-store"});
+      if(!res.ok) throw new Error(`HTTP ${res.status} su ${p}`);
+      const buf = await res.arrayBuffer();
+      return {buf, path:p};
+    }catch(e){
+      lastErr = e;
     }
   }
-  return out;
+  throw lastErr || new Error("fetchArrayBufferSmart failed");
 }
 
-function parseXlsxRows(arrayBuffer){
-  if(typeof XLSX === "undefined") throw new Error("Libreria XLSX non caricata (SheetJS).");
-  const wb = XLSX.read(arrayBuffer, {type:"array"});
+/* -------------------- Header normalization & mapping -------------------- */
+function normHeader(h){
+  if(h == null) return "";
+  return String(h)
+    .trim()
+    .toUpperCase()
+    .replaceAll("\n"," ")
+    .replace(/\s+/g," ")
+    .replace(/[“”"']/g,"")
+    .replace(/[().:/]/g,"")
+    .replaceAll("À","A").replaceAll("È","E").replaceAll("É","E").replaceAll("Ì","I").replaceAll("Ò","O").replaceAll("Ù","U");
+}
+
+function pick(obj, keys){
+  for (const k of keys){
+    if(obj[k] != null && obj[k] !== "") return obj[k];
+  }
+  return null;
+}
+
+function toNumberEuro(v){
+  // convert CNT style: can be string/number, last 2 digits are cents
+  if(v == null || v === "") return null;
+  const s = String(v).trim().replace(/\./g,"").replace(/,/g,".");
+  const n = Number(s);
+  if(!isFinite(n)) return null;
+  // remove last 2 digits as cents: divide by 100
+  return n / 100;
+}
+
+function toNumber(v){
+  if(v == null || v === "") return null;
+  const s = String(v).trim().replace(/\./g,"").replace(/,/g,".");
+  const n = Number(s);
+  return isFinite(n) ? n : null;
+}
+
+function toDateMaybe(v){
+  if(v == null || v === "") return null;
+
+  // XLSX may return Date already
+  if(v instanceof Date && !isNaN(v)) return v;
+
+  // Excel serial
+  if(typeof v === "number" && v > 25000 && v < 60000){
+    // Excel date serial -> JS date (approx)
+    const epoch = new Date(Date.UTC(1899,11,30));
+    return new Date(epoch.getTime() + v * 86400000);
+  }
+
+  const s = String(v).trim();
+  // try ISO-ish
+  const d = new Date(s);
+  if(!isNaN(d)) return d;
+
+  // try dd/mm/yyyy hh:mm
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2}))?/);
+  if(m){
+    const dd = +m[1], mm = +m[2]-1, yy = +m[3] < 100 ? 2000 + (+m[3]) : +m[3];
+    const hh = m[4] ? +m[4] : 0;
+    const mi = m[5] ? +m[5] : 0;
+    const dt = new Date(yy, mm, dd, hh, mi, 0);
+    if(!isNaN(dt)) return dt;
+  }
+  return null;
+}
+
+function parsePercent(v){
+  if(v == null || v === "") return null;
+  const s = String(v).trim().replace("%","");
+  const n = toNumber(s);
+  return n;
+}
+
+/* -------------------- XLSX parsing -------------------- */
+function workbookToRows(buf){
+  // XLSX must exist
+  if(typeof XLSX === "undefined") throw new Error("XLSX non disponibile: controlla CDN / rete.");
+
+  const wb = XLSX.read(buf, {type:"array"});
   const sheetName = wb.SheetNames[0];
   const ws = wb.Sheets[sheetName];
-  // header:1 returns array of arrays
-  const aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:""});
-  if(!aoa || aoa.length<2) return {headers:[], rows:[]};
-  const headers = aoa[0].map(x=> (x??"").toString().trim());
-  const rows = aoa.slice(1);
-  return {headers, rows};
+  const json = XLSX.utils.sheet_to_json(ws, {defval:"", raw:true});
+  return json;
 }
 
-function normalizeRow(row, col){
-  // row = array values
-  const get = (k)=> {
-    const idx = col[k];
-    if(idx==null) return "";
-    return row[idx];
-  };
+function mapRow(raw){
+  // raw keys are headers as in sheet; we normalize keys and then map.
+  const norm = {};
+  for (const [k,v] of Object.entries(raw)){
+    norm[normHeader(k)] = v;
+  }
 
-  const codeid = (get("CODEID") ?? "").toString().trim();
-  if(!codeid) return null;
+  // Column names based on your description:
+  const codeId        = pick(norm, ["CODEID","CODE ID"]);
+  const codeIdProvv   = pick(norm, ["CODEID PROVV","CODEID PROVVISORIO","CODEID PROVV"]);
+  const descrStato    = pick(norm, ["DESCR STATO","DESCR STATO ","DESCR STATO  ","DESCR STATO"]);
+  const dataAtt       = toDateMaybe(pick(norm, ["DATA ATTIVAZIONE"]));
+  const dataUltCol    = toDateMaybe(pick(norm, ["DATA ULTIMO COLLEGAMENTO"]));
+  const ggMancato     = toNumber(pick(norm, ["GG MANCATO COLLEGAMENTO"]));
+  const ggDecadenza   = toNumber(pick(norm, ["GG DECADENZA"]));
+  const dataUltVal    = toDateMaybe(pick(norm, ["DATA ULTIMA LETTURA VAL","DATA ULTIMA LETTURA VAL "])); // keep like this
 
-  const cntIn = toEuroFromCentsish(get("CNTTOTIN"));
-  const cntOut = toEuroFromCentsish(get("CNTTOTOUT"));
-  const outPct = (() => {
-    const v = get("OUT_PCT");
-    if(v==null || v==="") return null;
-    const s = v.toString().replace("%","").trim();
-    const n = parseFloat(s.replace(",","."));
-    if(Number.isNaN(n)) return null;
-    return n/100.0;
-  })();
+  const cntTotIn      = toNumberEuro(pick(norm, ["CNTTOTIN","CNT TOT IN","CNTTOT IN"]));
+  const cntTotOut     = toNumberEuro(pick(norm, ["CNTTOTOT","CNTTOTOUT","CNT TOT OUT","CNTTOT OT","CNTTOTOT "])); // your column says CNTTOTOT
+  const msFerie       = pick(norm, ["MS  FERIE","MS FERIE","MS/ FERIE","MS FERIE "]);
+  const macPda        = pick(norm, ["MACADDRESS PDA","MACADDRESSPDA","MAC ADDRESS PDA"]);
+  const codiceSede    = pick(norm, ["CODICE SEDE"]);
+  const codicePdvAams = pick(norm, ["CODICE PDV AAMS","CODICE PDV","PDV AAMS"]);
+  const denomSede     = pick(norm, ["DENOMIN SEDE","DENOMIN SEDE ","DENOMIN SEDE  ","DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE",
+                                   "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE", "DENOMIN SEDE"]);
+  // Above looks silly, but harmless: pick() will just use first match. We keep it because sometimes headers contain weird repeats/spacing.
 
-  const codiceModello = (get("CODICE_MODELLO") ?? "").toString().trim();
-  const ciclo = state.cicloByModel.get(codiceModello) ?? null;
+  const indirizzo     = pick(norm, ["INDIRIZZO"]);
+  const provincia     = pick(norm, ["PROVINCIA"]);
+  const comune        = pick(norm, ["COMUNE"]);
+  const isEsercente   = pick(norm, ["CODICE IS ESERCENTE","CODICE IS"]);
+  const praticaAmm    = pick(norm, ["PRATICA AMMINISTRATIVA"]);
+  const statoPratica  = pick(norm, ["STATO PRATICA"]);
+  const dataRilNoe    = toDateMaybe(pick(norm, ["DATA RILASCIO NOE","DATA RILASCIO NOE "]));
+  const codiceModello = pick(norm, ["CODICE MODELLO"]);
+  const modello       = pick(norm, ["MODELLO"]);
+  const pctOut        = parsePercent(pick(norm, [" OUT","% OUT","OUT"]));
+  const em            = pick(norm, ["EM","E/M","E M"]);
+  const noe           = pick(norm, ["NOE"]);
+  const incassoGg     = toNumber(pick(norm, ["INCASSO GIORNALIERO"]));
+  const mediaIncasso  = toNumber(pick(norm, ["MEDIA INCASSO GG ESERCIZIO","MEDIA INCASSO GG ESERCIZIO "]));
+  const warning       = pick(norm, ["WARNING"]);
+  // IR AWP ignored as requested
 
-  const dUlt = parseDateLoose(get("DATA_ULTIMA_LETTURA_VAL"));
-  const dColl = parseDateLoose(get("DATA_ULTIMO_COLLEGAMENTO"));
-  const dAtt = parseDateLoose(get("DATA_ATTIVAZIONE"));
-
-  const denom = (get("DENOMIN_SEDE") ?? "").toString().trim();
-  const comune = (get("COMUNE") ?? "").toString().trim();
-  const prov = (get("PROVINCIA") ?? "").toString().trim();
-
-  const ratioOut = (cntIn!=null && cntIn>0 && cntOut!=null) ? (cntOut/cntIn) : null;
-
-  const faseCiclo = (ciclo && cntIn!=null) ? ((cntIn % ciclo)/ciclo) : null;
-
-  const target = outPct ?? 0.65; // default
-  const expectedOut = (cntIn!=null) ? cntIn*target : null;
-  const diffOut = (expectedOut!=null && cntOut!=null) ? (expectedOut - cntOut) : null; // positivo = sotto target
+  const code = (codeId ?? "").toString().trim();
+  if(!code) return null;
 
   return {
-    CODEID: codeid,
-    CODEID_PROVV: (get("CODEID_PROVV") ?? "").toString().trim(),
-    DESCR_STATO: (get("DESCR_STATO") ?? "").toString().trim(),
-    DATA_ATTIVAZIONE: dAtt,
-    DATA_ULTIMO_COLLEGAMENTO: dColl,
-    GG_MANCATO_COLLEGAMENTO: toNum(get("GG_MANCATO_COLLEGAMENTO")),
-    GG_DECADENZA: toNum(get("GG_DECADENZA")),
-    DATA_ULTIMA_LETTURA_VAL: dUlt,
-    CNTTOTIN: cntIn,
-    CNTTOTOUT: cntOut,
-    MS_FERIE: (get("MS_FERIE") ?? "").toString().trim(),
-    MAC_PDA: (get("MAC_PDA") ?? "").toString().trim(),
-    CODICE_SEDE: (get("CODICE_SEDE") ?? "").toString().trim(),
-    CODICE_PDV_AAMS: (get("CODICE_PDV_AAMS") ?? "").toString().trim(),
-    DENOMIN_SEDE: denom,
-    INDIRIZZO: (get("INDIRIZZO") ?? "").toString().trim(),
-    PROVINCIA: prov,
-    COMUNE: comune,
-    CODICE_IS_ESERCENTE: (get("CODICE_IS_ESERCENTE") ?? "").toString().trim(),
-    PRATICA_AMMINISTRATIVA: (get("PRATICA_AMMINISTRATIVA") ?? "").toString().trim(),
-    STATO_PRATICA: (get("STATO_PRATICA") ?? "").toString().trim(),
-    DATA_RILASCIO_NOE: parseDateLoose(get("DATA_RILASCIO_NOE")),
-    CODICE_MODELLO: codiceModello,
-    MODELLO: (get("MODELLO") ?? "").toString().trim(),
-    OUT_PCT: outPct,
-    E_M: (get("EM") ?? "").toString().trim(),
-    NOE: (get("NOE") ?? "").toString().trim(),
-    INCASSO_GIORNALIERO: toEuroFromCentsish(get("INCASSO_GIORNALIERO")),
-    MEDIA_INCASSO: toEuroFromCentsish(get("MEDIA_INCASSO")),
-    WARNING: (get("WARNING") ?? "").toString().trim(),
-    IR_AWP: (get("IR_AWP") ?? "").toString().trim(),
+    codeId: code,
+    codeIdProvv: (codeIdProvv ?? "").toString().trim(),
+    descrStato: (descrStato ?? "").toString().trim(),
+    dataAtt,
+    dataUltCol,
+    ggMancato,
+    ggDecadenza,
+    dataUltVal,
 
-    ratioOut,
-    ciclo,
-    faseCiclo,
-    target,
-    expectedOut,
-    diffOut
+    cntTotIn,
+    cntTotOut,
+
+    msFerie: (msFerie ?? "").toString().trim(),
+    macPda: (macPda ?? "").toString().trim(),
+    codiceSede: (codiceSede ?? "").toString().trim(),
+    codicePdvAams: (codicePdvAams ?? "").toString().trim(),
+    denomSede: (denomSede ?? "").toString().trim(),
+    indirizzo: (indirizzo ?? "").toString().trim(),
+    provincia: (provincia ?? "").toString().trim(),
+    comune: (comune ?? "").toString().trim(),
+    isEsercente: (isEsercente ?? "").toString().trim(),
+    praticaAmm: (praticaAmm ?? "").toString().trim(),
+    statoPratica: (statoPratica ?? "").toString().trim(),
+    dataRilNoe,
+    codiceModello: (codiceModello ?? "").toString().trim(),
+    modello: (modello ?? "").toString().trim(),
+    pctOut,
+    em: (em ?? "").toString().trim(),
+    noe: (noe ?? "").toString().trim(),
+    incassoGg,
+    mediaIncasso,
+    warning: (warning ?? "").toString().trim(),
+
+    _raw: raw
   };
 }
 
-/* =========================================================
-   Aggregazione storico + predizione
-   ========================================================= */
-function ensureMachine(codeid){
-  if(!state.machines.has(codeid)){
-    state.machines.set(codeid, {
-      codeid,
-      last: null,
-      timeline: [], // [{t, in, out, ratio, diffOut, ...}]
-      meta: {},
-      score: 0,
-      scoreLabel: "—",
-      scoreClass: "warn"
-    });
+function extractTimestampFromFilename(name){
+  // tries patterns in filenames like Sinottico-2025-12-23-0900.xlsx or Sinottico-2025-10-07.xlsx
+  const s = String(name || "");
+  let m = s.match(/(\d{4})-(\d{2})-(\d{2})-(\d{2})(\d{2})/);
+  if(m){
+    return new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5], 0);
   }
-  return state.machines.get(codeid);
+  m = s.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if(m){
+    // default time 09:00
+    return new Date(+m[1], +m[2]-1, +m[3], 9, 0, 0);
+  }
+  return null;
 }
 
-function computeScore(machine){
-  const tl = machine.timeline.slice().filter(p=>p.t && p.in!=null && p.out!=null)
-    .sort((a,b)=>a.t-b.t);
+/* -------------------- cicloslot -------------------- */
+function getCicloForModel(codiceModello){
+  if(!APP.cicloslot) return null;
 
-  if(tl.length<2){
-    machine.score = 0.25;
-    machine.scoreLabel = "Pochi dati";
-    machine.scoreClass = "warn";
+  const key = String(codiceModello || "").trim();
+  if(!key) return null;
+
+  // cicloslot.json might be:
+  // { "12345": { cycleIn:..., cycleOut:... } } OR array. We'll support both.
+  if(Array.isArray(APP.cicloslot)){
+    const found = APP.cicloslot.find(x => String(x.codiceModello||x.model||x.codice||"").trim() === key);
+    return found || null;
+  }else if(typeof APP.cicloslot === "object"){
+    // direct map
+    if(APP.cicloslot[key]) return APP.cicloslot[key];
+
+    // try nested lists
+    const vals = Object.values(APP.cicloslot);
+    for(const v of vals){
+      if(v && typeof v === "object" && String(v.codiceModello||v.model||v.codice||"").trim() === key){
+        return v;
+      }
+    }
+  }
+  return null;
+}
+
+/* -------------------- scoring / "neural-ish" heuristics -------------------- */
+function clamp01(x){ return Math.max(0, Math.min(1, x)); }
+
+function computeMachineScore(codeId){
+  // score based on last deltas and deviation from target pay, and cycle progress.
+  const hist = APP.history.get(codeId);
+  if(!hist || hist.length < 2) return {score:0, label:"Pochi dati", kind:"warn"};
+
+  const last = hist[hist.length-1];
+  const prev = hist[hist.length-2];
+
+  const dIn = (last.inEur ?? 0) - (prev.inEur ?? 0);
+  const dOut = (last.outEur ?? 0) - (prev.outEur ?? 0);
+
+  // if no movement, low confidence
+  const activity = (Math.max(0,dIn) + Math.max(0,dOut));
+  const activityScore = clamp01(activity / 400); // 400€ movement -> "1"
+
+  // observed payout ratio on last interval
+  const intervalPay = dIn > 0 ? (dOut / dIn) : null;
+
+  // target payout (use last pctOut column if exists, else 65)
+  const targetPct = (last.pctOut ?? 65);
+  const targetPay = targetPct / 100;
+
+  // “underpay” means out/in smaller than target, could be building towards payout
+  let under = 0;
+  if(intervalPay != null){
+    under = clamp01((targetPay - intervalPay) / 0.25); // 25% gap -> 1
+  }else{
+    under = 0.2;
+  }
+
+  // cycle progress (if available)
+  const ciclo = getCicloForModel(last.codiceModello);
+  let cycleProgress = null;
+  let cycleScore = 0.2;
+
+  // We guess fields:
+  // could be ciclo.in, ciclo.ciclo, ciclo.cycleIn, ciclo.CNTTOTIN or "cicloInEuro"
+  const cicloIn = toNumber(pick(ciclo || {}, ["cycleIn","cicloIn","in","CICLOIN","CICLO_IN","ciclo_in","ciclo_in_euro","cicloInEuro"])) || null;
+  if(cicloIn && last.inEur != null){
+    // progress within cycle based on IN modulo cycleIn (rough, but useful)
+    const mod = ((last.inEur % cicloIn) + cicloIn) % cicloIn;
+    cycleProgress = mod / cicloIn; // 0..1
+    // payout often clusters near end: push score when progress > 0.75
+    cycleScore = clamp01((cycleProgress - 0.60) / 0.40);
+  }
+
+  // combine
+  // more “under”, more “near cycle end”, more “activity” => higher score
+  const score = clamp01(
+    0.40 * under +
+    0.35 * cycleScore +
+    0.25 * activityScore
+  );
+
+  // label
+  let label = "Neutra";
+  let kind = "warn";
+  if(score > 0.72){ label = "Alta probabilità"; kind="ok"; }
+  else if(score > 0.50){ label = "Interessante"; kind="warn"; }
+  else { label = "Bassa"; kind="bad"; }
+
+  // extra: if warnings or blocked states, reduce confidence
+  if((last.warning||"").trim()){
+    kind = "warn";
+  }
+  if((last.descrStato||"").toLowerCase().includes("blocc")){
+    kind = "bad";
+  }
+
+  return {score, label, kind, dIn, dOut, intervalPay, targetPct, cycleProgress};
+}
+
+function formatEuro(x){
+  if(x == null || !isFinite(x)) return "—";
+  return x.toLocaleString("it-IT",{minimumFractionDigits:2, maximumFractionDigits:2}) + " €";
+}
+function formatPct(x){
+  if(x == null || !isFinite(x)) return "—";
+  return x.toLocaleString("it-IT",{minimumFractionDigits:2, maximumFractionDigits:2}) + "%";
+}
+function fmtDate(d){
+  if(!d || isNaN(d)) return "—";
+  return d.toLocaleString("it-IT");
+}
+
+/* -------------------- building history -------------------- */
+function rebuildHistory(){
+  APP.history = new Map();
+
+  // sort snapshots by ts asc
+  APP.snapshots.sort((a,b)=> (a.ts?.getTime()||0) - (b.ts?.getTime()||0));
+
+  for(const snap of APP.snapshots){
+    for(const row of snap.rows){
+      const codeId = row.codeId;
+      if(!APP.history.has(codeId)) APP.history.set(codeId, []);
+      APP.history.get(codeId).push({
+        ts: snap.ts,
+        file: snap.file,
+
+        inEur: row.cntTotIn,
+        outEur: row.cntTotOut,
+
+        pctOut: row.pctOut,
+        incassoGg: row.incassoGg,
+        mediaIncasso: row.mediaIncasso,
+
+        codiceModello: row.codiceModello,
+        modello: row.modello,
+
+        denomSede: row.denomSede,
+        comune: row.comune,
+        provincia: row.provincia,
+        indirizzo: row.indirizzo,
+
+        codicePdvAams: row.codicePdvAams,
+        macPda: row.macPda,
+        codiceSede: row.codiceSede,
+
+        descrStato: row.descrStato,
+        em: row.em,
+        warning: row.warning,
+
+        dataUltVal: row.dataUltVal,
+        ggMancato: row.ggMancato,
+        ggDecadenza: row.ggDecadenza,
+        noe: row.noe
+      });
+    }
+  }
+
+  // latest snapshot
+  APP.latest = APP.snapshots.length ? APP.snapshots[APP.snapshots.length-1] : null;
+}
+
+/* -------------------- Loading flow -------------------- */
+async function loadCoreFiles(){
+  // Users
+  log("Carico users.json…");
+  try{
+    const u = await fetchJSONSmart(["./users.json","users.json","./Users.json","Users.json"]);
+    APP.users = u.json;
+    log(`OK users.json da: ${u.path} (${APP.users.length} utenti)`);
+  }catch(e){
+    // fallback just so app doesn't die
+    APP.users = [];
+    log(`ERRORE users.json: ${e.message}`);
+  }
+
+  // Cicloslot
+  log("Carico cicloslot.json…");
+  try{
+    const c = await fetchJSONSmart(["./cicloslot.json","cicloslot.json","./Cicloslot.json","Cicloslot.json"]);
+    APP.cicloslot = c.json;
+    log(`OK cicloslot.json da: ${c.path}`);
+  }catch(e){
+    APP.cicloslot = null;
+    log(`ERRORE cicloslot.json: ${e.message}`);
+  }
+
+  // Manifest
+  log("Carico manifest.json…");
+  try{
+    const m = await fetchJSONSmart(["./manifest.json","manifest.json","./Manifest.json","Manifest.json"]);
+    APP.manifest = m.json;
+    log(`OK manifest.json da: ${m.path}`);
+  }catch(e){
+    APP.manifest = null;
+    log(`ERRORE manifest.json: ${e.message}`);
+  }
+}
+
+function manifestFileList(){
+  // supports manifest formats:
+  // {files:[...]} or ["a.xlsx","b.xlsx"] or { sinottici:[...] }
+  if(!APP.manifest) return [];
+  if(Array.isArray(APP.manifest)) return APP.manifest.slice();
+  if(Array.isArray(APP.manifest.files)) return APP.manifest.files.slice();
+  if(Array.isArray(APP.manifest.sinottici)) return APP.manifest.sinottici.slice();
+  if(Array.isArray(APP.manifest.data)) return APP.manifest.data.slice();
+  // try any array value
+  for(const v of Object.values(APP.manifest)){
+    if(Array.isArray(v)) return v.slice();
+  }
+  return [];
+}
+
+function buildCandidatePaths(filename){
+  // filename may already include folder "Dati/.."
+  const raw = String(filename).replaceAll("\\","/").trim();
+  const rawNoLead = raw.replace(/^\.\//,"");
+  const hasFolder = rawNoLead.includes("/");
+
+  const candidates = [];
+  if(hasFolder){
+    candidates.push("./" + rawNoLead);
+    candidates.push(rawNoLead);
+    // also try normalizing folder case if it begins with dati-like
+    const parts = rawNoLead.split("/");
+    const head = parts[0];
+    const tail = parts.slice(1).join("/");
+    for(const f of APP.dataFolders){
+      if(head.toLowerCase() === "dati" || head.toLowerCase() === "data" || head.toLowerCase() === "dati "){
+        candidates.push(`./${f}/${tail}`);
+        candidates.push(`${f}/${tail}`);
+      }
+    }
+  }else{
+    // try each folder
+    for(const f of APP.dataFolders){
+      candidates.push(`./${f}/${rawNoLead}`);
+      candidates.push(`${f}/${rawNoLead}`);
+    }
+    // also root
+    candidates.push("./" + rawNoLead);
+    candidates.push(rawNoLead);
+  }
+
+  // remove duplicates
+  return [...new Set(candidates)];
+}
+
+async function loadAllSinotticiFromManifest(){
+  if(!APP.manifest){
+    toast("manifest.json mancante o non leggibile.");
     return;
   }
 
-  const last = tl[tl.length-1];
-  const prev = tl[tl.length-2];
-
-  const dIn = (last.in - prev.in);
-  const dOut = (last.out - prev.out);
-
-  // segnali:
-  // - fase ciclo alta (se c'è ciclo)
-  // - sotto target (diffOut positivo)
-  // - poca uscita recente ma ingresso recente (accumulo)
-  // - storico: media ratio vs target
-  let s = 0.15;
-
-  if(last.faseCiclo!=null){
-    // spinge quando > 0.80
-    s += clamp((last.faseCiclo - 0.75) * 1.3, -0.15, 0.35);
+  const files = manifestFileList();
+  if(!files.length){
+    toast("manifest.json non contiene lista sinottici.");
+    return;
   }
 
-  if(last.diffOut!=null && last.ciclo){
-    // normalizza su 10% del ciclo
-    const denom = Math.max(1, last.ciclo * 0.10);
-    s += clamp((last.diffOut / denom) * 0.35, -0.25, 0.35);
-  } else if(last.diffOut!=null){
-    s += clamp((last.diffOut / 5000) * 0.15, -0.10, 0.18);
+  if(typeof XLSX === "undefined"){
+    toast("Libreria XLSX non caricata. Controlla internet / CDN.");
+    return;
   }
 
-  if(dIn!=null && dOut!=null){
-    // se entra ma non esce (recentemente), aumenta
-    const imbalance = (dIn - dOut);
-    s += clamp((imbalance / 800) * 0.20, -0.20, 0.25);
-    // se ha appena pagato tanto, abbassa
-    if(dOut > dIn*0.95 && dOut > 200){
-      s -= 0.22;
-    }
-  }
+  APP.loading = true;
+  renderMain();
 
-  // stabilizza con ratio globale
-  const ratio = last.ratioOut;
-  if(ratio!=null){
-    const delta = (last.target - ratio); // positivo = sotto
-    s += clamp(delta * 0.40, -0.15, 0.20);
-  }
+  APP.snapshots = [];
+  APP.history = new Map();
+  APP.latest = null;
+  APP.selectedCodeId = null;
 
-  // clamp 0..1
-  s = clamp(s, 0.02, 0.98);
+  log(`Trovati ${files.length} sinottici in manifest.`);
 
-  machine.score = s;
-  if(s >= 0.72){ machine.scoreLabel="Alta"; machine.scoreClass="good"; }
-  else if(s >= 0.50){ machine.scoreLabel="Media"; machine.scoreClass="warn"; }
-  else { machine.scoreLabel="Bassa"; machine.scoreClass="bad"; }
-}
+  // load sequentially to keep RAM under control
+  for(let i=0;i<files.length;i++){
+    const f = files[i];
+    const ts = extractTimestampFromFilename(f) || null;
 
-function clamp(x,a,b){ return Math.max(a, Math.min(b, x)); }
+    log(`(${i+1}/${files.length}) Carico: ${f}`);
 
-/* =========================================================
-   Caricamento sinottici da manifest + analisi
-   ========================================================= */
-function parseSinotticoDateFromName(name){
-  // tenta: Sinottico-YYYY-MM-DD-HHMM.xlsx oppure Sinottico-YYYY-MM-DD.xlsx
-  const m = name.match(/(\d{4})-(\d{2})-(\d{2})(?:-(\d{2})(\d{2}))?/);
-  if(!m) return null;
-  const y=+m[1], mo=+m[2]-1, d=+m[3], hh=+(m[4]||0), mm=+(m[5]||0);
-  const dt = new Date(y,mo,d,hh,mm,0);
-  return isNaN(dt)?null:dt;
-}
+    const candidates = buildCandidatePaths(f);
 
-async function loadManifest(){
-  state.manifest = await fetchJSON("manifest.json");
-  const list = parseManifestList(state.manifest)
-    .filter(x => (x||"").toString().toLowerCase().endsWith(".xlsx"))
-    .map(x => x.toString());
+    // show some debug
+    if(i === 0) log(`Primo file da manifest: ${f}`);
+    if(i === 0) log(`Provo paths: ${candidates.slice(0,5).join(" | ")}${candidates.length>5?" …":""}`);
 
-  if(!list.length) throw new Error("manifest.json non contiene file .xlsx (lista vuota).");
-
-  // ordina (più vecchio -> più nuovo) se possibile
-  list.sort((a,b)=>{
-    const da = parseSinotticoDateFromName(a)?.getTime() ?? 0;
-    const db = parseSinotticoDateFromName(b)?.getTime() ?? 0;
-    return da - db;
-  });
-
-  log(`Manifest: sinottici trovati = ${list.length}`);
-  return list;
-}
-
-async function analyzeAll(){
-  state.sinottici = [];
-  state.machines.clear();
-
-  const list = await loadManifest();
-  const folder = await detectFolder(list);
-  state.folder = folder;
-
-  const maxN = Math.min(list.length, state.settings.maxFilesToLoad || 9999);
-
-  for(let i=0;i<maxN;i++){
-    const name = list[i];
-    const url = `${folder}/${name}`;
     try{
-      log(`Carico XLSX: ${url}`);
-      const buf = await fetchArrayBuffer(url);
-      const {headers, rows} = parseXlsxRows(buf);
-      if(!headers.length){
-        log(`WARN: ${name} -> nessuna header`);
-        continue;
-      }
-      const col = buildColumnMap(headers);
+      const {buf, path} = await fetchArrayBufferSmart(candidates);
+      const rawRows = workbookToRows(buf);
 
-      // sanity check: CODEID e CNTTOTIN/OUT devono esserci
-      if(col.CODEID==null){
-        log(`ERRORE mapping: in ${name} non trovo colonna CODEID. Header[0..6]=${headers.slice(0,7).join(" | ")}`);
-      }
-      if(col.CNTTOTIN==null || col.CNTTOTOUT==null){
-        log(`ERRORE mapping: in ${name} non trovo CNTTOTIN o CNTTOTOUT.`);
-      }
+      // map rows and filter empties
+      const rows = rawRows.map(mapRow).filter(Boolean);
 
-      const dtFile = parseSinotticoDateFromName(name);
+      const snapTs = ts || (rows.find(r=>r.dataUltVal)?.dataUltVal) || new Date();
+      const byCodeId = new Map();
+      for(const r of rows) byCodeId.set(r.codeId, r);
 
-      let parsedCount = 0;
-      for(const r of rows){
-        const nr = normalizeRow(r, col);
-        if(!nr) continue;
+      APP.snapshots.push({
+        file: f,
+        path,
+        ts: snapTs,
+        rows,
+        byCodeId
+      });
 
-        // usa data ultima lettura se presente, altrimenti data dal nome file
-        const t = nr.DATA_ULTIMA_LETTURA_VAL || dtFile || null;
-        const m = ensureMachine(nr.CODEID);
-
-        // meta: prendiamo dall'ultima riga utile (sovrascrive con info aggiornate)
-        m.meta = {
-          denom: nr.DENOMIN_SEDE,
-          comune: nr.COMUNE,
-          provincia: nr.PROVINCIA,
-          indirizzo: nr.INDIRIZZO,
-          modello: nr.MODELLO,
-          codiceModello: nr.CODICE_MODELLO,
-          codicePDV: nr.CODICE_PDV_AAMS,
-          codiceSede: nr.CODICE_SEDE,
-          macPDA: nr.MAC_PDA,
-          outPct: nr.OUT_PCT,
-          stato: nr.DESCR_STATO,
-          em: nr.E_M,
-          noe: nr.NOE
-        };
-
-        m.timeline.push({
-          t,
-          in: nr.CNTTOTIN,
-          out: nr.CNTTOTOUT,
-          ratioOut: nr.ratioOut,
-          target: nr.target,
-          diffOut: nr.diffOut,
-          ciclo: nr.ciclo,
-          faseCiclo: nr.faseCiclo,
-          incassoGiornaliero: nr.INCASSO_GIORNALIERO,
-          mediaIncasso: nr.MEDIA_INCASSO
-        });
-
-        parsedCount++;
-      }
-
-      // aggiorna score per tutte
-      for(const m of state.machines.values()) computeScore(m);
-
-      state.sinottici.push({name, url, dt: dtFile, rowsParsed: parsedCount});
-      log(`OK ${name}: righe AWP parse = ${parsedCount}`);
-
+      log(`OK ${f} -> ${rows.length} righe (da ${path})`);
     }catch(e){
-      log(`ERRORE su ${url}: ${e.message}`);
+      log(`NO ${f}: ${e.message}`);
     }
   }
 
-  state.lastLoadedAt = new Date();
+  // self-test folder presence
+  if(!APP.snapshots.length){
+    log("Self-test errore: Nessun sinottico caricato. Verifica cartella dati/Dati e i nomi in manifest.json");
+    toast("Nessun sinottico caricato. Controlla path e case della cartella.");
+    APP.loading = false;
+    renderMain();
+    return;
+  }
+
+  rebuildHistory();
+  APP.loading = false;
+
+  toast(`Caricati ${APP.snapshots.length} sinottici. Macchine totali: ${APP.history.size}`);
   renderMain();
 }
 
-/* =========================================================
-   UI: login + main
-   ========================================================= */
+/* -------------------- Login -------------------- */
+function normUser(s){ return String(s||"").trim().toLowerCase(); }
+function normPin(s){ return String(s||"").trim(); }
+
+function validateLogin(user, pin){
+  if(!Array.isArray(APP.users) || !APP.users.length){
+    return {ok:false, error:"users.json non caricato. Controlla che sia nella root del repo."};
+  }
+  const u = normUser(user);
+  const p = normPin(pin);
+
+  const found = APP.users.find(x => normUser(x.user) === u);
+  if(!found) return {ok:false, error:"Utente non trovato."};
+
+  // IMPORTANT: pin as string, keep leading zeros
+  if(normPin(found.pin) !== p){
+    return {ok:false, error:"PIN errato."};
+  }
+
+  // expires (if present)
+  if(found.expires){
+    const exp = new Date(found.expires + "T23:59:59");
+    if(!isNaN(exp) && exp.getTime() < Date.now()){
+      return {ok:false, error:`Accesso scaduto (${found.expires}).`};
+    }
+  }
+
+  return {ok:true, user: found};
+}
+
+function doLogin(user, pin){
+  const res = validateLogin(user, pin);
+  if(!res.ok){
+    toast(res.error);
+    const e = $("#loginErr");
+    if(e) e.textContent = res.error;
+    return;
+  }
+
+  APP.session = {
+    user: res.user.user,
+    level: res.user.level || "Base",
+    expires: res.user.expires || null,
+    loginAt: new Date().toISOString()
+  };
+  sessionStorage.setItem("sinottico_session", JSON.stringify(APP.session));
+  toast(`Benvenuto ${APP.session.user} (${APP.session.level})`);
+  renderMain();
+}
+
+/* -------------------- UI rendering -------------------- */
 function renderLogin(){
-  const app = document.getElementById("app");
+  const app = $("#app");
   app.innerHTML = `
-    <div class="login">
-      <div class="panel">
-        <div class="top">
-          <div class="logo"><b>AWP</b></div>
+    <div class="login-wrap">
+      <div class="card">
+        <div class="hd">
           <div>
-            <h1>Calcolatore AWP analisi pagamento</h1>
-            <div class="muted">Accesso richiesto</div>
-          </div>
-        </div>
-        <div class="body stack">
-          <div class="row">
-            <input id="u" placeholder="User (esempio: user)" style="flex:1;min-width:180px" value="user"/>
-            <input id="p" placeholder="PIN (esempio: 0000)" style="width:170px" value="0000"/>
+            <div class="login-title">Calcolatore AWP • Analisi Pagamento</div>
+            <div class="login-sub">
+              Accesso rapido con PIN. Esempio: <span class="mono">user</span> / <span class="mono">0000</span>
+            </div>
           </div>
           <div class="row">
-            <button id="btnLogin" style="flex:1">Entra</button>
-          </div>
-          <div id="loginMsg" class="hint"></div>
-
-          <div class="divider"></div>
-
-          <div class="row" style="justify-content:space-between">
-            <div class="muted">Tema</div>
-            <select id="themeSel">
-              <option value="dark">Scuro</option>
-              <option value="light">Chiaro</option>
-              <option value="amber">Amber</option>
-              <option value="lime">Lime</option>
+            <select id="themeSel" title="Tema">
+              ${themeOptions(APP.ui.theme)}
             </select>
           </div>
+        </div>
+
+        <div class="bd">
+          <div class="login-grid">
+            <div>
+              <div class="small muted" style="font-weight:900;letter-spacing:.2px;margin-bottom:6px;">Utente</div>
+              <input id="loginUser" placeholder="user" autocomplete="username" />
+            </div>
+            <div>
+              <div class="small muted" style="font-weight:900;letter-spacing:.2px;margin-bottom:6px;">PIN</div>
+              <input id="loginPin" placeholder="0000" inputmode="numeric" autocomplete="current-password" />
+            </div>
+          </div>
+
+          <div style="display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;">
+            <button class="btn primary" id="btnLogin">Entra</button>
+            <button class="btn" id="btnReloadCore">Ricarica files (users/manifest/cicloslot)</button>
+          </div>
+
+          <div class="hr"></div>
+
+          <div class="hintbox">
+            <div style="font-weight:950;color:var(--text);margin-bottom:6px;">Diagnostica rapida</div>
+            <div class="small muted">Se vedi “Utente non trovato”, di solito è perché <span class="mono">users.json</span> non viene letto (path sbagliato su GitHub Pages) oppure perché il PIN perde gli zeri. Qui il PIN è sempre stringa, quindi resta <span class="mono">0000</span>.</div>
+          </div>
+
+          <div class="hr"></div>
+
+          <div id="loginErr" class="small" style="color:var(--bad);font-weight:900;"></div>
+
+          <div class="hr"></div>
+          <div class="small muted" style="font-weight:900;letter-spacing:.2px;margin-bottom:8px;">Log</div>
+          <div class="log" id="logBox"></div>
         </div>
       </div>
     </div>
   `;
 
-  const themeSel = document.getElementById("themeSel");
-  themeSel.value = state.settings.theme || "dark";
-  themeSel.onchange = () => {
-    state.settings.theme = themeSel.value;
-    saveSettings();
-    document.documentElement.setAttribute("data-theme", state.settings.theme);
-  };
+  $("#themeSel").value = APP.ui.theme;
+  $("#themeSel").addEventListener("change", (e)=>{ setTheme(e.target.value); });
 
-  document.getElementById("btnLogin").onclick = async () => {
-    const user = document.getElementById("u").value.trim();
-    const pin = document.getElementById("p").value.trim();
-    const res = validateLogin(user, pin);
-    const msg = document.getElementById("loginMsg");
-    if(!res.ok){
-      msg.textContent = "❌ " + res.msg;
-      return;
-    }
-    state.user = res.user;
-    msg.textContent = "✅ Accesso OK (" + state.user.level + ")";
-    renderMain();
-  };
+  $("#btnLogin").addEventListener("click", ()=>{
+    doLogin($("#loginUser").value, $("#loginPin").value);
+  });
+  $("#loginPin").addEventListener("keydown",(e)=>{
+    if(e.key === "Enter") doLogin($("#loginUser").value, $("#loginPin").value);
+  });
+
+  $("#btnReloadCore").addEventListener("click", async ()=>{
+    $("#loginErr").textContent = "";
+    $("#logBox").textContent = "";
+    await loadCoreFiles();
+    toast("Files ricaricati.");
+  });
+}
+
+function themeOptions(sel){
+  const themes = [
+    ["slate","Slate"],
+    ["light","Chiaro"],
+    ["amber","Amber"],
+    ["lime","Lime"],
+    ["cyan","Cyan"],
+    ["rose","Rose"],
+    ["violet","Violet"]
+  ];
+  return themes.map(([k,lab]) => `<option value="${k}" ${k===sel?"selected":""}>${lab}</option>`).join("");
 }
 
 function renderMain(){
-  const app = document.getElementById("app");
+  const app = $("#app");
 
-  const userInfo = state.user ? `${state.user.user} · ${state.user.level}${state.user.expires?` · scade ${state.user.expires}`:""}` : "—";
-  const folderInfo = state.folder ? `Cartella: ${state.folder}` : "Cartella: —";
-  const last = state.lastLoadedAt ? state.lastLoadedAt.toLocaleString() : "—";
+  if(!APP.session){
+    renderLogin();
+    return;
+  }
 
+  const stats = computeStats();
   app.innerHTML = `
     <div class="wrap">
       <div class="topbar">
         <div class="brand">
-          <div class="logo"><b>LAB</b></div>
-          <div>
-            <h1>SinotticoLab</h1>
-            <div class="sub">${userInfo} · ${folderInfo} · Ultima analisi: ${last}</div>
-          </div>
+          <h1>Sinottico Lab</h1>
+          <div class="sub">Snapshot XLSX • Storici • Scoring • SAGA</div>
         </div>
-        <div class="actions">
-          <select id="themeSel">
-            <option value="dark">Scuro</option>
-            <option value="light">Chiaro</option>
-            <option value="amber">Amber</option>
-            <option value="lime">Lime</option>
+
+        <div class="row">
+          <span class="chip"><span class="dot"></span> <b>${escapeHtml(APP.session.user)}</b> <span class="muted">(${escapeHtml(APP.session.level)})</span></span>
+          <span class="chip"><span class="muted">Sinottici:</span> <b>${APP.snapshots.length}</b></span>
+          <span class="chip"><span class="muted">Macchine:</span> <b>${APP.history.size}</b></span>
+
+          <select id="themeSel" title="Tema">
+            ${themeOptions(APP.ui.theme)}
           </select>
-          <input id="folderOverride" placeholder="Folder override (es. Dati)" style="width:220px"/>
-          <button id="btnAnalyze">Analizza tutti i sinottici</button>
-          <button id="btnLogout">Esci</button>
+
+          <button class="btn" id="btnLogout">Logout</button>
         </div>
       </div>
 
       <div class="grid">
-        <div class="stack">
-
-          <div class="card">
-            <div class="hd">
-              <h2>Caricamento & Log</h2>
-              <span class="chip">XLSX: ${typeof XLSX !== "undefined" ? "OK" : "NO"}</span>
-            </div>
-            <div class="bd stack">
-              <div class="row">
-                <input id="search" placeholder="Cerca: locale, comune, modello, CODEID, PDV..." style="flex:1"/>
-              </div>
-              <div class="row">
-                <select id="filterScore">
-                  <option value="all">Tutte</option>
-                  <option value="high">Prob. pagamento alta</option>
-                  <option value="mid">Prob. pagamento media</option>
-                  <option value="low">Prob. pagamento bassa</option>
-                </select>
-
-                <select id="filterComune" style="flex:1;min-width:170px">
-                  <option value="">Tutti i comuni</option>
-                </select>
-              </div>
-
-              <div class="log" id="log"></div>
-
-              <div class="row">
-                <span class="chip">Macchine: <b id="countMachines">0</b></span>
-                <span class="chip">Sinottici letti: <b id="countFiles">0</b></span>
-              </div>
+        <!-- LEFT -->
+        <div class="card">
+          <div class="hd">
+            <h2>Controlli</h2>
+            <div class="row">
+              <button class="btn primary" id="btnAnalyze" ${APP.loading?"disabled":""}>Analizza tutti i sinottici</button>
             </div>
           </div>
-
-          <div class="card">
-            <div class="hd">
-              <h2>Lista AWP</h2>
-              <span class="muted" style="font-size:12px">Click per dettagli</span>
-            </div>
-            <div class="bd" style="padding:0">
-              <div style="max-height:520px;overflow:auto">
-                <table class="table" id="tblMachines">
-                  <thead>
-                    <tr>
-                      <th>Prob.</th>
-                      <th>Locale</th>
-                      <th>Comune</th>
-                      <th>Modello</th>
-                      <th>IN</th>
-                      <th>OUT%</th>
-                    </tr>
-                  </thead>
-                  <tbody></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-        <div class="stack">
-
-          <div class="card">
-            <div class="hd">
-              <h2>Dettaglio macchina</h2>
-              <span class="muted" id="selTitle">Nessuna selezionata</span>
-            </div>
-            <div class="bd stack">
+          <div class="bd">
+            <div class="kpis">
               <div class="kpi">
-                <div class="box"><div class="t">CODEID</div><div class="v" id="k_codeid">—</div></div>
-                <div class="box"><div class="t">Locale</div><div class="v" id="k_locale">—</div></div>
-                <div class="box"><div class="t">IN totale</div><div class="v" id="k_in">—</div></div>
-                <div class="box"><div class="t">OUT totale</div><div class="v" id="k_out">—</div></div>
+                <div class="lab">Stato</div>
+                <div class="val">${APP.loading ? "Caricamento…" : "Pronto"}</div>
+                <div class="hint">${APP.latest ? `Ultimo snapshot: ${escapeHtml(APP.latest.file)}` : "Nessun snapshot"}</div>
               </div>
-
-              <div class="row">
-                <span class="pill" id="pillScore">—</span>
-                <span class="chip" id="k_model">Modello: —</span>
-                <span class="chip" id="k_ciclo">Ciclo: —</span>
-                <span class="chip" id="k_pdv">PDV: —</span>
-                <span class="chip" id="k_pda">PDA: —</span>
+              <div class="kpi">
+                <div class="lab">Range date</div>
+                <div class="val">${stats.range}</div>
+                <div class="hint">Da nome file / data ultima lettura</div>
               </div>
-
-              <div class="row">
-                <label class="muted" style="font-size:12px">Punti grafico</label>
-                <input type="range" id="rangePts" min="60" max="600" value="${state.settings.downsamplePoints}" style="flex:1"/>
-                <span class="chip"><span id="rangePtsVal">${state.settings.downsamplePoints}</span></span>
+              <div class="kpi">
+                <div class="lab">Cicli</div>
+                <div class="val">${APP.cicloslot ? "OK" : "N/A"}</div>
+                <div class="hint">cicloslot.json</div>
               </div>
-
-              <canvas id="chart" height="120"></canvas>
-
-              <div class="divider"></div>
-
-              <div class="row" style="justify-content:space-between">
-                <h2 style="font-size:13px;margin:0">Storico (ultime righe)</h2>
-                <button id="btnExportCSV">Esporta CSV (solo macchina)</button>
+              <div class="kpi">
+                <div class="lab">Manifest</div>
+                <div class="val">${APP.manifest ? "OK" : "N/A"}</div>
+                <div class="hint">manifest.json</div>
               </div>
-
-              <div style="max-height:260px;overflow:auto">
-                <table class="table" id="tblHistory">
-                  <thead>
-                    <tr>
-                      <th>Data</th>
-                      <th>IN</th>
-                      <th>OUT</th>
-                      <th>OUT%</th>
-                      <th>Diff vs Target</th>
-                      <th>Fase ciclo</th>
-                    </tr>
-                  </thead>
-                  <tbody></tbody>
-                </table>
-              </div>
-
             </div>
+
+            <div class="hr"></div>
+
+            <div class="small muted" style="font-weight:900;letter-spacing:.2px;margin-bottom:8px;">Filtri</div>
+
+            <div style="display:grid;grid-template-columns:1fr;gap:10px;">
+              <input id="qSearch" placeholder="Cerca: CODEID, modello, sede, comune, PDV, PDA…" value="${escapeAttr(APP.ui.search)}"/>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <input id="qComune" placeholder="Comune" value="${escapeAttr(APP.ui.filterComune)}"/>
+                <input id="qProv" placeholder="Provincia" value="${escapeAttr(APP.ui.filterProvincia)}"/>
+              </div>
+              <input id="qSede" placeholder="Denominazione sede" value="${escapeAttr(APP.ui.filterSede)}"/>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <input id="qPDV" placeholder="Codice PDV AAMS" value="${escapeAttr(APP.ui.filterPdv)}"/>
+                <input id="qPDA" placeholder="MAC PDA" value="${escapeAttr(APP.ui.filterPda)}"/>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+                <input id="qModel" placeholder="Modello / Codice Modello" value="${escapeAttr(APP.ui.filterModel)}"/>
+                <select id="qState">
+                  ${stateOptions(APP.ui.filterState)}
+                </select>
+              </div>
+
+              <div class="row" style="justify-content:space-between;">
+                <label class="chip" style="cursor:pointer;">
+                  <input type="checkbox" id="onlyPay" ${APP.ui.onlyInPagamento?"checked":""} style="width:auto;margin:0;">
+                  <span>Solo “in pagamento”</span>
+                </label>
+                <label class="chip" style="cursor:pointer;">
+                  <input type="checkbox" id="onlyWarn" ${APP.ui.onlyWarnings?"checked":""} style="width:auto;margin:0;">
+                  <span>Solo Warning</span>
+                </label>
+              </div>
+
+              <select id="qSort">
+                ${sortOptions(APP.ui.sort)}
+              </select>
+            </div>
+
+            <div class="hr"></div>
+
+            <div class="small muted" style="font-weight:900;letter-spacing:.2px;margin-bottom:8px;">Log</div>
+            <div class="log" id="logBox"></div>
+
           </div>
-
-          <div class="card">
-            <div class="hd">
-              <h2>Chat IA (S.A.G.A.)</h2>
-              <span class="muted" style="font-size:12px">Guida e interrogazione dati</span>
-            </div>
-            <div class="bd chatbox">
-              <div class="chatlog" id="chatlog"></div>
-              <div class="row">
-                <input id="chatin" placeholder="Es: quale macchina è in pagamento? / quando paga questa macchina?" style="flex:1"/>
-                <button id="chatsend">Invia</button>
-              </div>
-              <div class="muted" style="font-size:12px">
-                S.A.G.A. risponde solo su dati del programma (sinottici, macchine, cicli). Se chiedi altro ti reindirizza. 🧩
-              </div>
-            </div>
-          </div>
-
         </div>
 
+        <!-- RIGHT -->
+        <div class="card">
+          <div class="hd">
+            <h2>Macchine</h2>
+            <div class="row">
+              <span class="chip"><span class="muted">Risultati:</span> <b id="countRes">0</b></span>
+            </div>
+          </div>
+          <div class="bd">
+            <div class="split">
+              <div>
+                <div class="list" id="machineList"></div>
+              </div>
+              <div>
+                ${renderDetailsPane()}
+              </div>
+            </div>
+
+            <div class="hr"></div>
+
+            <div class="split">
+              <div>
+                <div class="small muted" style="font-weight:900;letter-spacing:.2px;margin-bottom:8px;">Grafico storico (IN/OUT)</div>
+                <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px;">
+                  <span class="chip"><span class="muted">Punti max:</span>
+                    <input id="pointsLimit" type="number" min="20" max="2000" value="${APP.ui.pointsLimit}" style="width:110px;padding:8px 10px;border-radius:999px;">
+                  </span>
+                  <label class="chip" style="cursor:pointer;">
+                    <input type="checkbox" id="showAllPoints" ${APP.ui.showAllPoints?"checked":""} style="width:auto;margin:0;">
+                    <span>Tutto lo storico (può essere pesante)</span>
+                  </label>
+                </div>
+                <canvas id="chart" height="180"></canvas>
+              </div>
+
+              <div>
+                <div class="small muted" style="font-weight:900;letter-spacing:.2px;margin-bottom:8px;">SAGA (chat locale)</div>
+                <div class="chat">
+                  <div class="chat-log" id="chatLog"></div>
+                  <div class="chat-in">
+                    <input id="chatInput" placeholder="Es: quando paga questa macchina? | quali sono in pagamento? | cerca bar fortini" />
+                    <button class="btn primary" id="chatSend">Invia</button>
+                  </div>
+                </div>
+                <div style="margin-top:10px" class="hintbox">
+                  <b>SAGA</b> capisce richieste legate ai dati caricati. Se chiedi qualcosa fuori contesto, ti propone comandi utili.
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
       </div>
     </div>
   `;
 
-  // set theme UI
-  const themeSel = document.getElementById("themeSel");
-  themeSel.value = state.settings.theme || "dark";
-  themeSel.onchange = () => {
-    state.settings.theme = themeSel.value;
-    saveSettings();
-    document.documentElement.setAttribute("data-theme", state.settings.theme);
-  };
+  $("#themeSel").value = APP.ui.theme;
+  $("#themeSel").addEventListener("change", (e)=> setTheme(e.target.value));
 
-  // folder override
-  const folderOverride = document.getElementById("folderOverride");
-  folderOverride.value = state.settings.folderOverride || "";
-  folderOverride.onchange = () => {
-    state.settings.folderOverride = folderOverride.value.trim();
-    saveSettings();
-  };
-
-  document.getElementById("btnLogout").onclick = () => {
-    state.user = null;
+  $("#btnLogout").addEventListener("click", ()=>{
+    sessionStorage.removeItem("sinottico_session");
+    APP.session = null;
+    APP.snapshots = [];
+    APP.history = new Map();
+    APP.latest = null;
+    APP.selectedCodeId = null;
     renderLogin();
-  };
-
-  document.getElementById("btnAnalyze").onclick = async () => {
-    document.getElementById("log").textContent = "";
-    log("Avvio analisi completa…");
-    try{
-      await loadCicloSlot();
-      await analyzeAll();
-      log("Analisi completata ✅");
-    }catch(e){
-      log("ERRORE: " + e.message);
-    }finally{
-      refreshList();
-    }
-  };
-
-  // range pts
-  const rangePts = document.getElementById("rangePts");
-  rangePts.oninput = () => {
-    document.getElementById("rangePtsVal").textContent = rangePts.value;
-  };
-  rangePts.onchange = () => {
-    state.settings.downsamplePoints = parseInt(rangePts.value,10);
-    saveSettings();
-    if(state.selectedCodeid) showMachine(state.selectedCodeid);
-  };
-
-  // filters
-  document.getElementById("search").oninput = refreshList;
-  document.getElementById("filterScore").onchange = refreshList;
-  document.getElementById("filterComune").onchange = refreshList;
-
-  // chat
-  setupChat();
-
-  refreshList();
-}
-
-function refreshComuneOptions(){
-  const sel = document.getElementById("filterComune");
-  if(!sel) return;
-  const comuni = new Set();
-  for(const m of state.machines.values()){
-    if(m.meta?.comune) comuni.add(m.meta.comune);
-  }
-  const sorted = [...comuni].sort((a,b)=>a.localeCompare(b));
-  const cur = sel.value;
-  sel.innerHTML = `<option value="">Tutti i comuni</option>` + sorted.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
-  sel.value = cur;
-}
-
-function refreshList(){
-  const tbody = document.querySelector("#tblMachines tbody");
-  if(!tbody) return;
-
-  document.getElementById("countMachines").textContent = state.machines.size;
-  document.getElementById("countFiles").textContent = state.sinottici.length;
-
-  refreshComuneOptions();
-
-  const q = (document.getElementById("search")?.value || "").trim().toLowerCase();
-  const fScore = document.getElementById("filterScore")?.value || "all";
-  const fComune = document.getElementById("filterComune")?.value || "";
-
-  const items = [...state.machines.values()];
-
-  // sort by score desc
-  items.sort((a,b)=> (b.score||0) - (a.score||0));
-
-  const filtered = items.filter(m=>{
-    if(fComune && (m.meta?.comune||"") !== fComune) return false;
-    if(fScore==="high" && (m.score||0) < 0.72) return false;
-    if(fScore==="mid" && !((m.score||0) >= 0.50 && (m.score||0) < 0.72)) return false;
-    if(fScore==="low" && (m.score||0) >= 0.50) return false;
-
-    if(!q) return true;
-    const hay = [
-      m.codeid,
-      m.meta?.denom,
-      m.meta?.comune,
-      m.meta?.provincia,
-      m.meta?.modello,
-      m.meta?.codicePDV,
-      m.meta?.codiceSede,
-      m.meta?.macPDA
-    ].filter(Boolean).join(" ").toLowerCase();
-    return hay.includes(q);
   });
 
-  tbody.innerHTML = filtered.slice(0, 5000).map(m=>{
-    const last = latestPoint(m);
-    const inTot = last?.in ?? null;
-    const ratio = last?.ratioOut ?? null;
-    const scoreClass = m.scoreClass || "warn";
-    const scoreTxt = m.scoreLabel || "—";
+  $("#btnAnalyze").addEventListener("click", loadAllSinotticiFromManifest);
+
+  // wire filters
+  $("#qSearch").addEventListener("input", e=>{ APP.ui.search=e.target.value; renderMachineList(); });
+  $("#qComune").addEventListener("input", e=>{ APP.ui.filterComune=e.target.value; renderMachineList(); });
+  $("#qProv").addEventListener("input", e=>{ APP.ui.filterProvincia=e.target.value; renderMachineList(); });
+  $("#qSede").addEventListener("input", e=>{ APP.ui.filterSede=e.target.value; renderMachineList(); });
+  $("#qPDV").addEventListener("input", e=>{ APP.ui.filterPdv=e.target.value; renderMachineList(); });
+  $("#qPDA").addEventListener("input", e=>{ APP.ui.filterPda=e.target.value; renderMachineList(); });
+  $("#qModel").addEventListener("input", e=>{ APP.ui.filterModel=e.target.value; renderMachineList(); });
+  $("#qState").addEventListener("change", e=>{ APP.ui.filterState=e.target.value; renderMachineList(); });
+  $("#onlyPay").addEventListener("change", e=>{ APP.ui.onlyInPagamento=e.target.checked; renderMachineList(); });
+  $("#onlyWarn").addEventListener("change", e=>{ APP.ui.onlyWarnings=e.target.checked; renderMachineList(); });
+  $("#qSort").addEventListener("change", e=>{ APP.ui.sort=e.target.value; renderMachineList(); });
+
+  $("#pointsLimit").addEventListener("change", e=>{
+    let v = parseInt(e.target.value,10);
+    if(!isFinite(v)) v = 120;
+    v = Math.max(20, Math.min(2000, v));
+    APP.ui.pointsLimit = v;
+    renderChart();
+  });
+  $("#showAllPoints").addEventListener("change", e=>{
+    APP.ui.showAllPoints = e.target.checked;
+    renderChart();
+  });
+
+  // chat
+  $("#chatSend").addEventListener("click", ()=> sendChat());
+  $("#chatInput").addEventListener("keydown", (e)=>{ if(e.key==="Enter") sendChat(); });
+
+  // initial messages
+  initChat();
+  renderMachineList();
+  renderChart();
+
+  // keep existing log if present (when re-rendering)
+}
+
+function stateOptions(sel){
+  const opts = [
+    ["","Tutti gli stati"],
+    ["attiva","Attiva"],
+    ["manut","Manutenzione"],
+    ["blocc","Bloccata"],
+    ["ferie","Ferie"],
+    ["magazz","Magazzino"]
+  ];
+  return opts.map(([k,lab])=>{
+    const s = (k===sel) ? "selected" : "";
+    return `<option value="${k}" ${s}>${lab}</option>`;
+  }).join("");
+}
+
+function sortOptions(sel){
+  const opts = [
+    ["score_desc","Score (pagamento) ↓"],
+    ["incasso_desc","Incasso giornaliero ↓"],
+    ["in_desc","CNTTOTIN ↓"],
+    ["out_desc","CNTTOTOUT ↓"],
+    ["sede_asc","Sede A→Z"],
+    ["model_asc","Modello A→Z"]
+  ];
+  return opts.map(([k,lab])=> `<option value="${k}" ${k===sel?"selected":""}>${lab}</option>`).join("");
+}
+
+function computeStats(){
+  if(!APP.snapshots.length) return {range:"—"};
+  const first = APP.snapshots[0].ts;
+  const last = APP.snapshots[APP.snapshots.length-1].ts;
+  return { range: `${first ? first.toLocaleDateString("it-IT") : "—"} → ${last ? last.toLocaleDateString("it-IT") : "—"}` };
+}
+
+function renderDetailsPane(){
+  if(!APP.selectedCodeId){
     return `
-      <tr data-codeid="${escapeAttr(m.codeid)}" style="cursor:pointer">
-        <td><span class="pill ${scoreClass}">${scoreTxt}</span></td>
-        <td>${escapeHtml(m.meta?.denom || "—")}</td>
-        <td>${escapeHtml(m.meta?.comune || "—")}</td>
-        <td>${escapeHtml(m.meta?.modello || "—")}</td>
-        <td>${money(inTot)}</td>
-        <td>${ratio!=null ? pct(ratio) : "—"}</td>
-      </tr>
+      <div class="hintbox">
+        <div style="font-weight:950;color:var(--text);margin-bottom:6px;">Nessuna macchina selezionata</div>
+        <div class="small muted">Seleziona una AWP dalla lista per vedere dettagli, storico e previsione.</div>
+      </div>
+    `;
+  }
+
+  const hist = APP.history.get(APP.selectedCodeId) || [];
+  const last = hist[hist.length-1] || null;
+  const sc = computeMachineScore(APP.selectedCodeId);
+
+  const badge = sc.kind==="ok" ? "b-ok" : (sc.kind==="bad" ? "b-bad" : "b-warn");
+
+  const ciclo = last ? getCicloForModel(last.codiceModello) : null;
+
+  return `
+    <div>
+      <div class="row" style="justify-content:space-between;align-items:flex-start;">
+        <div>
+          <div style="font-weight:950;font-size:14px;">CODEID <span class="mono">${escapeHtml(APP.selectedCodeId)}</span></div>
+          <div class="small muted" style="margin-top:4px;">
+            ${escapeHtml(last?.modello || "—")} • <span class="mono">${escapeHtml(last?.codiceModello || "—")}</span>
+          </div>
+          <div class="small muted" style="margin-top:4px;">
+            <b>${escapeHtml(last?.denomSede || "—")}</b> • ${escapeHtml(last?.comune || "—")} (${escapeHtml(last?.provincia || "—")})
+          </div>
+        </div>
+        <span class="badge ${badge}">${escapeHtml(sc.label)} • ${(sc.score*100).toFixed(0)}%</span>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="kpis" style="grid-template-columns:repeat(2,1fr);">
+        <div class="kpi">
+          <div class="lab">CNTTOTIN</div>
+          <div class="val">${formatEuro(last?.inEur)}</div>
+          <div class="hint">Ultimo valore</div>
+        </div>
+        <div class="kpi">
+          <div class="lab">CNTTOTOUT</div>
+          <div class="val">${formatEuro(last?.outEur)}</div>
+          <div class="hint">Ultimo valore</div>
+        </div>
+        <div class="kpi">
+          <div class="lab">% OUT</div>
+          <div class="val">${formatPct(last?.pctOut)}</div>
+          <div class="hint">Target legale / colonna</div>
+        </div>
+        <div class="kpi">
+          <div class="lab">Ultima lettura</div>
+          <div class="val">${fmtDate(last?.dataUltVal)}</div>
+          <div class="hint">DATA ULTIMA LETTURA VAL.</div>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="small muted" style="font-weight:900;letter-spacing:.2px;margin-bottom:6px;">Dettagli sede / rete</div>
+      <div class="small">
+        <div><span class="muted">Indirizzo:</span> <b>${escapeHtml(last?.indirizzo || "—")}</b></div>
+        <div><span class="muted">PDV AAMS:</span> <span class="mono">${escapeHtml(last?.codicePdvAams || "—")}</span></div>
+        <div><span class="muted">PDA (MAC):</span> <span class="mono">${escapeHtml(last?.macPda || "—")}</span></div>
+        <div><span class="muted">Codice sede:</span> <span class="mono">${escapeHtml(last?.codiceSede || "—")}</span></div>
+        <div><span class="muted">Stato:</span> <b>${escapeHtml(last?.descrStato || "—")}</b> <span class="muted">• E/M:</span> <b>${escapeHtml(last?.em || "—")}</b></div>
+        <div><span class="muted">Warning:</span> <b style="color:${(last?.warning||"").trim()? "var(--warn)":"var(--muted)"}">${escapeHtml((last?.warning||"").trim() || "—")}</b></div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="small muted" style="font-weight:900;letter-spacing:.2px;margin-bottom:6px;">Ciclo (da cicloslot.json)</div>
+      <div class="small">
+        ${ciclo ? `<pre class="log" style="height:auto;max-height:140px;">${escapeHtml(JSON.stringify(ciclo,null,2))}</pre>`
+               : `<div class="muted">Nessun ciclo trovato per questo codice modello (o cicloslot.json non caricato).</div>`}
+      </div>
+
+      <div class="hr"></div>
+
+      <div class="small muted" style="font-weight:900;letter-spacing:.2px;margin-bottom:6px;">Ultimo intervallo</div>
+      <div class="small">
+        <div><span class="muted">ΔIN:</span> <b>${formatEuro(sc.dIn ?? 0)}</b> • <span class="muted">ΔOUT:</span> <b>${formatEuro(sc.dOut ?? 0)}</b></div>
+        <div><span class="muted">Pay ratio intervallo:</span> <b>${sc.intervalPay==null ? "—" : (sc.intervalPay*100).toFixed(2)+"%"}</b> • <span class="muted">Target:</span> <b>${(sc.targetPct ?? 65)}%</b></div>
+        <div><span class="muted">Progress ciclo (stima):</span> <b>${sc.cycleProgress==null ? "—" : (sc.cycleProgress*100).toFixed(0)+"%"}</b></div>
+      </div>
+    </div>
+  `;
+}
+
+function renderMachineList(){
+  const list = $("#machineList");
+  if(!list) return;
+
+  const items = getFilteredMachines();
+
+  $("#countRes").textContent = String(items.length);
+
+  list.innerHTML = items.slice(0, 1200).map(x=>{
+    const sel = (x.codeId === APP.selectedCodeId) ? "sel" : "";
+    const badge = x.kind==="ok" ? "b-ok" : (x.kind==="bad" ? "b-bad" : "b-warn");
+    const warn = (x.warning||"").trim();
+
+    return `
+      <div class="item ${sel}" data-codeid="${escapeAttr(x.codeId)}">
+        <div class="it-top">
+          <div>
+            <div class="it-title">${escapeHtml(x.modello || "—")} <span class="muted">•</span> <span class="mono">${escapeHtml(x.codeId)}</span></div>
+            <div class="it-sub"><b>${escapeHtml(x.denomSede || "—")}</b> • ${escapeHtml(x.comune || "—")} (${escapeHtml(x.provincia || "—")})</div>
+            <div class="it-sub">
+              <span class="muted">PDV:</span> <span class="mono">${escapeHtml(x.codicePdvAams || "—")}</span>
+              <span class="muted"> • PDA:</span> <span class="mono">${escapeHtml(x.macPda || "—")}</span>
+            </div>
+            ${warn ? `<div class="it-sub" style="color:var(--warn);font-weight:900;">⚠ ${escapeHtml(warn)}</div>` : ``}
+          </div>
+          <div style="text-align:right;">
+            <span class="badge ${badge}">${escapeHtml(x.label)} ${(x.score*100).toFixed(0)}%</span>
+            <div class="it-sub" style="margin-top:8px;">
+              <span class="muted">IN:</span> <b>${formatEuro(x.inEur)}</b><br/>
+              <span class="muted">OUT:</span> <b>${formatEuro(x.outEur)}</b>
+            </div>
+          </div>
+        </div>
+      </div>
     `;
   }).join("");
 
-  tbody.querySelectorAll("tr").forEach(tr=>{
-    tr.onclick = ()=> {
-      const codeid = tr.getAttribute("data-codeid");
-      showMachine(codeid);
+  $all(".item", list).forEach(el=>{
+    el.addEventListener("click", ()=>{
+      APP.selectedCodeId = el.getAttribute("data-codeid");
+      renderMain(); // re-render details & chart
+      // keep list selection visual: re-renderMachineList after main render
+    });
+  });
+
+  // if selection exists, keep it
+  // after full renderMain, we call renderMachineList again anyway
+}
+
+function getFilteredMachines(){
+  // build list from latest snapshot (to have current denomSede, etc)
+  if(!APP.latest){
+    // fallback: show keys from history (no latest)
+    return [...APP.history.keys()].map(codeId=>{
+      const hist = APP.history.get(codeId)||[];
+      const last = hist[hist.length-1] || {};
+      const sc = computeMachineScore(codeId);
+      return {codeId, ...last, ...sc, kind: sc.kind};
+    });
+  }
+
+  const latestRows = APP.latest.rows;
+
+  const q = APP.ui.search.trim().toLowerCase();
+  const qComune = APP.ui.filterComune.trim().toLowerCase();
+  const qProv = APP.ui.filterProvincia.trim().toLowerCase();
+  const qSede = APP.ui.filterSede.trim().toLowerCase();
+  const qPdv = APP.ui.filterPdv.trim().toLowerCase();
+  const qPda = APP.ui.filterPda.trim().toLowerCase();
+  const qModel = APP.ui.filterModel.trim().toLowerCase();
+  const qState = APP.ui.filterState;
+
+  let out = latestRows.map(r=>{
+    const hist = APP.history.get(r.codeId)||[];
+    const last = hist[hist.length-1] || null;
+    const sc = computeMachineScore(r.codeId);
+    return {
+      codeId: r.codeId,
+      modello: r.modello,
+      codiceModello: r.codiceModello,
+      denomSede: r.denomSede,
+      comune: r.comune,
+      provincia: r.provincia,
+      indirizzo: r.indirizzo,
+      codicePdvAams: r.codicePdvAams,
+      macPda: r.macPda,
+      descrStato: r.descrStato,
+      em: r.em,
+      warning: r.warning,
+      inEur: r.cntTotIn,
+      outEur: r.cntTotOut,
+      pctOut: r.pctOut,
+
+      // score
+      score: sc.score,
+      label: sc.label,
+      kind: sc.kind
     };
   });
 
-  // se nessuna selezionata, seleziona la prima
-  if(!state.selectedCodeid && filtered.length){
-    showMachine(filtered[0].codeid);
-  }
-}
+  // filters
+  out = out.filter(x=>{
+    const blob = `${x.codeId} ${x.modello||""} ${x.codiceModello||""} ${x.denomSede||""} ${x.comune||""} ${x.provincia||""} ${x.codicePdvAams||""} ${x.macPda||""}`.toLowerCase();
 
-function latestPoint(machine){
-  const tl = (machine.timeline||[]).filter(p=>p.t && p.in!=null && p.out!=null);
-  if(!tl.length) return null;
-  tl.sort((a,b)=>a.t-b.t);
-  return tl[tl.length-1];
-}
+    if(q && !blob.includes(q)) return false;
+    if(qComune && !String(x.comune||"").toLowerCase().includes(qComune)) return false;
+    if(qProv && !String(x.provincia||"").toLowerCase().includes(qProv)) return false;
+    if(qSede && !String(x.denomSede||"").toLowerCase().includes(qSede)) return false;
+    if(qPdv && !String(x.codicePdvAams||"").toLowerCase().includes(qPdv)) return false;
+    if(qPda && !String(x.macPda||"").toLowerCase().includes(qPda)) return false;
+    if(qModel){
+      const mm = `${x.modello||""} ${x.codiceModello||""}`.toLowerCase();
+      if(!mm.includes(qModel)) return false;
+    }
 
-let chartInstance = null;
-function downsampleSeries(points, maxPts){
-  if(points.length <= maxPts) return points;
-  const step = Math.ceil(points.length / maxPts);
-  const out = [];
-  for(let i=0;i<points.length;i+=step) out.push(points[i]);
+    if(qState){
+      const st = (x.descrStato||"").toLowerCase();
+      const em = (x.em||"").toLowerCase();
+      if(qState==="attiva" && !st.includes("attiv")) return false;
+      if(qState==="manut" && !st.includes("manut")) return false;
+      if(qState==="blocc" && !st.includes("blocc")) return false;
+      if(qState==="ferie" && !(st.includes("ferie") || (x.msFerie||"").toLowerCase().includes("ferie"))) return false;
+      if(qState==="magazz" && !(em.includes("m") || st.includes("magazz"))) return false;
+    }
+
+    if(APP.ui.onlyWarnings){
+      if(!String(x.warning||"").trim()) return false;
+    }
+
+    if(APP.ui.onlyInPagamento){
+      // define "in pagamento": high score
+      if(x.score < 0.72) return false;
+    }
+
+    return true;
+  });
+
+  // sort
+  const s = APP.ui.sort;
+  out.sort((a,b)=>{
+    if(s==="score_desc") return (b.score - a.score);
+    if(s==="incasso_desc"){
+      // incasso not in latest row structure here; fallback on score
+      return (b.score - a.score);
+    }
+    if(s==="in_desc") return ((b.inEur||0) - (a.inEur||0));
+    if(s==="out_desc") return ((b.outEur||0) - (a.outEur||0));
+    if(s==="sede_asc") return String(a.denomSede||"").localeCompare(String(b.denomSede||""));
+    if(s==="model_asc") return String(a.modello||"").localeCompare(String(b.modello||""));
+    return (b.score - a.score);
+  });
+
   return out;
 }
 
-function showMachine(codeid){
-  state.selectedCodeid = codeid;
-  const m = state.machines.get(codeid);
-  if(!m) return;
+/* -------------------- Chart -------------------- */
+let CHART = null;
 
-  document.getElementById("selTitle").textContent = codeid;
-  document.getElementById("k_codeid").textContent = codeid;
-  document.getElementById("k_locale").textContent = m.meta?.denom || "—";
+function downsampleSeries(points, limit){
+  if(points.length <= limit) return points;
+  const step = points.length / limit;
+  const out = [];
+  for(let i=0;i<limit;i++){
+    out.push(points[Math.floor(i*step)]);
+  }
+  // ensure last
+  out[out.length-1] = points[points.length-1];
+  return out;
+}
 
-  const last = latestPoint(m);
-  document.getElementById("k_in").textContent = money(last?.in);
-  document.getElementById("k_out").textContent = money(last?.out);
+function renderChart(){
+  const canvas = $("#chart");
+  if(!canvas) return;
 
-  const pill = document.getElementById("pillScore");
-  pill.className = `pill ${m.scoreClass||"warn"}`;
-  pill.textContent = `Prob. pagamento: ${m.scoreLabel||"—"} (${Math.round((m.score||0)*100)}%)`;
+  const codeId = APP.selectedCodeId;
+  if(!codeId){
+    if(CHART){ CHART.destroy(); CHART=null; }
+    return;
+  }
 
-  document.getElementById("k_model").textContent = `Modello: ${m.meta?.modello || "—"} (${m.meta?.codiceModello || "—"})`;
-  document.getElementById("k_ciclo").textContent = `Ciclo: ${last?.ciclo ? money(last.ciclo) : "—"}`;
-  document.getElementById("k_pdv").textContent = `PDV: ${m.meta?.codicePDV || "—"} · Sede: ${m.meta?.codiceSede || "—"}`;
-  document.getElementById("k_pda").textContent = `PDA: ${m.meta?.macPDA || "—"} · NOE: ${m.meta?.noe || "—"}`;
+  const hist = APP.history.get(codeId) || [];
+  if(hist.length < 1){
+    if(CHART){ CHART.destroy(); CHART=null; }
+    return;
+  }
 
-  // build chart series
-  let tl = (m.timeline||[]).filter(p=>p.t && p.in!=null && p.out!=null)
-    .sort((a,b)=>a.t-b.t);
+  let pts = hist.map(h=>({
+    x: h.ts ? h.ts.getTime() : Date.now(),
+    inEur: h.inEur ?? null,
+    outEur: h.outEur ?? null
+  }));
 
-  const maxPts = state.settings.downsamplePoints || 180;
-  tl = downsampleSeries(tl, maxPts);
+  // Remove nulls
+  pts = pts.filter(p=>p.inEur!=null && p.outEur!=null);
 
-  const labels = tl.map(p => p.t.toLocaleString());
-  const serieIn = tl.map(p => p.in);
-  const serieOut = tl.map(p => p.out);
-  const serieRatio = tl.map(p => p.ratioOut!=null ? (p.ratioOut*100) : null);
+  const limit = APP.ui.showAllPoints ? pts.length : APP.ui.pointsLimit;
+  const dpts = APP.ui.showAllPoints ? pts : downsampleSeries(pts, limit);
 
-  const ctx = document.getElementById("chart").getContext("2d");
-  if(chartInstance) chartInstance.destroy();
+  const labels = dpts.map(p=> new Date(p.x).toLocaleString("it-IT",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}));
+  const inSeries = dpts.map(p=> p.inEur);
+  const outSeries = dpts.map(p=> p.outEur);
 
-  chartInstance = new Chart(ctx, {
-    type: "line",
-    data: {
-      labels,
-      datasets: [
-        {label:"CNTTOTIN (€)", data: serieIn, yAxisID:"y", tension:.25, pointRadius:0, borderWidth:2},
-        {label:"CNTTOTOUT (€)", data: serieOut, yAxisID:"y", tension:.25, pointRadius:0, borderWidth:2},
-        {label:"OUT% (calcolata)", data: serieRatio, yAxisID:"y2", tension:.25, pointRadius:0, borderWidth:2},
-      ]
-    },
+  const data = {
+    labels,
+    datasets: [
+      { label: "CNTTOTIN (€)", data: inSeries, borderWidth: 2, tension: 0.25 },
+      { label: "CNTTOTOUT (€)", data: outSeries, borderWidth: 2, tension: 0.25 }
+    ]
+  };
+
+  if(CHART) CHART.destroy();
+
+  CHART = new Chart(canvas.getContext("2d"), {
+    type:"line",
+    data,
     options:{
       responsive:true,
       maintainAspectRatio:false,
       plugins:{
-        legend:{labels:{color:getComputedStyle(document.documentElement).getPropertyValue("--muted")}},
-        tooltip:{mode:"index", intersect:false}
+        legend:{ labels:{ color: getComputedStyle(document.documentElement).getPropertyValue("--text") } },
+        tooltip:{ mode:"index", intersect:false }
       },
-      interaction:{mode:"index", intersect:false},
       scales:{
-        x:{ticks:{color:getComputedStyle(document.documentElement).getPropertyValue("--muted"), maxRotation:0, autoSkip:true}},
-        y:{ticks:{color:getComputedStyle(document.documentElement).getPropertyValue("--muted")}, grid:{color:getComputedStyle(document.documentElement).getPropertyValue("--line")}},
-        y2:{position:"right", min:0, max:100, ticks:{color:getComputedStyle(document.documentElement).getPropertyValue("--muted")}, grid:{display:false}}
+        x:{ ticks:{ color: getComputedStyle(document.documentElement).getPropertyValue("--muted") }, grid:{ color: getComputedStyle(document.documentElement).getPropertyValue("--line") } },
+        y:{ ticks:{ color: getComputedStyle(document.documentElement).getPropertyValue("--muted") }, grid:{ color: getComputedStyle(document.documentElement).getPropertyValue("--line") } }
       }
     }
   });
-
-  // history table (ultime 80 righe)
-  const tbody = document.querySelector("#tblHistory tbody");
-  const full = (m.timeline||[]).filter(p=>p.t && p.in!=null && p.out!=null).sort((a,b)=>b.t-a.t);
-  tbody.innerHTML = full.slice(0, 80).map(p=>{
-    const diff = (p.diffOut!=null) ? money2(p.diffOut) : "—";
-    const fase = (p.faseCiclo!=null) ? (p.faseCiclo*100).toFixed(1)+"%" : "—";
-    const ratio = (p.ratioOut!=null) ? (p.ratioOut*100).toFixed(2)+"%" : "—";
-    return `
-      <tr>
-        <td>${p.t.toLocaleString()}</td>
-        <td>${money(p.in)}</td>
-        <td>${money(p.out)}</td>
-        <td>${ratio}</td>
-        <td>${diff}</td>
-        <td>${fase}</td>
-      </tr>
-    `;
-  }).join("");
-
-  // export CSV
-  document.getElementById("btnExportCSV").onclick = ()=>{
-    exportMachineCSV(m);
-  };
 }
 
-function exportMachineCSV(m){
-  const rows = (m.timeline||[]).filter(p=>p.t && p.in!=null && p.out!=null).sort((a,b)=>a.t-b.t);
-  const head = ["date","in_eur","out_eur","out_pct_calc","target_pct","diff_out_eur","ciclo","fase_ciclo"];
-  const lines = [head.join(",")];
-  for(const p of rows){
-    const outPctCalc = p.ratioOut!=null ? (p.ratioOut*100).toFixed(4) : "";
-    const tgt = p.target!=null ? (p.target*100).toFixed(4) : "";
-    const diff = p.diffOut!=null ? p.diffOut.toFixed(2) : "";
-    const ciclo = p.ciclo!=null ? p.ciclo : "";
-    const fase = p.faseCiclo!=null ? p.faseCiclo.toFixed(6) : "";
-    lines.push([
-      `"${p.t.toISOString()}"`,
-      p.in?.toFixed(2) ?? "",
-      p.out?.toFixed(2) ?? "",
-      outPctCalc,
-      tgt,
-      diff,
-      ciclo,
-      fase
-    ].join(","));
-  }
-  const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `awp_${m.codeid}.csv`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
-/* =========================================================
-   Chat IA locale: S.A.G.A.
-   ========================================================= */
-function setupChat(){
-  const logEl = document.getElementById("chatlog");
-  const input = document.getElementById("chatin");
-  const send = document.getElementById("chatsend");
-
+/* -------------------- Chat (SAGA) -------------------- */
+function initChat(){
+  const logEl = $("#chatLog");
+  if(!logEl) return;
   logEl.innerHTML = "";
-  chatSay("S.A.G.A.", "Ciao! Posso rispondere su sinottici, macchine e cicli.\nEsempi:\n- “quale macchina è in pagamento?”\n- “quando paga questa macchina?”\n- “cerca CODEID 123…”\n- “top 10 pagamenti probabili”");
-
-  const go = ()=>{
-    const t = input.value.trim();
-    if(!t) return;
-    chatSay("Tu", t);
-    input.value="";
-    const ans = sagaRespond(t);
-    chatSay("S.A.G.A.", ans);
-  };
-  send.onclick = go;
-  input.onkeydown = (e)=>{ if(e.key==="Enter") go(); };
-
-  function chatSay(who, txt){
-    const div = document.createElement("div");
-    div.className="msg";
-    div.innerHTML = `<div class="who">${escapeHtml(who)}</div><div class="txt">${escapeHtml(txt)}</div>`;
-    logEl.appendChild(div);
-    logEl.scrollTop = logEl.scrollHeight;
-  }
+  addBot(`Ciao, sono SAGA.\nPosso usare i sinottici caricati per rispondere a domande tipo:\n• "quali macchine sono in pagamento?"\n• "quando paga questa macchina?"\n• "cerca modello xxx" / "cerca comune yyy"\n\nSuggerimento: seleziona una macchina e poi chiedimi "quando paga questa macchina?"`);
 }
 
-function sagaRespond(text){
-  const t = text.toLowerCase();
+function addMe(text){
+  const logEl = $("#chatLog");
+  if(!logEl) return;
+  const div = document.createElement("div");
+  div.className = "msg me";
+  div.textContent = text;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+function addBot(text){
+  const logEl = $("#chatLog");
+  if(!logEl) return;
+  const div = document.createElement("div");
+  div.className = "msg bot";
+  div.textContent = text;
+  logEl.appendChild(div);
+  logEl.scrollTop = logEl.scrollHeight;
+}
 
-  if(state.machines.size===0){
-    return "Prima devo analizzare i sinottici. Premi “Analizza tutti i sinottici”.";
+function sendChat(){
+  const inp = $("#chatInput");
+  if(!inp) return;
+  const text = inp.value.trim();
+  if(!text) return;
+  inp.value = "";
+  addMe(text);
+  const reply = sagaReply(text);
+  addBot(reply);
+}
+
+function sagaReply(text){
+  const t = text.trim().toLowerCase();
+
+  if(!APP.latest || APP.history.size === 0){
+    return `Non ho dati da analizzare.\nPremi "Analizza tutti i sinottici" e poi riprova.`;
   }
 
-  // helper: top list
-  const topMachines = (n=10)=> {
-    const arr = [...state.machines.values()].sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,n);
-    return arr.map((m,i)=>{
-      const last = latestPoint(m);
-      return `${i+1}) ${m.meta?.denom||"—"} · ${m.meta?.comune||"—"} · ${m.meta?.modello||"—"} · CODEID ${m.codeid} · Prob ${Math.round((m.score||0)*100)}% · IN ${money(last?.in)} · OUT% ${last?.ratioOut!=null?pct(last.ratioOut):"—"}`;
+  // intents
+  if(t.includes("quali") && (t.includes("pagament") || t.includes("paga"))){
+    const items = getFilteredMachines().filter(x=>x.score >= 0.72).slice(0, 12);
+    if(!items.length) return `Non vedo macchine con score alto in questo momento (>=72%).\nProva a togliere filtri oppure aumenta lo storico (più sinottici).`;
+    return "Top candidate \"in pagamento\" (stima):\n" + items.map((x,i)=>
+      `${i+1}) ${x.modello||"—"} • CODEID ${x.codeId} • ${x.denomSede||"—"} • score ${(x.score*100).toFixed(0)}%`
+    ).join("\n");
+  }
+
+  if((t.includes("quando") || t.includes("tra quanto")) && t.includes("paga")){
+    const codeId = APP.selectedCodeId;
+    if(!codeId) return `Seleziona una macchina dalla lista e poi chiedimi: "quando paga questa macchina?"`;
+
+    const sc = computeMachineScore(codeId);
+    const hist = APP.history.get(codeId)||[];
+    const last = hist[hist.length-1] || null;
+    if(!last) return `Non ho abbastanza storico per questa macchina.`;
+
+    let msg = `Stima per CODEID ${codeId}:\n• Probabilità (score): ${(sc.score*100).toFixed(0)}% (${sc.label})\n• ΔIN ultimo intervallo: ${formatEuro(sc.dIn ?? 0)}\n• ΔOUT ultimo intervallo: ${formatEuro(sc.dOut ?? 0)}\n`;
+
+    if(sc.cycleProgress != null){
+      msg += `• Progress ciclo (stima): ${(sc.cycleProgress*100).toFixed(0)}%\n`;
+      if(sc.cycleProgress > 0.80) msg += `Interpretazione: sei vicino a fine ciclo, quindi se mantiene trend potrebbe "scaricare" presto.\n`;
+      else msg += `Interpretazione: non sembra a fine ciclo, serve più IN o più tempo.\n`;
+    }else{
+      msg += `• Ciclo: non determinabile (manca match in cicloslot.json).\n`;
+    }
+
+    msg += `Nota: è una stima basata su storico IN/OUT e deviazioni dal %OUT target.\nVuoi che ti mostri le ultime 10 letture per capire l'andamento? (scrivi: "ultime 10")`;
+    return msg;
+  }
+
+  if(t.includes("ultime") && (t.includes("10") || t.includes("dieci"))){
+    const codeId = APP.selectedCodeId;
+    if(!codeId) return `Seleziona una macchina prima.`;
+    const hist = (APP.history.get(codeId)||[]).slice(-10);
+    if(!hist.length) return `Nessun dato storico.`;
+    return `Ultime ${hist.length} letture per CODEID ${codeId}:\n` + hist.map(h=>{
+      const d = h.ts ? h.ts.toLocaleString("it-IT") : "—";
+      return `${d} • IN ${formatEuro(h.inEur)} • OUT ${formatEuro(h.outEur)} • %OUT ${formatPct(h.pctOut)}`;
     }).join("\n");
-  };
-
-  // “top 10”
-  if(t.includes("top") || t.includes("migliori") || t.includes("più in pagamento") || t.includes("in pagamento")){
-    // se chiede "quale macchina è in pagamento" -> top 10
-    return "Ecco le macchine con probabilità più alta (stima):\n" + topMachines(10) +
-      "\n\nSe vuoi, dimmi: “seleziona CODEID ...”";
   }
 
-  // cerca CODEID
-  const mCode = t.match(/codeid\s*([0-9]+)/i);
-  if(mCode){
-    const codeid = mCode[1];
-    if(state.machines.has(codeid)){
-      state.selectedCodeid = codeid;
-      showMachine(codeid);
-      return `Ho selezionato CODEID ${codeid}. Vuoi che stimi “quando paga” basandomi su fase ciclo e scarto rispetto al target?`;
-    }
-    return `Non trovo CODEID ${codeid} nei sinottici caricati. Controlla che sia presente nei file analizzati.`;
+  if(t.startsWith("cerca") || t.startsWith("trova")){
+    const q = t.replace(/^cerca|^trova/,"").trim();
+    if(!q) return `Dimmi cosa cercare. Esempi: "cerca bar fortini" oppure "cerca comune taggia"`;
+    APP.ui.search = q;
+    const el = $("#qSearch");
+    if(el) el.value = q;
+    renderMachineList();
+    return `Ok, ho impostato la ricerca su: "${q}". Guarda la lista a sinistra.`;
   }
 
-  // “seleziona ...”
-  const mSel = t.match(/seleziona\s*([0-9]+)/i);
-  if(mSel){
-    const codeid = mSel[1];
-    if(state.machines.has(codeid)){
-      state.selectedCodeid = codeid;
-      showMachine(codeid);
-      return `Selezionata ${codeid}.`;
-    }
-    return `Non ho trovato ${codeid}.`;
+  if(t.includes("comune")){
+    const q = t.split("comune").pop().trim();
+    if(!q) return `Scrivi ad esempio: "comune Imperia"`;
+    APP.ui.filterComune = q;
+    const el = $("#qComune"); if(el) el.value = q;
+    renderMachineList();
+    return `Filtro comune impostato: "${q}".`;
   }
 
-  // quando paga questa macchina / questa
-  if(t.includes("quando") && (t.includes("paga") || t.includes("pagare"))){
-    const codeid = state.selectedCodeid;
-    if(!codeid) return "Dimmi quale macchina: ad esempio “CODEID 123…” oppure cliccala dalla lista.";
-    const m = state.machines.get(codeid);
-    const last = latestPoint(m);
-    if(!last) return "Per questa macchina non ho abbastanza dati validi.";
-
-    const fase = last.faseCiclo!=null ? (last.faseCiclo*100).toFixed(1)+"%" : "—";
-    const diff = last.diffOut!=null ? money2(last.diffOut) : "—";
-    const ciclo = last.ciclo!=null ? money(last.ciclo) : "—";
-
-    return [
-      `Stima per CODEID ${codeid} (euristica):`,
-      `- Probabilità: ${Math.round((m.score||0)*100)}% (${m.scoreLabel})`,
-      `- Fase ciclo: ${fase} (ciclo: ${ciclo})`,
-      `- Scarto vs target (${Math.round((last.target||0.65)*100)}%): ${diff} € (positivo = sotto target)`,
-      "",
-      `Interpretazione rapida:`,
-      `- Se fase ciclo è alta e la macchina è sotto target, la probabilità sale.`,
-      `- Se ha appena pagato tanto nello step recente, la probabilità scende.`,
-      "",
-      `Vuoi che ti mostri anche le ultime 10 variazioni (ΔIN/ΔOUT) per capire il ritmo?`
-    ].join("\n");
+  if(t.includes("pdv")){
+    const q = t.split("pdv").pop().trim();
+    if(!q) return `Scrivi ad esempio: "pdv 123456"`;
+    APP.ui.filterPdv = q;
+    const el = $("#qPDV"); if(el) el.value = q;
+    renderMachineList();
+    return `Filtro PDV impostato: "${q}".`;
   }
 
-  // richiesta locale generica
-  if(t.includes("ai") || t.includes("ia") || t.includes("neural") || t.includes("algoritmo")){
-    return "Io qui sono S.A.G.A.: non posso “scoprire” l’algoritmo reale della scheda, ma posso stimare pattern usando:\n- storico IN/OUT\n- % OUT\n- ciclo da cicloslot\n- fase ciclo e scarto dal target\n\nDimmi che analisi vuoi: “top 10”, “quando paga questa macchina”, oppure “cerca CODEID …”.";
-  }
-
-  // fallback
-  return "Posso aiutarti solo su sinottici/macchine/cicli.\nProva con:\n- “quale macchina è in pagamento?”\n- “top 10”\n- “quando paga questa macchina?”\n- “CODEID 123…”";
+  return `Questa richiesta non sembra collegata ai dati AWP che ho in memoria.\n\nCose che posso fare:\n• "quali macchine sono in pagamento?"\n• "quando paga questa macchina?" (dopo averla selezionata)\n• "cerca <testo>"\n• "comune <nome>"\n• "pdv <codice>"\n`;
 }
 
-/* =========================================================
-   Helpers escape
-   ========================================================= */
+/* -------------------- Utilities -------------------- */
 function escapeHtml(s){
-  return (s??"").toString()
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
+  return String(s ?? "").replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-function escapeAttr(s){ return escapeHtml(s).replaceAll('"',"&quot;"); }
+function escapeAttr(s){ return escapeHtml(s).replace(/"/g,"&quot;"); }
 
-/* =========================================================
-   Boot
-   ========================================================= */
-(async function init(){
-  loadSettings();
+/* -------------------- Boot -------------------- */
+(async function boot(){
+  // restore session
   try{
-    await loadUsers();
-  }catch(e){
-    console.error(e);
-    // se users.json manca, facciamo comunque vedere login ma non entrerà
-  }
-  renderLogin();
+    const s = sessionStorage.getItem("sinottico_session");
+    if(s) APP.session = JSON.parse(s);
+  }catch(e){ APP.session=null; }
+
+  renderMain(); // if no session -> shows login
+
+  // load core files immediately so login works
+  const logBox = $("#logBox");
+  if(logBox) logBox.textContent = "";
+  await loadCoreFiles();
+
+  // If already logged, we can auto-load list only if user clicks analyze
+  // (as you asked: analyze all "a comando")
 })();
 </script>
 </body>
