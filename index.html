@@ -2,2334 +2,1700 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>SinotticoLab</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Calcolatore AWP analisi pagamento</title>
 
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" crossorigin>
-
-  <!-- SheetJS (XLSX parsing in browser) -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min.js"></script>
-
-  <!-- Chart.js -->
+  <!-- Libs CDN (GitHub Pages OK) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
     :root{
-      --bg: #0b0e13;
-      --panel: #101522;
-      --panel2:#0f1320;
-      --card:#121a2b;
-      --stroke: rgba(255,255,255,.10);
-      --stroke2: rgba(255,255,255,.06);
+      --bg: #0b0f14;
+      --panel: rgba(255,255,255,.06);
+      --panel2: rgba(255,255,255,.09);
       --text: rgba(255,255,255,.92);
-      --muted: rgba(255,255,255,.65);
-      --muted2: rgba(255,255,255,.45);
-      --good:#3ee08f;
-      --warn:#ffcc66;
-      --bad:#ff5a78;
-      --accent:#7aa7ff;
-      --accent2:#9f7bff;
-      --shadow: 0 18px 60px rgba(0,0,0,.45);
+      --muted: rgba(255,255,255,.62);
+      --border: rgba(255,255,255,.14);
+      --accent: #7dd3fc;
+      --good: #34d399;
+      --warn: #fbbf24;
+      --bad: #fb7185;
+      --chip: rgba(255,255,255,.08);
+      --shadow: 0 14px 40px rgba(0,0,0,.35);
       --radius: 18px;
       --radius2: 14px;
-      --radius3: 10px;
-      --blur: saturate(120%) blur(10px);
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
     }
 
-    *{ box-sizing: border-box; }
-    html,body{ height:100%; }
+    /* Themes */
+    [data-theme="light"]{
+      --bg: #f5f7fb;
+      --panel: rgba(0,0,0,.05);
+      --panel2: rgba(0,0,0,.07);
+      --text: rgba(0,0,0,.88);
+      --muted: rgba(0,0,0,.60);
+      --border: rgba(0,0,0,.12);
+      --accent: #2563eb;
+      --chip: rgba(0,0,0,.06);
+      --shadow: 0 14px 40px rgba(25,35,60,.16);
+    }
+    [data-theme="amber"]{ --accent:#f59e0b; }
+    [data-theme="lime"]{ --accent:#84cc16; }
+    [data-theme="ocean"]{ --accent:#22c55e; }
+    [data-theme="dark"]{ --accent:#7dd3fc; }
+
+    *{ box-sizing:border-box; }
     body{
       margin:0;
-      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      color: var(--text);
-      background:
-        radial-gradient(1200px 700px at 20% -10%, rgba(122,167,255,.30), transparent 60%),
-        radial-gradient(900px 600px at 110% 20%, rgba(159,123,255,.24), transparent 55%),
-        radial-gradient(900px 900px at 30% 120%, rgba(62,224,143,.14), transparent 60%),
-        var(--bg);
-      overflow-x:hidden;
+      font-family:var(--sans);
+      background: radial-gradient(1200px 800px at 15% 10%, rgba(125,211,252,.10), transparent 55%),
+                  radial-gradient(900px 700px at 85% 20%, rgba(132,204,22,.08), transparent 55%),
+                  radial-gradient(900px 700px at 50% 100%, rgba(245,158,11,.08), transparent 55%),
+                  var(--bg);
+      color:var(--text);
     }
+    a{ color:var(--accent); text-decoration:none; }
 
-    a{ color: inherit; }
-    .wrap{
-      width: min(1360px, calc(100% - 28px));
-      margin: 18px auto 30px;
+    .app{
+      min-height:100vh;
+      display:flex;
+      flex-direction:column;
     }
 
     .topbar{
+      position:sticky;
+      top:0;
+      z-index:50;
+      backdrop-filter: blur(10px);
+      background: linear-gradient(to bottom, rgba(0,0,0,.25), rgba(0,0,0,0));
+      border-bottom:1px solid var(--border);
+    }
+    [data-theme="light"] .topbar{
+      background: linear-gradient(to bottom, rgba(255,255,255,.75), rgba(255,255,255,0));
+    }
+    .topbar-inner{
+      max-width:1300px;
+      margin:0 auto;
+      padding:14px 16px;
       display:flex;
-      gap:12px;
       align-items:center;
       justify-content:space-between;
-      padding: 14px 16px;
-      background: rgba(16,21,34,.70);
-      border: 1px solid var(--stroke);
-      border-radius: var(--radius);
-      backdrop-filter: var(--blur);
-      box-shadow: var(--shadow);
-      position: sticky;
-      top: 10px;
-      z-index: 20;
+      gap:12px;
     }
-
     .brand{
       display:flex;
-      gap:12px;
       align-items:center;
-      min-width: 280px;
+      gap:10px;
     }
     .logo{
-      width: 38px;
-      height: 38px;
-      border-radius: 12px;
-      background:
-        radial-gradient(14px 14px at 25% 30%, rgba(255,255,255,.65), transparent 70%),
-        radial-gradient(20px 20px at 70% 75%, rgba(255,255,255,.22), transparent 70%),
-        linear-gradient(135deg, rgba(122,167,255,1), rgba(159,123,255,1));
-      border:1px solid rgba(255,255,255,.18);
-      box-shadow: 0 10px 30px rgba(122,167,255,.22);
+      width:38px;height:38px;
+      border-radius:14px;
+      background: linear-gradient(135deg, var(--accent), rgba(255,255,255,.08));
+      box-shadow: var(--shadow);
+      display:grid;
+      place-items:center;
+      font-weight:800;
+      letter-spacing:.5px;
+      color:#001018;
     }
-    .brand h1{
-      margin:0;
-      font-size: 16px;
-      letter-spacing: .2px;
-      line-height: 1.15;
+    [data-theme="light"] .logo{ color:#fff; }
+    .title{
+      display:flex;
+      flex-direction:column;
+      line-height:1.05;
     }
-    .brand .sub{
-      margin-top: 2px;
-      color: var(--muted2);
-      font-size: 12px;
-    }
+    .title b{ font-size:14px; letter-spacing:.2px; }
+    .title span{ font-size:12px; color:var(--muted); }
 
-    .pill{
-      display:inline-flex;
+    .pillrow{
+      display:flex;
       align-items:center;
       gap:8px;
-      padding: 8px 10px;
-      background: rgba(255,255,255,.04);
-      border:1px solid var(--stroke);
-      border-radius: 999px;
-      color: var(--muted);
-      font-size: 12px;
-      white-space: nowrap;
-    }
-    .pill b{ color: var(--text); font-weight: 600; }
-    .pill .dot{
-      width:8px;height:8px;border-radius:999px;
-      background: var(--muted2);
-      box-shadow: 0 0 0 3px rgba(255,255,255,.05);
-    }
-    .pill.good .dot{ background: var(--good); }
-    .pill.warn .dot{ background: var(--warn); }
-    .pill.bad .dot{ background: var(--bad); }
-
-    .actions{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      flex-wrap: wrap;
+      flex-wrap:wrap;
       justify-content:flex-end;
     }
+    .chip{
+      padding:8px 10px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background: var(--chip);
+      font-size:12px;
+      color:var(--muted);
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .chip b{ color:var(--text); font-weight:650; }
 
-    button, .btn{
-      appearance:none;
-      border:none;
+    .btn{
+      border:1px solid var(--border);
       background: rgba(255,255,255,.06);
-      border: 1px solid var(--stroke);
-      color: var(--text);
-      padding: 10px 12px;
-      border-radius: 12px;
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
       cursor:pointer;
-      transition: transform .12s ease, background .12s ease, border-color .12s ease;
-      font-weight: 600;
-      font-size: 13px;
+      font-weight:650;
+      font-size:13px;
+      transition: transform .06s ease, background .2s ease, border .2s ease;
+      user-select:none;
     }
-    button:hover, .btn:hover{
-      background: rgba(255,255,255,.085);
-      border-color: rgba(255,255,255,.16);
-      transform: translateY(-1px);
-    }
-    button:active, .btn:active{ transform: translateY(0); }
-    button.primary{
-      background: linear-gradient(135deg, rgba(122,167,255,.95), rgba(159,123,255,.95));
+    .btn:hover{ background: rgba(255,255,255,.10); }
+    .btn:active{ transform: translateY(1px); }
+    .btn.primary{
+      background: linear-gradient(135deg, var(--accent), rgba(255,255,255,.10));
       border-color: rgba(255,255,255,.18);
-      box-shadow: 0 12px 30px rgba(122,167,255,.22);
+      color:#081019;
     }
-    button.primary:hover{ background: linear-gradient(135deg, rgba(122,167,255,1), rgba(159,123,255,1)); }
+    [data-theme="light"] .btn.primary{ color:#fff; }
+    .btn.small{ padding:8px 10px; border-radius:11px; font-size:12px; }
+    .btn.ghost{ background: transparent; }
+    .btn.danger{ border-color: rgba(251,113,133,.35); }
 
-    button.ghost{
-      background: transparent;
-      border-color: rgba(255,255,255,.10);
-      color: var(--muted);
+    .container{
+      width:100%;
+      max-width:1300px;
+      margin: 0 auto;
+      padding: 16px;
+      display:grid;
+      gap:14px;
+      grid-template-columns: 420px 1fr;
+    }
+    @media (max-width: 1100px){
+      .container{ grid-template-columns: 1fr; }
+    }
+
+    .card{
+      border:1px solid var(--border);
+      background: linear-gradient(to bottom, var(--panel), transparent 130%);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    .card-head{
+      padding:14px 14px 10px;
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      border-bottom:1px solid var(--border);
+      background: rgba(255,255,255,.03);
+    }
+    .card-title{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .card-title b{ font-size:13px; letter-spacing:.2px; }
+    .card-title span{ font-size:12px; color:var(--muted); }
+    .card-body{ padding:14px; }
+
+    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .grid3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
+    @media (max-width: 620px){
+      .grid2, .grid3{ grid-template-columns: 1fr; }
     }
 
     input, select, textarea{
-      width: 100%;
-      background: rgba(255,255,255,.04);
-      border: 1px solid var(--stroke);
-      color: var(--text);
+      width:100%;
+      padding:11px 12px;
       border-radius: 12px;
-      padding: 10px 12px;
-      outline: none;
-      font-size: 13px;
+      border:1px solid var(--border);
+      background: rgba(0,0,0,.18);
+      color: var(--text);
+      outline:none;
+      font-size:13px;
     }
-    input::placeholder, textarea::placeholder{ color: rgba(255,255,255,.35); }
+    [data-theme="light"] input,
+    [data-theme="light"] select,
+    [data-theme="light"] textarea{
+      background: rgba(255,255,255,.85);
+      color:#111827;
+    }
+    textarea{ min-height: 90px; resize: vertical; }
 
-    .grid{
-      margin-top: 14px;
-      display:grid;
-      grid-template-columns: 430px 1fr;
-      gap: 14px;
-      align-items:start;
-    }
-    @media (max-width: 1040px){
-      .grid{ grid-template-columns: 1fr; }
-      .brand{ min-width: 0; }
-    }
+    .mono{ font-family: var(--mono); }
 
-    .panel{
-      background: rgba(16,21,34,.60);
-      border: 1px solid var(--stroke);
-      border-radius: var(--radius);
-      backdrop-filter: var(--blur);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-    .panel .hd{
-      padding: 14px 14px 12px;
-      border-bottom: 1px solid var(--stroke2);
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap: 10px;
-    }
-    .panel .hd h2{
-      margin:0;
-      font-size: 14px;
-      letter-spacing: .2px;
-    }
-    .panel .hd .meta{
-      color: var(--muted2);
-      font-size: 12px;
-      white-space: nowrap;
-    }
-    .panel .bd{
-      padding: 14px;
-    }
-
-    .row{
-      display:flex;
-      gap: 10px;
-      align-items:center;
-    }
-    .row > *{ flex: 1; }
-
-    .kpi{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    .kpi .card{
-      background: rgba(255,255,255,.04);
-      border: 1px solid var(--stroke2);
-      border-radius: var(--radius2);
-      padding: 12px;
-      min-height: 78px;
-    }
-    .kpi .card .t{
-      font-size: 11px;
-      color: var(--muted2);
-      letter-spacing: .2px;
-    }
-    .kpi .card .v{
-      margin-top: 6px;
-      font-size: 20px;
-      font-weight: 800;
-    }
-    .kpi .card .s{
-      margin-top: 4px;
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .list{
+    .status{
       display:flex;
       flex-direction:column;
-      gap: 10px;
+      gap:8px;
+      font-size:12px;
+      color:var(--muted);
     }
-    .machine{
-      padding: 12px;
-      border-radius: var(--radius2);
-      border: 1px solid var(--stroke2);
-      background: rgba(255,255,255,.035);
-      cursor:pointer;
-      transition: transform .12s ease, border-color .12s ease, background .12s ease;
-    }
-    .machine:hover{
-      transform: translateY(-1px);
-      border-color: rgba(255,255,255,.14);
+    .bar{
+      height:10px;
+      width:100%;
+      border:1px solid var(--border);
+      border-radius:999px;
+      overflow:hidden;
       background: rgba(255,255,255,.05);
     }
-    .machine.active{
-      border-color: rgba(122,167,255,.55);
-      background: rgba(122,167,255,.10);
+    .bar > i{
+      display:block;
+      height:100%;
+      width:0%;
+      background: linear-gradient(90deg, var(--accent), rgba(255,255,255,.16));
+      border-radius:999px;
+      transition: width .2s ease;
     }
-    .machine .top{
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap: 10px;
+
+    .table{
+      width:100%;
+      border-collapse: collapse;
+      font-size:12px;
     }
-    .machine .name{
-      font-weight: 800;
-      font-size: 13px;
-      line-height: 1.25;
+    .table th, .table td{
+      padding:10px 10px;
+      border-bottom:1px solid var(--border);
+      vertical-align:top;
     }
-    .machine .sub{
-      margin-top: 3px;
-      font-size: 12px;
-      color: var(--muted);
+    .table th{
+      text-align:left;
+      color:var(--muted);
+      font-weight:700;
+      background: rgba(255,255,255,.03);
+      position:sticky;
+      top:0;
+      z-index:1;
     }
+    .scroll{
+      max-height: 56vh;
+      overflow:auto;
+      border:1px solid var(--border);
+      border-radius: 14px;
+    }
+
     .badge{
+      font-size:11px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      background: rgba(255,255,255,.05);
       display:inline-flex;
       align-items:center;
       gap:6px;
-      padding: 6px 8px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 800;
-      letter-spacing: .2px;
-      border: 1px solid rgba(255,255,255,.12);
-      background: rgba(255,255,255,.05);
-      white-space: nowrap;
+      color:var(--muted);
+      white-space:nowrap;
     }
-    .badge.good{ border-color: rgba(62,224,143,.45); background: rgba(62,224,143,.10); }
-    .badge.warn{ border-color: rgba(255,204,102,.45); background: rgba(255,204,102,.10); }
-    .badge.bad{ border-color: rgba(255,90,120,.45); background: rgba(255,90,120,.10); }
+    .badge.good{ border-color: rgba(52,211,153,.35); color: rgba(52,211,153,.95); }
+    .badge.warn{ border-color: rgba(251,191,36,.40); color: rgba(251,191,36,.95); }
+    .badge.bad{ border-color: rgba(251,113,133,.42); color: rgba(251,113,133,.95); }
 
-    .machine .metrics{
-      display:grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .mini{
-      background: rgba(0,0,0,.15);
-      border: 1px solid rgba(255,255,255,.06);
-      border-radius: 12px;
-      padding: 8px 9px;
-    }
-    .mini .t{ color: var(--muted2); font-size: 10px; }
-    .mini .v{ font-family: var(--mono); margin-top: 3px; font-size: 12px; font-weight: 800; }
-
-    .split{
-      display:grid;
-      grid-template-columns: 1fr 380px;
-      gap: 14px;
-      align-items:start;
-    }
-    @media (max-width: 1160px){
-      .split{ grid-template-columns: 1fr; }
-    }
-
-    .chartWrap{
-      background: rgba(255,255,255,.03);
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: var(--radius2);
-      padding: 12px;
-      overflow:hidden;
-    }
-    canvas{ width:100% !important; height: 310px !important; }
-
-    .muted{ color: var(--muted); }
-    .muted2{ color: var(--muted2); }
-    .mono{ font-family: var(--mono); }
-    .small{ font-size: 12px; }
-    .hr{
-      height:1px;
-      background: rgba(255,255,255,.07);
-      margin: 12px 0;
-    }
-
-    .chips{ display:flex; flex-wrap:wrap; gap: 8px; }
-    .chip{
-      display:inline-flex;
-      align-items:center;
-      gap: 8px;
-      padding: 8px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.04);
-      font-size: 12px;
-      color: var(--muted);
-    }
-    .chip b{ color: var(--text); }
-
-    .chat{
+    .row-actions{
       display:flex;
-      flex-direction:column;
-      height: 540px;
-      background: rgba(255,255,255,.03);
-      border: 1px solid rgba(255,255,255,.08);
-      border-radius: var(--radius2);
-      overflow:hidden;
-    }
-    .chat .chatHd{
-      padding: 12px 12px;
-      border-bottom: 1px solid rgba(255,255,255,.07);
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      gap: 10px;
-      background: rgba(0,0,0,.12);
-    }
-    .chat .chatHd .title{
-      display:flex; align-items:center; gap: 10px;
-    }
-    .chat .chatHd .tag{
-      font-family: var(--mono);
-      font-weight: 900;
-      letter-spacing: .8px;
-      font-size: 12px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      background: linear-gradient(135deg, rgba(122,167,255,.25), rgba(159,123,255,.25));
-      border: 1px solid rgba(122,167,255,.30);
-    }
-    .chat .chatHd .desc{
-      font-size: 12px;
-      color: var(--muted2);
-      line-height: 1.2;
-    }
-    .chat .chatLog{
-      padding: 12px;
-      overflow:auto;
-      flex: 1;
-    }
-    .msg{
-      margin: 10px 0;
-      display:flex;
-      gap: 10px;
-      align-items:flex-start;
-    }
-    .bubble{
-      max-width: 92%;
-      padding: 10px 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.10);
-      background: rgba(255,255,255,.045);
-      font-size: 13px;
-      line-height: 1.35;
-      white-space: pre-wrap;
-    }
-    .msg.user{ justify-content:flex-end; }
-    .msg.user .bubble{
-      background: rgba(122,167,255,.11);
-      border-color: rgba(122,167,255,.30);
-    }
-    .msg.ai .bubble{
-      background: rgba(255,255,255,.04);
-    }
-    .chat .chatIn{
-      display:flex;
-      gap: 10px;
-      padding: 12px;
-      border-top: 1px solid rgba(255,255,255,.07);
-      background: rgba(0,0,0,.10);
-    }
-    .chat .chatIn input{
-      flex:1;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
     }
 
-    /* Login modal */
-    .modalBack{
-      position:fixed; inset:0;
-      background: rgba(0,0,0,.56);
-      backdrop-filter: blur(6px);
-      display:none;
+    /* Login overlay */
+    .overlay{
+      position:fixed;
+      inset:0;
+      background: radial-gradient(1000px 600px at 20% 10%, rgba(125,211,252,.18), transparent 55%),
+                  radial-gradient(800px 600px at 80% 20%, rgba(132,204,22,.14), transparent 55%),
+                  rgba(0,0,0,.65);
+      display:flex;
       align-items:center;
       justify-content:center;
-      z-index: 100;
-      padding: 18px;
+      padding:16px;
+      z-index:999;
     }
-    .modal{
-      width: min(520px, 100%);
-      background: rgba(16,21,34,.92);
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 20px;
-      box-shadow: 0 24px 90px rgba(0,0,0,.60);
+    .login{
+      width:min(520px, 100%);
+      border:1px solid var(--border);
+      border-radius: 22px;
+      background: linear-gradient(to bottom, var(--panel), rgba(0,0,0,.35));
+      box-shadow: var(--shadow);
       overflow:hidden;
     }
-    .modal .mhd{
-      padding: 16px 16px 14px;
-      border-bottom: 1px solid rgba(255,255,255,.08);
+    .login-head{
+      padding:18px 18px 12px;
+      border-bottom:1px solid var(--border);
       display:flex;
+      align-items:flex-start;
       justify-content:space-between;
-      align-items:center;
-      gap: 10px;
+      gap:10px;
     }
-    .modal .mhd h3{
-      margin:0;
-      font-size: 14px;
-      letter-spacing: .2px;
+    .login-head b{ font-size:14px; }
+    .login-head span{ font-size:12px; color:var(--muted); }
+    .login-body{ padding:18px; display:flex; flex-direction:column; gap:10px; }
+    .hint{ font-size:12px; color:var(--muted); }
+    .error{ color: rgba(251,113,133,.95); font-size:12px; min-height:16px; }
+
+    /* Chat */
+    .chatbox{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      height: 56vh;
     }
-    .modal .mbd{ padding: 16px; }
-    .modal .hint{
-      margin-top: 6px;
-      color: var(--muted2);
-      font-size: 12px;
-      line-height: 1.35;
-    }
-    .warnBox{
-      margin-top: 10px;
-      padding: 10px 12px;
+    .chatlog{
+      flex:1;
+      overflow:auto;
+      border:1px solid var(--border);
       border-radius: 14px;
-      border: 1px solid rgba(255,204,102,.35);
-      background: rgba(255,204,102,.10);
-      color: rgba(255,255,255,.92);
-      font-size: 12px;
-      line-height: 1.35;
+      padding:12px;
+      background: rgba(255,255,255,.03);
     }
-
-    .toast{
-      position: fixed;
-      right: 16px;
-      bottom: 16px;
-      width: min(420px, calc(100% - 32px));
-      background: rgba(16,21,34,.92);
-      border:1px solid rgba(255,255,255,.12);
+    .msg{
+      display:flex;
+      gap:10px;
+      margin-bottom:10px;
+      align-items:flex-start;
+    }
+    .avatar{
+      width:34px;height:34px;border-radius:14px;
+      background: linear-gradient(135deg, var(--accent), rgba(255,255,255,.10));
+      display:grid;place-items:center;
+      color:#061018;
+      font-weight:900;
+      flex:0 0 auto;
+    }
+    .bubble{
+      border:1px solid var(--border);
       border-radius: 16px;
-      padding: 12px 12px;
-      box-shadow: 0 20px 70px rgba(0,0,0,.55);
-      display:none;
-      z-index: 200;
+      padding:10px 12px;
+      background: rgba(255,255,255,.05);
+      width:100%;
     }
-    .toast .t{ font-weight: 900; font-size: 13px; }
-    .toast .s{ margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.35; }
-    .toast .bar{
-      margin-top: 10px;
-      height: 3px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.10);
-      overflow:hidden;
+    .bubble b{ display:block; font-size:12px; margin-bottom:4px; color:var(--muted); }
+    .bubble p{ margin:0; font-size:13px; white-space:pre-wrap; }
+    .chatrow{ display:flex; gap:8px; }
+    .chatrow textarea{ min-height:44px; max-height:120px; }
+    .kpi{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
     }
-    .toast .bar > i{
-      display:block;
-      width: 100%;
-      height:100%;
-      background: linear-gradient(90deg, rgba(122,167,255,1), rgba(159,123,255,1));
-      transform-origin:left;
-      animation: toastBar 3.2s linear forwards;
-    }
-    @keyframes toastBar{
-      from{ transform: scaleX(1); }
-      to{ transform: scaleX(0); }
-    }
-
-    .hidden{ display:none !important; }
+    .kpi .badge{ background: rgba(255,255,255,.04); }
+    .muted{ color:var(--muted); }
   </style>
 </head>
 
 <body>
-  <div class="wrap">
-    <div class="topbar">
+<div class="app" id="app" data-theme="dark">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-inner">
       <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
-        <div>
-          <h1>SinotticoLab</h1>
-          <div class="sub">Analisi sinottici AWP in RAM, con IA “SAGA” e storico leggibile</div>
+        <div class="logo">AWP</div>
+        <div class="title">
+          <b>Calcolatore AWP analisi pagamento</b>
+          <span id="subTitle">Pronto a caricare sinottici…</span>
         </div>
       </div>
 
-      <div class="actions">
-        <span class="pill" id="pillSession"><span class="dot"></span><b>Sessione</b>: <span id="sessionText">non autenticato</span></span>
-        <button class="ghost" id="btnLogout" title="Esci" style="display:none;">Logout</button>
-        <button class="primary" id="btnAnalyze">Analizza tutti i sinottici</button>
+      <div class="pillrow">
+        <div class="chip"><span>Utente</span> <b id="chipUser">-</b></div>
+        <div class="chip"><span>Livello</span> <b id="chipLevel">-</b></div>
+        <div class="chip"><span>Sinottici</span> <b id="chipFiles">0</b></div>
+        <div class="chip"><span>Macchine</span> <b id="chipMachines">0</b></div>
+        <select id="themeSelect" title="Tema" style="width:auto; min-width:140px;">
+          <option value="dark">Scuro</option>
+          <option value="light">Chiaro</option>
+          <option value="amber">Amber</option>
+          <option value="lime">Lime</option>
+          <option value="ocean">Ocean</option>
+        </select>
+        <button class="btn small ghost" id="btnLogout">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="container">
+
+    <!-- LEFT: controls + list -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">
+          <b>Analisi sinottici</b>
+          <span>Carica da <span class="mono">manifest.json</span> e legge gli <span class="mono">xlsx</span> in <span class="mono">/Dati</span>.</span>
+        </div>
+        <div class="row-actions">
+          <button class="btn small" id="btnLoad">Analizza tutti</button>
+          <button class="btn small" id="btnOnlyLatest">Solo ultimo</button>
+        </div>
+      </div>
+
+      <div class="card-body">
+        <div class="status">
+          <div class="bar"><i id="barFill"></i></div>
+          <div id="statusLine">In attesa…</div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="grid2">
+          <div>
+            <label class="muted" style="font-size:12px">Filtro (id macchina / pdv / esercente / comune)</label>
+            <input id="filterText" placeholder="Es: 12345, PDV 4012, BAR FORTINI…" />
+          </div>
+          <div>
+            <label class="muted" style="font-size:12px">Mostra</label>
+            <select id="filterMode">
+              <option value="all">Tutte</option>
+              <option value="paysoon">In pagamento / vicine</option>
+              <option value="bad">Critiche</option>
+              <option value="top">Top rendimento</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="kpi">
+          <span class="badge good" id="kpiPay">Pagamento: 0</span>
+          <span class="badge warn" id="kpiNear">Vicino: 0</span>
+          <span class="badge bad" id="kpiBad">Critiche: 0</span>
+        </div>
+
+        <div style="height:12px"></div>
+
+        <div class="scroll" id="machineScroll">
+          <table class="table" id="machineTable">
+            <thead>
+              <tr>
+                <th style="width:110px">CODEID</th>
+                <th>PDV / Esercente</th>
+                <th style="width:150px">Stima</th>
+                <th style="width:86px"></th>
+              </tr>
+            </thead>
+            <tbody id="machineTbody">
+              <tr><td colspan="4" class="muted">Nessun dato ancora. Premi “Analizza tutti”.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
       </div>
     </div>
 
-    <div class="grid">
-      <!-- LEFT: Machines -->
-      <div class="panel" id="panelMachines">
-        <div class="hd">
-          <h2>Macchine</h2>
-          <div class="meta" id="metaMachines">0 caricate</div>
-        </div>
-        <div class="bd">
-          <div class="row" style="margin-bottom:10px;">
-            <input id="qMachine" placeholder="Cerca: locale, modello, matricola, PDA/PDV..." />
-          </div>
+    <!-- RIGHT: details + chart + chat -->
+    <div style="display:grid; gap:14px;">
 
-          <div class="row" style="margin-bottom:10px;">
-            <select id="filterLocal">
-              <option value="">Tutti i locali</option>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">
+            <b>Dettaglio macchina</b>
+            <span id="detailSubtitle">Seleziona una macchina dalla lista.</span>
+          </div>
+          <div class="row-actions">
+            <select id="rangeSelect" style="width:auto; min-width:170px;">
+              <option value="30">Grafico: ultimi 30 punti</option>
+              <option value="60">Grafico: ultimi 60 punti</option>
+              <option value="120" selected>Grafico: ultimi 120 punti</option>
+              <option value="all">Grafico: tutto (ridotto)</option>
             </select>
-            <select id="filterScore">
-              <option value="">Tutti i punteggi</option>
-              <option value="good">Probabile pagamento</option>
-              <option value="warn">In osservazione</option>
-              <option value="bad">Bassa priorità</option>
-            </select>
-          </div>
-
-          <div class="kpi" style="margin-bottom:12px;">
-            <div class="card">
-              <div class="t">Sinottici letti</div>
-              <div class="v" id="kpiFiles">0</div>
-              <div class="s" id="kpiFilesSub">manifest: n/d</div>
-            </div>
-            <div class="card">
-              <div class="t">Record totali</div>
-              <div class="v" id="kpiRows">0</div>
-              <div class="s" id="kpiRowsSub">in RAM</div>
-            </div>
-            <div class="card">
-              <div class="t">Macchine uniche</div>
-              <div class="v" id="kpiMachines">0</div>
-              <div class="s" id="kpiMachinesSub">raggruppate</div>
-            </div>
-            <div class="card">
-              <div class="t">Top “in pagamento”</div>
-              <div class="v" id="kpiHot">0</div>
-              <div class="s" id="kpiHotSub">soglia dinamica</div>
-            </div>
-          </div>
-
-          <div class="list" id="machinesList"></div>
-
-          <div class="hr"></div>
-          <div class="small muted2">
-            Suggerimento: se il grafico storico era illeggibile, qui viene <b>ridotto</b> per leggibilità (downsampling),
-            ma i dati completi restano in RAM e sono interrogabili da SAGA.
+            <button class="btn small" id="btnExportMachine">Esporta JSON</button>
           </div>
         </div>
-      </div>
+        <div class="card-body">
+          <div class="grid3">
+            <div class="card" style="box-shadow:none; border-radius:14px">
+              <div class="card-body" style="padding:12px">
+                <div class="muted" style="font-size:12px">CODEID</div>
+                <div class="mono" style="font-size:15px; font-weight:800" id="d_codeid">-</div>
+              </div>
+            </div>
+            <div class="card" style="box-shadow:none; border-radius:14px">
+              <div class="card-body" style="padding:12px">
+                <div class="muted" style="font-size:12px">PDV / PDA</div>
+                <div class="mono" style="font-size:13px; font-weight:800" id="d_pdv">-</div>
+              </div>
+            </div>
+            <div class="card" style="box-shadow:none; border-radius:14px">
+              <div class="card-body" style="padding:12px">
+                <div class="muted" style="font-size:12px">Ciclo stimato</div>
+                <div class="mono" style="font-size:13px; font-weight:800" id="d_cycle">-</div>
+              </div>
+            </div>
+          </div>
 
-      <!-- RIGHT: Details + Chat -->
-      <div class="panel" id="panelDetails">
-        <div class="hd">
-          <h2>Dettagli macchina</h2>
-          <div class="meta" id="metaDetails">seleziona una macchina</div>
-        </div>
-        <div class="bd">
-          <div class="split">
+          <div style="height:12px"></div>
+
+          <div class="grid2">
             <div>
-              <div class="chips" id="machineChips"></div>
-
-              <div class="hr"></div>
-
-              <div class="row" style="margin-bottom:10px;">
-                <select id="rangeSelect">
-                  <option value="all">Range: tutto lo storico</option>
-                  <option value="90">Range: ultimi 90 giorni</option>
-                  <option value="60">Range: ultimi 60 giorni</option>
-                  <option value="30">Range: ultimi 30 giorni</option>
-                  <option value="14">Range: ultimi 14 giorni</option>
-                </select>
-                <select id="metricSelect">
-                  <option value="saldo">Metrica: Saldo (IN - OUT)</option>
-                  <option value="residuo">Metrica: Residuo (se presente)</option>
-                  <option value="in">Metrica: IN</option>
-                  <option value="out">Metrica: OUT</option>
-                </select>
+              <div class="muted" style="font-size:12px; margin-bottom:6px">Indicatori</div>
+              <div class="kpi">
+                <span class="badge" id="d_net">NET: -</span>
+                <span class="badge" id="d_res">Residuo: -</span>
+                <span class="badge" id="d_when">Quando paga: -</span>
               </div>
-
-              <div class="chartWrap">
-                <canvas id="chart"></canvas>
-                <div class="small muted2" id="chartNote" style="margin-top:8px;"></div>
-              </div>
-
-              <div class="hr"></div>
-
-              <div class="panel" style="background:rgba(255,255,255,.02); border-color:rgba(255,255,255,.08); box-shadow:none;">
-                <div class="hd" style="border-bottom-color:rgba(255,255,255,.06);">
-                  <h2>Diagnosi “in pagamento”</h2>
-                  <div class="meta" id="metaAiScore">n/d</div>
-                </div>
-                <div class="bd" id="aiExplain" style="padding:12px 14px;">
-                  <div class="muted2 small">Seleziona una macchina per vedere la diagnosi.</div>
-                </div>
+              <div style="height:10px"></div>
+              <div class="muted" style="font-size:12px">Note</div>
+              <div id="d_note" style="font-size:13px; line-height:1.35; color:var(--muted)">
+                -
               </div>
             </div>
 
             <div>
-              <div class="chat">
-                <div class="chatHd">
-                  <div class="title">
-                    <div class="tag">SAGA</div>
-                    <div>
-                      <div style="font-weight:900; font-size:13px;">Assistente analisi sinottici</div>
-                      <div class="desc">Chiedi: “quando paga?”, “quali sono in pagamento?”, “cerca nel bar X”…</div>
-                    </div>
-                  </div>
-                  <button class="ghost" id="btnChatReset" title="Pulisci chat">Reset</button>
-                </div>
-
-                <div class="chatLog" id="chatLog"></div>
-
-                <div class="chatIn">
-                  <input id="chatInput" placeholder="Scrivi a SAGA… (es. “quando paga questa macchina?”)" />
-                  <button class="primary" id="btnSend">Invia</button>
-                </div>
-              </div>
-
-              <div class="hr"></div>
-              <div class="small muted2">
-                Nota: SAGA qui è “neurale” nel senso buono: usa una serie di euristiche robuste e statistiche sul tuo storico.
-                Non inventa numeri e risponde solo su ciò che esiste nei sinottici / cicli / utenti.
+              <div class="muted" style="font-size:12px; margin-bottom:6px">Ultime letture (top)</div>
+              <div class="scroll" style="max-height:180px">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>IN</th>
+                      <th>OUT</th>
+                      <th>NET</th>
+                    </tr>
+                  </thead>
+                  <tbody id="d_lastRows">
+                    <tr><td colspan="4" class="muted">-</td></tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
+
+          <div style="height:12px"></div>
+
+          <div class="card" style="box-shadow:none; border-radius:14px">
+            <div class="card-body" style="padding:12px">
+              <canvas id="machineChart" height="120"></canvas>
+              <div class="muted" style="font-size:12px; margin-top:8px">
+                Suggerimento: “tutto” mostra comunque un grafico ridotto per restare leggibile.
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
-    </div><!-- /grid -->
-  </div><!-- /wrap -->
 
-  <!-- LOGIN MODAL -->
-  <div class="modalBack" id="loginBack">
-    <div class="modal">
-      <div class="mhd">
-        <h3>Accesso</h3>
-        <button class="ghost" id="btnLoginHelp" title="Aiuto">?</button>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">
+            <b>Chat IA: N.E.U.R.A.</b>
+            <span>Neural Extractor for Unified Revenue Analysis (solo dati del programma)</span>
+          </div>
+          <div class="row-actions">
+            <button class="btn small" id="btnChatExamples">Esempi</button>
+            <button class="btn small ghost" id="btnChatClear">Pulisci</button>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="chatbox">
+            <div class="chatlog" id="chatLog"></div>
+            <div class="chatrow">
+              <textarea id="chatInput" placeholder="Es: quali macchine sono in pagamento? / quando paga 12345 / cerca pdv 4012"></textarea>
+              <button class="btn primary" id="btnChatSend">Invia</button>
+            </div>
+            <div class="hint">N.E.U.R.A. risponde solo su AWP/sinottici. Se chiedi altro, ti riporta “dentro il programma”. 🧭</div>
+          </div>
+        </div>
       </div>
-      <div class="mbd">
-        <div class="row">
+
+    </div>
+  </div>
+
+  <!-- LOGIN OVERLAY -->
+  <div class="overlay" id="loginOverlay">
+    <div class="login">
+      <div class="login-head">
+        <div style="display:flex; flex-direction:column; gap:4px">
+          <b>Accesso</b>
+          <span class="muted">Inserisci le credenziali per continuare.</span>
+        </div>
+        <select id="loginTheme" style="width:auto; min-width:150px;">
+          <option value="dark">Tema: Scuro</option>
+          <option value="light">Tema: Chiaro</option>
+          <option value="amber">Tema: Amber</option>
+          <option value="lime">Tema: Lime</option>
+          <option value="ocean">Tema: Ocean</option>
+        </select>
+      </div>
+      <div class="login-body">
+        <div class="grid2">
           <div>
-            <div class="small muted2" style="margin-bottom:6px;">Utente</div>
-            <input id="loginUser" placeholder="es. admin" autocomplete="username" />
+            <label class="muted" style="font-size:12px">User</label>
+            <input id="loginUser" placeholder="user" value="user"/>
           </div>
-          <div style="max-width: 180px;">
-            <div class="small muted2" style="margin-bottom:6px;">PIN</div>
-            <input id="loginPin" placeholder="es. 7410" inputmode="numeric" autocomplete="current-password" />
+          <div>
+            <label class="muted" style="font-size:12px">PIN</label>
+            <input id="loginPin" placeholder="0000" value="0000" />
           </div>
         </div>
+
+        <div class="error" id="loginError"></div>
+
+        <button class="btn primary" id="btnLogin">Entra</button>
 
         <div class="hint">
-          Il sistema verifica <span class="mono">users.json</span> (livello + scadenza).  
-          Se non trova l’utente, quasi sempre è un problema di <b>percorso file</b> o di caching di GitHub Pages.
+          Suggerimento: dopo l’accesso premi <b>Analizza tutti</b> per vedere le macchine.
         </div>
-
-        <div class="warnBox hidden" id="loginWarn"></div>
-
-        <div class="row" style="margin-top:12px;">
-          <button class="primary" id="btnLogin">Entra</button>
-          <button class="ghost" id="btnClearCache">Pulisci cache</button>
-        </div>
-
-        <div class="hr"></div>
-
-        <details>
-          <summary class="small muted" style="cursor:pointer;">Debug percorso (avanzato)</summary>
-          <div class="small muted2" style="margin-top:10px;">
-            Se <span class="mono">users.json</span> è nella stessa cartella di <span class="mono">index.html</span>,
-            il fetch deve essere <span class="mono">./users.json</span>.  
-            Se è altrove, aggiorna il percorso nella sezione CONFIG del codice.
-          </div>
-          <div class="row" style="margin-top:10px;">
-            <input id="overrideUsersJson" placeholder="Incolla qui JSON utenti per override (temporaneo)..." />
-            <button class="ghost" id="btnApplyUsersOverride">Applica</button>
-          </div>
-          <div class="small muted2" style="margin-top:8px;">
-            L’override viene salvato in <span class="mono">sessionStorage</span> (RAM di sessione), non su disco.
-          </div>
-        </details>
       </div>
     </div>
   </div>
 
-  <!-- Toast -->
-  <div class="toast" id="toast">
-    <div class="t" id="toastTitle">OK</div>
-    <div class="s" id="toastText">—</div>
-    <div class="bar"><i></i></div>
-  </div>
+</div>
 
 <script>
-/* =========================
-   CONFIG
-========================= */
-const CONFIG = {
-  // Files near index.html
-  usersPath: "./users.json",
-  manifestPath: "./manifest.json",
-  cicloslotPath: "./cicloslot.json",
+/* =========================================================
+   SINOTTICO LAB - Single file app
+   ========================================================= */
 
-  // Sinottici are in this folder (relative)
-  datiFolder: "./Dati/",
+const App = (() => {
 
-  // Limits/perf
-  maxFilesToAutoLoad: 4000,    // safety
-  chartMaxPoints: 220,         // downsample points for readability
-  chatMaxTurns: 40
-};
+  // --- State in RAM ---
+  const state = {
+    user: null,
+    users: [],
+    level: null,
+    expires: null,
 
-/* =========================
-   STATE (RAM)
-========================= */
-const STATE = {
-  session: null, // {user, level, expires, loginAt}
-  users: [],
-  manifest: null, // {files: [...] } or array
-  cicloslot: null, // JSON content
-  rawRows: [],     // normalized rows (from all sinottici)
-  machines: [],    // aggregated machines
-  machineById: new Map(),
-  selectedMachineId: null,
-  chart: null,
-  chat: []
-};
+    manifest: null,
+    sinottici: [], // filenames from manifest
 
-/* =========================
-   HELPERS
-========================= */
-const $ = (q) => document.querySelector(q);
-const $$ = (q) => Array.from(document.querySelectorAll(q));
+    cicloslot: [], // from cicloslot.json
 
-function nowISODate(){
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth()+1).padStart(2,'0');
-  const day = String(d.getDate()).padStart(2,'0');
-  return `${y}-${m}-${day}`;
-}
-function parseISODate(s){
-  if(!s) return null;
-  const d = new Date(s);
-  if(Number.isNaN(+d)) return null;
-  return d;
-}
-function fmtDate(d){
-  if(!d) return "n/d";
-  const dd = String(d.getDate()).padStart(2,'0');
-  const mm = String(d.getMonth()+1).padStart(2,'0');
-  const yy = d.getFullYear();
-  return `${dd}/${mm}/${yy}`;
-}
-function safeNum(x){
-  if(x === null || x === undefined) return null;
-  if(typeof x === 'number' && Number.isFinite(x)) return x;
-  const s = String(x).trim().replace(/\./g,'').replace(',', '.'); // handle 1.234,56
-  const n = Number(s);
-  return Number.isFinite(n) ? n : null;
-}
-function upperTrim(s){
-  return String(s ?? '').trim();
-}
-function normStr(s){
-  return upperTrim(s).replace(/\s+/g,' ');
-}
-function toast(title, text){
-  const t = $("#toast");
-  $("#toastTitle").textContent = title;
-  $("#toastText").textContent = text;
-  t.style.display = "block";
-  t.querySelector(".bar i").style.animation = "none";
-  void t.offsetHeight;
-  t.querySelector(".bar i").style.animation = "";
-  setTimeout(()=> t.style.display="none", 3300);
-}
-function setPill(status, text){
-  const pill = $("#pillSession");
-  pill.classList.remove("good","warn","bad");
-  const dot = pill.querySelector(".dot");
-  dot.style.background = "var(--muted2)";
-  $("#sessionText").textContent = text;
+    // historyByMachine: CODEID -> array of points {ts, dateStr, in, out, net, pdv, pda, esercente, comune, ...raw}
+    historyByMachine: new Map(),
 
-  if(status === "good"){ pill.classList.add("good"); }
-  if(status === "warn"){ pill.classList.add("warn"); }
-  if(status === "bad"){ pill.classList.add("bad"); }
-}
-function setMetaMachines(txt){ $("#metaMachines").textContent = txt; }
-function setMetaDetails(txt){ $("#metaDetails").textContent = txt; }
-function setKpi(id,val){ $(id).textContent = val; }
+    // latest snapshot summary for list
+    summary: [],
 
-function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+    selectedCodeId: null,
 
-function uniq(arr){
-  return Array.from(new Set(arr));
-}
+    // chart
+    chart: null,
+  };
 
-function clamp(n, a, b){
-  return Math.max(a, Math.min(b, n));
-}
+  // --- DOM ---
+  const $ = (id) => document.getElementById(id);
 
-function median(values){
-  const v = values.filter(x=>Number.isFinite(x)).slice().sort((a,b)=>a-b);
-  if(!v.length) return null;
-  const mid = Math.floor(v.length/2);
-  return v.length%2 ? v[mid] : (v[mid-1]+v[mid])/2;
-}
+  const el = {
+    app: $("app"),
+    subTitle: $("subTitle"),
+    chipUser: $("chipUser"),
+    chipLevel: $("chipLevel"),
+    chipFiles: $("chipFiles"),
+    chipMachines: $("chipMachines"),
 
-function percentile(values, p){
-  const v = values.filter(x=>Number.isFinite(x)).slice().sort((a,b)=>a-b);
-  if(!v.length) return null;
-  const idx = (v.length-1)*p;
-  const lo = Math.floor(idx), hi = Math.ceil(idx);
-  if(lo === hi) return v[lo];
-  return v[lo]*(hi-idx) + v[hi]*(idx-lo);
-}
+    themeSelect: $("themeSelect"),
+    btnLogout: $("btnLogout"),
 
-function downsampleTimeSeries(points, maxPoints){
-  // points: [{t: Date, y: number}]
-  if(points.length <= maxPoints) return points;
-  const n = points.length;
-  const step = n / maxPoints;
-  const out = [];
-  let i = 0;
-  while(Math.floor(i) < n){
-    const start = Math.floor(i);
-    const end = Math.min(n, Math.floor(i + step));
-    // pick representative: min/max/last or average
-    const chunk = points.slice(start, end);
-    const avg = chunk.reduce((s,p)=>s + p.y, 0) / Math.max(1, chunk.length);
-    out.push({t: chunk[chunk.length-1].t, y: avg});
-    i += step;
+    btnLoad: $("btnLoad"),
+    btnOnlyLatest: $("btnOnlyLatest"),
+    statusLine: $("statusLine"),
+    barFill: $("barFill"),
+
+    filterText: $("filterText"),
+    filterMode: $("filterMode"),
+    machineTbody: $("machineTbody"),
+
+    kpiPay: $("kpiPay"),
+    kpiNear: $("kpiNear"),
+    kpiBad: $("kpiBad"),
+
+    // details
+    detailSubtitle: $("detailSubtitle"),
+    rangeSelect: $("rangeSelect"),
+    btnExportMachine: $("btnExportMachine"),
+
+    d_codeid: $("d_codeid"),
+    d_pdv: $("d_pdv"),
+    d_cycle: $("d_cycle"),
+    d_net: $("d_net"),
+    d_res: $("d_res"),
+    d_when: $("d_when"),
+    d_note: $("d_note"),
+    d_lastRows: $("d_lastRows"),
+    chartCanvas: $("machineChart"),
+
+    // chat
+    chatLog: $("chatLog"),
+    chatInput: $("chatInput"),
+    btnChatSend: $("btnChatSend"),
+    btnChatClear: $("btnChatClear"),
+    btnChatExamples: $("btnChatExamples"),
+
+    // login
+    loginOverlay: $("loginOverlay"),
+    loginUser: $("loginUser"),
+    loginPin: $("loginPin"),
+    btnLogin: $("btnLogin"),
+    loginError: $("loginError"),
+    loginTheme: $("loginTheme"),
+  };
+
+  // --- Utils ---
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+  function setTheme(theme){
+    el.app.setAttribute("data-theme", theme);
+    el.themeSelect.value = theme;
+    el.loginTheme.value = theme;
+    localStorage.setItem("awp_theme", theme);
   }
-  return out;
-}
 
-/* =========================
-   FETCH JSON with cache busting
-========================= */
-async function fetchJson(path){
-  const url = `${path}?v=${Date.now()}`;
-  const res = await fetch(url, {cache:"no-store"});
-  if(!res.ok) throw new Error(`Fetch fallito: ${path} (${res.status})`);
-  return await res.json();
-}
-
-/* =========================
-   LOGIN
-========================= */
-function showLogin(show=true){
-  $("#loginBack").style.display = show ? "flex" : "none";
-}
-function setLoginWarn(msg){
-  const w = $("#loginWarn");
-  if(!msg){
-    w.classList.add("hidden");
-    w.textContent = "";
-  }else{
-    w.classList.remove("hidden");
-    w.textContent = msg;
+  function fmtEuroFromCents(v){
+    if (v == null || isNaN(v)) return "-";
+    const eur = Number(v) / 100;
+    return eur.toLocaleString("it-IT", { style:"currency", currency:"EUR" });
   }
-}
-function isExpired(expires){
-  if(expires === null || expires === undefined || expires === "") return false;
-  const d = parseISODate(expires);
-  if(!d) return false;
-  // Compare at end of day
-  const end = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23,59,59,999);
-  return Date.now() > +end;
-}
 
-async function loadUsers(){
-  const override = sessionStorage.getItem("usersOverride");
-  if(override){
-    try{
-      const parsed = JSON.parse(override);
-      if(Array.isArray(parsed)){
-        STATE.users = parsed;
-        return;
+  function safeUpper(s){
+    return (s ?? "").toString().trim().toUpperCase();
+  }
+
+  function parseDateFromFilename(fn){
+    // examples:
+    // Sinottico-2025-12-23-0900.xlsx
+    // Sinottico-2025-10-10-14:30.xlsx
+    // Sinottico-2025-10-07.xlsx
+    const m = fn.match(/(\d{4})-(\d{2})-(\d{2})(?:-(\d{2})(?::?(\d{2}))?)?/);
+    if (!m) return null;
+    const y=+m[1], mo=+m[2], d=+m[3];
+    const hh = m[4] ? +m[4] : 0;
+    const mm = m[5] ? +m[5] : 0;
+    const dt = new Date(Date.UTC(y, mo-1, d, hh, mm, 0));
+    return dt;
+  }
+
+  function dateStr(ts){
+    const d = new Date(ts);
+    return d.toLocaleString("it-IT", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
+  }
+
+  function setProgress(pct, label){
+    el.barFill.style.width = Math.max(0, Math.min(100, pct)) + "%";
+    el.statusLine.textContent = label;
+  }
+
+  function normNumber(v){
+    if (v === null || v === undefined) return null;
+    if (typeof v === "number") return v;
+    const s = (""+v).replace(/\./g,"").replace(",",".").trim();
+    const n = Number(s);
+    return Number.isFinite(n) ? n : null;
+  }
+
+  function normalizeHeader(h){
+    return safeUpper(h).replace(/\s+/g," ").trim();
+  }
+
+  function findCycleForModel(model){
+    if (!model) return null;
+    const m = safeUpper(model);
+    // cicloslot.json uses keys: MODELLO, CICLO, ...
+    const row = state.cicloslot.find(r => safeUpper(r.MODELLO) === m);
+    return row ? normNumber(row.CICLO) : null;
+  }
+
+  function computePredictionForMachine(codeid){
+    const hist = state.historyByMachine.get(codeid) || [];
+    if (hist.length < 2){
+      return { label:"Dati insufficienti", cls:"warn", score:0.45, cycle:null, resid:null, eta:null, note:"Servono più sinottici per una stima affidabile." };
+    }
+
+    // sort by time
+    const arr = hist.slice().sort((a,b)=>a.ts-b.ts);
+
+    const last = arr[arr.length-1];
+    const model = last.MODELLO || last.MODELLO_APP || last.MODEL || null;
+    const cycle = findCycleForModel(model);
+
+    // NET is IN-OUT in cents
+    const nets = arr.map(p => p.net);
+    const deltas = [];
+    for (let i=1;i<arr.length;i++){
+      deltas.push(arr[i].net - arr[i-1].net);
+    }
+
+    // Detect payout-like reset: big negative delta compared to typical
+    const absD = deltas.map(x=>Math.abs(x)).sort((a,b)=>a-b);
+    const medAbs = absD[Math.floor(absD.length*0.5)] || 0;
+    const thr = Math.max( (medAbs*8), 200000 ); // at least 2000€ in cents threshold for a reset
+    let lastResetIdx = -1;
+    for (let i=deltas.length-1;i>=0;i--){
+      if (deltas[i] < -thr){
+        lastResetIdx = i+1;
+        break;
       }
-    }catch{}
-  }
-  STATE.users = await fetchJson(CONFIG.usersPath);
-}
-
-function loginFindUser(user, pin){
-  const u = normStr(user).toLowerCase();
-  const p = upperTrim(pin);
-  const found = (STATE.users || []).find(x =>
-    String(x.user ?? '').trim().toLowerCase() === u &&
-    String(x.pin ?? '').trim() === p
-  );
-  return found || null;
-}
-
-function setSession(userObj){
-  STATE.session = {
-    user: userObj.user,
-    level: userObj.level || "Base",
-    expires: userObj.expires ?? null,
-    loginAt: new Date().toISOString()
-  };
-  sessionStorage.setItem("session", JSON.stringify(STATE.session));
-  $("#btnLogout").style.display = "inline-flex";
-}
-
-function clearSession(){
-  STATE.session = null;
-  sessionStorage.removeItem("session");
-  $("#btnLogout").style.display = "none";
-}
-
-function restoreSession(){
-  const s = sessionStorage.getItem("session");
-  if(!s) return null;
-  try{
-    const obj = JSON.parse(s);
-    if(obj && obj.user) return obj;
-  }catch{}
-  return null;
-}
-
-function requireAuth(){
-  if(!STATE.session) return false;
-  if(isExpired(STATE.session.expires)){
-    toast("Sessione scaduta", "L’utente ha superato la data di scadenza. Esegui di nuovo il login.");
-    clearSession();
-    return false;
-  }
-  return true;
-}
-
-function updateSessionPill(){
-  if(!STATE.session){
-    setPill("bad", "non autenticato");
-    return;
-  }
-  const exp = STATE.session.expires ? `scad. ${STATE.session.expires}` : "senza scadenza";
-  setPill("good", `${STATE.session.user} • ${STATE.session.level} • ${exp}`);
-}
-
-/* =========================
-   MANIFEST + CICLOSLOT
-========================= */
-async function loadManifest(){
-  const m = await fetchJson(CONFIG.manifestPath);
-  // manifest can be {files:[...]} or [...]
-  const files = Array.isArray(m) ? m : (m.files || m.sinottici || m.data || []);
-  STATE.manifest = { raw: m, files };
-  return STATE.manifest;
-}
-async function loadCicloslot(){
-  try{
-    STATE.cicloslot = await fetchJson(CONFIG.cicloslotPath);
-  }catch(err){
-    STATE.cicloslot = null;
-  }
-}
-
-/* =========================
-   XLSX parsing and normalization
-========================= */
-
-function detectHeaderMap(headers){
-  // Try to map columns with flexible names
-  const h = headers.map(x => normStr(x).toLowerCase());
-
-  function findAny(keys){
-    for(const k of keys){
-      const idx = h.findIndex(x => x === k || x.includes(k));
-      if(idx >= 0) return idx;
     }
-    return -1;
-  }
 
-  return {
-    // date/time
-    data: findAny(["data", "giorno", "data rilevazione", "data_rilevazione", "data sinottico"]),
-    ora: findAny(["ora", "orario", "time"]),
-    // location / machine identity
-    locale: findAny(["esercente", "locale", "punto vendita", "pdv descrizione", "denominazione esercizio"]),
-    pdv: findAny(["pdv", "codice pdv", "id pdv", "pdv codice"]),
-    pda: findAny(["pda", "codice pda", "id pda", "pda codice"]),
-    matricola: findAny(["matricola", "seriale", "sn", "matr"]),
-    modello: findAny(["modello", "gioco", "titolo", "nome gioco", "denominazione apparecchio"]),
-    id: findAny(["id", "id apparecchio", "codice apparecchio", "codice aams", "aams"]),
-    // metrics
-    in: findAny(["in", "totale in", "importo in", "incasso", "crediti in", "coin in"]),
-    out: findAny(["out", "totale out", "importo out", "pagato", "crediti out", "coin out"]),
-    residuo_in: findAny(["residuo in", "res in", "residuo_in"]),
-    residuo_out: findAny(["residuo out", "res out", "residuo_out"]),
-    residuo: findAny(["residuo", "residuo totale", "credito residuo"]),
-    percent_ciclo: findAny(["% ciclo", "ciclo %", "percentuale ciclo", "percentuale", "perc ciclo"]),
-    note: findAny(["note", "annotazioni"])
-  };
-}
+    const sinceReset = (lastResetIdx >= 0) ? arr.slice(lastResetIdx) : arr.slice(-Math.min(20,arr.length));
+    const netStart = sinceReset[0].net;
+    const netNow = last.net;
+    const netSince = netNow - netStart;
 
-function xlsxDateToJSDate(x){
-  // If it's already a Date
-  if(x instanceof Date && !Number.isNaN(+x)) return x;
-  // If it's a number Excel serial
-  if(typeof x === 'number' && Number.isFinite(x)){
-    // XLSX.SSF.parse_date_code could help
-    const dc = XLSX.SSF.parse_date_code(x);
-    if(dc){
-      return new Date(dc.y, dc.m-1, dc.d, dc.H, dc.M, dc.S);
+    // Trend (cents per day) using last N points
+    const tail = arr.slice(-Math.min(12,arr.length));
+    const t0 = tail[0].ts, t1 = tail[tail.length-1].ts;
+    const days = Math.max( (t1 - t0) / (1000*60*60*24), 0.2);
+    const netGrowth = (tail[tail.length-1].net - tail[0].net) / days; // cents/day
+
+    // Residual logic
+    let resid = null;
+    let etaDays = null;
+    let score = 0.5;
+    let note = "";
+
+    if (cycle && cycle > 0){
+      // Interpret cycle in cents if it looks like euro? In your data CICLO seems like euros, we convert to cents if small.
+      // Heuristic: if cycle < 1e7 treat as euro and convert to cents. (1e7 cents=100k€)
+      let cycleCents = cycle;
+      if (cycle < 1000000) cycleCents = Math.round(cycle * 100); // euro -> cents
+
+      // We use modulo cycle: where within the cycle we are.
+      const within = ((netNow % cycleCents) + cycleCents) % cycleCents;
+      resid = cycleCents - within;
+
+      // Also use since last reset estimate; choose the "more consistent" one:
+      let resid2 = cycleCents - (((netSince % cycleCents) + cycleCents) % cycleCents);
+      // pick the smaller one (closer)
+      resid = Math.min(resid, resid2);
+
+      if (netGrowth > 1){
+        etaDays = resid / netGrowth;
+      }
+
+      // Score and label:
+      // If residual < 8% cycle -> near
+      const nearPct = resid / cycleCents;
+      if (nearPct < 0.04){
+        score = 0.90;
+        note = "Molto vicino alla soglia stimata del ciclo.";
+      } else if (nearPct < 0.10){
+        score = 0.74;
+        note = "Vicino alla soglia stimata del ciclo.";
+      } else {
+        score = 0.52;
+        note = "Non sembra vicino al ciclo (stima), ma dipende dall’andamento reale.";
+      }
+
+      // If reset recently, boost confidence
+      if (lastResetIdx >= 0) score = Math.min(0.97, score + 0.06);
+
+    } else {
+      // No cycle info: rely on reset detection and slope
+      if (lastResetIdx >= 0){
+        score = 0.62;
+        note = "Ciclo non trovato: uso gli ‘reset’ nello storico per stimare i pagamenti.";
+      } else {
+        score = 0.50;
+        note = "Ciclo non trovato e nessun reset evidente: stima debole.";
+      }
     }
-  }
-  // If it's a string
-  const s = String(x ?? '').trim();
-  if(!s) return null;
 
-  // Try ISO
-  const d1 = new Date(s);
-  if(!Number.isNaN(+d1)) return d1;
+    // Convert to label classes
+    let cls = "warn";
+    let label = "Da monitorare";
+    if (score >= 0.84){ cls="good"; label="In pagamento / molto vicina"; }
+    else if (score >= 0.70){ cls="warn"; label="Vicina al pagamento"; }
+    else if (score < 0.50){ cls="bad"; label="Critica / incerta"; }
 
-  // Try dd/mm/yyyy
-  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if(m){
-    const dd = Number(m[1]), mm = Number(m[2]), yy = Number(m[3].length===2 ? ("20"+m[3]) : m[3]);
-    const HH = Number(m[4]||0), MI = Number(m[5]||0), SS = Number(m[6]||0);
-    const d = new Date(yy, mm-1, dd, HH, MI, SS);
-    if(!Number.isNaN(+d)) return d;
-  }
-  return null;
-}
-
-function pickSheet(wb){
-  // prefer first visible sheet
-  const name = wb.SheetNames[0];
-  return wb.Sheets[name];
-}
-
-function readXlsxToRows(arrayBuffer){
-  const data = new Uint8Array(arrayBuffer);
-  const wb = XLSX.read(data, {type: "array", cellDates:true});
-  const sheet = pickSheet(wb);
-  // Get rows as array-of-arrays
-  const aoa = XLSX.utils.sheet_to_json(sheet, {header:1, raw:true, defval:null});
-  if(!aoa || aoa.length < 2) return {headers:[], rows:[]};
-
-  // Find header row: first row with at least 4 non-empty cells
-  let headerRowIdx = 0;
-  for(let i=0;i<Math.min(10, aoa.length);i++){
-    const filled = aoa[i].filter(x => String(x ?? '').trim() !== '').length;
-    if(filled >= 4){
-      headerRowIdx = i;
-      break;
+    // If growth is negative or zero, warn
+    if (netGrowth <= 0){
+      cls = "bad";
+      label = "Trend anomalo";
+      note = "Il NET non sta crescendo (o sta scendendo). Potrebbe esserci stato un pagamento o letture irregolari.";
     }
+
+    return {
+      label, cls, score,
+      cycle: cycle,
+      resid: resid,
+      etaDays: etaDays,
+      note: note,
+      lastReset: lastResetIdx >= 0 ? arr[lastResetIdx].ts : null
+    };
   }
-  const headers = aoa[headerRowIdx].map(h => normStr(h));
-  const rows = aoa.slice(headerRowIdx+1)
-    .filter(r => r.some(x => String(x ?? '').trim() !== ''))
-    .map(r => {
-      const obj = {};
-      headers.forEach((h,idx)=> obj[h] = r[idx] ?? null);
-      return obj;
+
+  function renderSummaryTable(){
+    const q = el.filterText.value.trim().toUpperCase();
+    const mode = el.filterMode.value;
+
+    let rows = state.summary.slice();
+
+    // filter mode
+    if (mode === "paysoon"){
+      rows = rows.filter(r => r.pred && r.pred.score >= 0.70);
+    } else if (mode === "bad"){
+      rows = rows.filter(r => r.pred && r.pred.score < 0.50);
+    } else if (mode === "top"){
+      // top by last net growth (approx) or net
+      rows.sort((a,b)=> (b.lastNet ?? 0) - (a.lastNet ?? 0));
+      rows = rows.slice(0, 120);
+    }
+
+    // text filter
+    if (q){
+      rows = rows.filter(r => {
+        const hay = [
+          r.codeid, r.pdv, r.pda, r.esercente, r.comune, r.provincia, r.modello
+        ].map(x => (x ?? "").toString().toUpperCase()).join(" | ");
+        return hay.includes(q);
+      });
+    }
+
+    // KPIs
+    let pay=0, near=0, bad=0;
+    for (const r of state.summary){
+      const s = r.pred?.score ?? 0;
+      if (s >= 0.84) pay++;
+      else if (s >= 0.70) near++;
+      else if (s < 0.50) bad++;
+    }
+    el.kpiPay.textContent = "Pagamento: " + pay;
+    el.kpiNear.textContent = "Vicino: " + near;
+    el.kpiBad.textContent = "Critiche: " + bad;
+
+    // render
+    el.machineTbody.innerHTML = "";
+    if (!rows.length){
+      el.machineTbody.innerHTML = `<tr><td colspan="4" class="muted">Nessun risultato con questi filtri.</td></tr>`;
+      return;
+    }
+
+    for (const r of rows){
+      const pred = r.pred || {label:"-", cls:"warn"};
+      const badge = `<span class="badge ${pred.cls}">${pred.label}</span>`;
+
+      const pdv = r.pdv ? `PDV ${r.pdv}` : "-";
+      const pda = r.pda ? `PDA ${r.pda}` : "";
+      const es = r.esercente ? r.esercente : "-";
+      const loc = [r.comune, r.provincia].filter(Boolean).join(" ");
+      const line2 = [es, loc].filter(Boolean).join(" · ");
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="mono" style="font-weight:800">${r.codeid}</td>
+        <td>
+          <div class="mono" style="font-weight:800">${pdv}${pda?(" · "+pda):""}</div>
+          <div class="muted" style="margin-top:4px">${line2}</div>
+          <div class="muted" style="margin-top:4px; font-size:11px">${r.modello ? ("Modello: "+r.modello) : ""}</div>
+        </td>
+        <td>${badge}<div class="muted" style="margin-top:6px; font-size:11px">NET: ${fmtEuroFromCents(r.lastNet)}</div></td>
+        <td style="text-align:right">
+          <button class="btn small" data-open="${r.codeid}">Apri</button>
+        </td>
+      `;
+      el.machineTbody.appendChild(tr);
+    }
+
+    // bind open
+    el.machineTbody.querySelectorAll("[data-open]").forEach(btn=>{
+      btn.addEventListener("click", () => openMachine(btn.getAttribute("data-open")));
+    });
+  }
+
+  function downsample(points, maxPoints){
+    if (points.length <= maxPoints) return points;
+    const step = points.length / maxPoints;
+    const out = [];
+    for (let i=0;i<maxPoints;i++){
+      out.push(points[Math.floor(i*step)]);
+    }
+    // ensure last is included
+    out[out.length-1] = points[points.length-1];
+    return out;
+  }
+
+  function openMachine(codeid){
+    state.selectedCodeId = codeid;
+    const hist = (state.historyByMachine.get(codeid) || []).slice().sort((a,b)=>a.ts-b.ts);
+    if (!hist.length) return;
+
+    const last = hist[hist.length-1];
+    const pred = computePredictionForMachine(codeid);
+
+    el.detailSubtitle.textContent = `Storico: ${hist.length} letture`;
+
+    el.d_codeid.textContent = codeid;
+    const pdv = last.PDV ?? last.PDV_TOT ?? last.PDV_CODE ?? last.PDV_NUM ?? last["PDV"] ?? null;
+    const pda = last.PDA ?? last["PDA"] ?? null;
+    el.d_pdv.textContent = `${pdv ? ("PDV "+pdv) : "-"}${pda ? (" / PDA "+pda) : ""}`;
+
+    // cycle display
+    el.d_cycle.textContent = pred.cycle ? (pred.cycle.toString()) : "N/D";
+
+    el.d_net.textContent = `NET: ${fmtEuroFromCents(last.net)}`;
+    el.d_res.textContent = `Residuo: ${pred.resid != null ? fmtEuroFromCents(pred.resid) : "N/D"}`;
+
+    let whenTxt = "N/D";
+    if (pred.etaDays != null && isFinite(pred.etaDays)){
+      if (pred.etaDays < 0.6) whenTxt = "molto presto";
+      else if (pred.etaDays < 2) whenTxt = "1-2 giorni";
+      else whenTxt = `${Math.round(pred.etaDays)} giorni (stima)`;
+    }
+    el.d_when.textContent = `Quando paga: ${whenTxt}`;
+
+    const noteParts = [];
+    noteParts.push(pred.note || "");
+    if (pred.lastReset){
+      noteParts.push(`Ultimo “reset” rilevato: ${dateStr(pred.lastReset)}.`);
+    }
+    el.d_note.textContent = noteParts.filter(Boolean).join(" ");
+
+    // last rows table
+    const tail = hist.slice(-10).reverse();
+    el.d_lastRows.innerHTML = tail.map(p => `
+      <tr>
+        <td class="mono">${dateStr(p.ts)}</td>
+        <td class="mono">${fmtEuroFromCents(p.in)}</td>
+        <td class="mono">${fmtEuroFromCents(p.out)}</td>
+        <td class="mono" style="font-weight:800">${fmtEuroFromCents(p.net)}</td>
+      </tr>
+    `).join("");
+
+    // chart points
+    const range = el.rangeSelect.value;
+    let pts = hist;
+    if (range !== "all"){
+      const n = parseInt(range,10);
+      pts = hist.slice(-n);
+    } else {
+      pts = downsample(hist, 220);
+    }
+
+    renderChart(pts);
+  }
+
+  function renderChart(points){
+    const labels = points.map(p => {
+      const d = new Date(p.ts);
+      return d.toLocaleDateString("it-IT", {month:"2-digit", day:"2-digit"}) + " " +
+             d.toLocaleTimeString("it-IT", {hour:"2-digit", minute:"2-digit"});
     });
 
-  return {headers, rows};
-}
+    const netData = points.map(p => Math.round((p.net ?? 0) / 100)); // in €
+    const inData = points.map(p => Math.round((p.in ?? 0) / 100));
+    const outData = points.map(p => Math.round((p.out ?? 0) / 100));
 
-function normalizeRow(row, headerMap, fileName){
-  const headers = Object.keys(row);
-  const arr = headers.map(h => row[h]);
-
-  function byIdx(idx){
-    if(idx < 0) return null;
-    const h = headers[idx];
-    return row[h];
-  }
-
-  const dRaw = byIdx(headerMap.data);
-  const oRaw = byIdx(headerMap.ora);
-  let date = xlsxDateToJSDate(dRaw);
-  if(!date && oRaw){
-    // sometimes date is empty but time + filename contains date
-    date = xlsxDateToJSDate(oRaw);
-  }
-
-  // If still no date, attempt from filename: Sinottico-YYYY-MM-DD-HHmm.xlsx etc
-  if(!date){
-    const m = String(fileName).match(/(\d{4})[-_](\d{2})[-_](\d{2})/);
-    if(m){
-      date = new Date(Number(m[1]), Number(m[2])-1, Number(m[3]), 12,0,0);
+    if (state.chart){
+      state.chart.destroy();
+      state.chart = null;
     }
-  }
 
-  const locale = normStr(byIdx(headerMap.locale) ?? "");
-  const pdv = normStr(byIdx(headerMap.pdv) ?? "");
-  const pda = normStr(byIdx(headerMap.pda) ?? "");
-  const matricola = normStr(byIdx(headerMap.matricola) ?? "");
-  const modello = normStr(byIdx(headerMap.modello) ?? "");
-  const id = normStr(byIdx(headerMap.id) ?? "");
-
-  // metrics
-  const inV = safeNum(byIdx(headerMap.in));
-  const outV = safeNum(byIdx(headerMap.out));
-  let residuo = safeNum(byIdx(headerMap.residuo));
-  const resIn = safeNum(byIdx(headerMap.residuo_in));
-  const resOut = safeNum(byIdx(headerMap.residuo_out));
-  const percCiclo = safeNum(byIdx(headerMap.percent_ciclo));
-
-  // Some sheets store residuo as (resIn - resOut) or separate
-  if(residuo === null){
-    if(resIn !== null && resOut !== null) residuo = resIn - resOut;
-    else if(resIn !== null) residuo = resIn;
-    else if(resOut !== null) residuo = -resOut;
-  }
-
-  // Validate: require something to identify machine
-  const machineKey = matricola || id || (pdv + "|" + pda + "|" + modello);
-  if(!machineKey) return null;
-
-  const saldo = (inV ?? 0) - (outV ?? 0);
-
-  return {
-    file: fileName,
-    date: date ? date.toISOString() : null,
-    dateObj: date || null,
-    locale, pdv, pda,
-    matricola, modello, id,
-    in: inV, out: outV,
-    residuo,
-    residuo_in: resIn, residuo_out: resOut,
-    perc_ciclo: percCiclo,
-    saldo
-  };
-}
-
-function machineIdFromRow(r){
-  // prefer matricola, else id, else pdv+pda+modello
-  if(r.matricola) return `MATR:${r.matricola}`;
-  if(r.id) return `ID:${r.id}`;
-  return `KEY:${r.pdv}|${r.pda}|${r.modello}`;
-}
-
-function mergeRowIntoMachine(machine, r){
-  machine.rows.push(r);
-  machine.lastSeen = machine.lastSeen && r.dateObj ? (machine.lastSeen > r.dateObj ? machine.lastSeen : r.dateObj) : (r.dateObj || machine.lastSeen);
-
-  // Keep best known identity fields
-  if(!machine.locale && r.locale) machine.locale = r.locale;
-  if(!machine.pdv && r.pdv) machine.pdv = r.pdv;
-  if(!machine.pda && r.pda) machine.pda = r.pda;
-  if(!machine.matricola && r.matricola) machine.matricola = r.matricola;
-  if(!machine.modello && r.modello) machine.modello = r.modello;
-  if(!machine.id && r.id) machine.id = r.id;
-
-  // For summary metrics use latest available values (based on date)
-  if(r.dateObj){
-    if(!machine.latest || (machine.latest.dateObj && r.dateObj >= machine.latest.dateObj)){
-      machine.latest = r;
-    }
-  }else{
-    if(!machine.latest) machine.latest = r;
-  }
-}
-
-/* =========================
-   ANALYSIS: “Neural-ish” scoring
-========================= */
-
-function computeMachineFeatures(machine){
-  // Sort by date
-  const rows = machine.rows.filter(x=>x.dateObj).slice().sort((a,b)=>+a.dateObj - +b.dateObj);
-  machine.rowsSorted = rows;
-
-  const saldoSeries = rows.map(r => r.saldo ?? null).filter(x=>x!==null);
-  const inSeries = rows.map(r => r.in ?? null).filter(x=>x!==null);
-  const outSeries = rows.map(r => r.out ?? null).filter(x=>x!==null);
-  const residSeries = rows.map(r => r.residuo ?? null).filter(x=>x!==null);
-
-  // Deltas between consecutive points
-  const saldoDelta = [];
-  const residDelta = [];
-  for(let i=1;i<rows.length;i++){
-    if(rows[i].saldo!=null && rows[i-1].saldo!=null) saldoDelta.push(rows[i].saldo - rows[i-1].saldo);
-    if(rows[i].residuo!=null && rows[i-1].residuo!=null) residDelta.push(rows[i].residuo - rows[i-1].residuo);
-  }
-
-  const last = rows[rows.length-1] || machine.latest || null;
-
-  // “Volatility”
-  const p10 = percentile(saldoDelta, 0.10);
-  const p90 = percentile(saldoDelta, 0.90);
-  const vol = (p10!=null && p90!=null) ? (p90 - p10) : null;
-
-  // Trend: last N points linear-ish
-  function trendOf(arr){
-    if(arr.length < 6) return null;
-    const n = arr.length;
-    // Use simple slope (last - first) / n
-    return (arr[n-1] - arr[0]) / n;
-  }
-  const saldoTrend = trendOf(rows.map(r=>r.saldo ?? 0));
-  const residTrend = trendOf(rows.map(r=>r.residuo ?? 0));
-
-  // “Pressure” signals:
-  // - If OUT has been low relative to IN recently, may be accumulating (but beware normal behavior)
-  // - If residuo is high/positive, might be near payout threshold (depends on rules)
-  // - Use cicloslot info if available (model baseline cycle / payout pattern)
-  const lastIn = last?.in ?? null;
-  const lastOut = last?.out ?? null;
-  const lastSaldo = last?.saldo ?? null;
-  const lastResid = last?.residuo ?? null;
-  const lastPerc = last?.perc_ciclo ?? null;
-
-  // Recent window
-  const recentN = Math.min(12, rows.length);
-  const recent = rows.slice(-recentN);
-  const recentSaldo = recent.map(r=>r.saldo ?? 0);
-  const recentIn = recent.map(r=>r.in ?? 0);
-  const recentOut = recent.map(r=>r.out ?? 0);
-  const recentResid = recent.map(r=>r.residuo ?? 0);
-
-  const avgIn = recentIn.length ? recentIn.reduce((a,b)=>a+b,0)/recentIn.length : null;
-  const avgOut = recentOut.length ? recentOut.reduce((a,b)=>a+b,0)/recentOut.length : null;
-  const avgSaldo = recentSaldo.length ? recentSaldo.reduce((a,b)=>a+b,0)/recentSaldo.length : null;
-  const medResid = median(recentResid);
-
-  // Ratio out/in
-  let outInRatio = null;
-  if(avgIn != null && avgIn !== 0 && avgOut != null) outInRatio = avgOut / avgIn;
-
-  // Cicloslot baseline (if available)
-  let cicloHint = null;
-  if(STATE.cicloslot){
-    // cicloslot can be keyed by model, or list
-    const modelKey = normStr(machine.modello || "").toLowerCase();
-    // try direct
-    let found = null;
-    if(STATE.cicloslot[modelKey]) found = STATE.cicloslot[modelKey];
-    // try array search
-    if(!found && Array.isArray(STATE.cicloslot)){
-      found = STATE.cicloslot.find(x => normStr(x.modello||x.model||"").toLowerCase() === modelKey);
-    }
-    if(found) cicloHint = found;
-  }
-
-  return {
-    rowsCount: rows.length,
-    last,
-    lastIn, lastOut, lastSaldo, lastResid, lastPerc,
-    avgIn, avgOut, avgSaldo,
-    outInRatio,
-    saldoTrend, residTrend,
-    vol,
-    medResid,
-    cicloHint
-  };
-}
-
-function scoreMachine(machine, globalStats){
-  const f = computeMachineFeatures(machine);
-  machine.features = f;
-
-  // If too few points, score low but not zero
-  const minPoints = 3;
-  const dataFactor = clamp((f.rowsCount || 0) / 18, 0.15, 1);
-
-  // Normalize features against global distributions
-  const z = (x, med, iqr)=>{
-    if(x==null || med==null || iqr==null || iqr===0) return 0;
-    return (x - med) / iqr;
-  };
-
-  const medSaldo = globalStats.medSaldo;
-  const iqrSaldo = globalStats.iqrSaldo;
-
-  const medResid = globalStats.medResid;
-  const iqrResid = globalStats.iqrResid;
-
-  const medRatio = globalStats.medRatio;
-  const iqrRatio = globalStats.iqrRatio;
-
-  // Key signals:
-  // 1) lastSaldo high positive (accumulation)
-  // 2) residuo high positive (if present)
-  // 3) out/in ratio lower than typical (accumulating rather than paying out)
-  // 4) trend positive over recent period
-  // 5) cycle percentage high (if present)
-  let s = 0;
-
-  const zSaldo = z(f.lastSaldo, medSaldo, iqrSaldo);
-  const zResid = z(f.lastResid, medResid, iqrResid);
-  const zRatio = z(f.outInRatio, medRatio, iqrRatio);
-
-  // Weighted sum (heuristic model)
-  // Lower ratio => more likely accumulation => invert
-  const invRatio = -zRatio;
-
-  s += 0.95 * clamp(zSaldo, -2.5, 3.0);
-  s += 0.85 * clamp(zResid, -2.5, 3.0);
-  s += 0.60 * clamp(invRatio, -2.5, 3.0);
-
-  // Trends
-  if(f.saldoTrend != null){
-    s += 0.35 * clamp(f.saldoTrend / (Math.abs(medSaldo||1)+1), -2.0, 2.0);
-  }
-  if(f.residTrend != null){
-    s += 0.25 * clamp(f.residTrend / (Math.abs(medResid||1)+1), -2.0, 2.0);
-  }
-
-  // Cycle percentage if available (0-100)
-  if(f.lastPerc != null){
-    s += 0.55 * clamp((f.lastPerc - 50) / 25, -2.0, 2.0);
-  }
-
-  // If cicloslot hint contains expected payout window/threshold, we can slightly adjust
-  if(f.cicloHint){
-    // We don’t assume schema; try some typical fields
-    const thr = safeNum(f.cicloHint.threshold || f.cicloHint.soglia || f.cicloHint.payout_threshold);
-    if(thr != null && f.lastResid != null){
-      const closeness = 1 - Math.min(1, Math.abs(f.lastResid - thr) / (Math.abs(thr) + 1));
-      s += 0.45 * (closeness - 0.5) * 2; // -1..+1
-    }
-    const cycle = safeNum(f.cicloHint.cycle || f.cicloHint.ciclo || f.cicloHint.cycle_len);
-    if(cycle != null && f.rowsCount){
-      // more points approaching cycle length => higher confidence
-      const cf = clamp(f.rowsCount / cycle, 0, 1);
-      s += 0.20 * cf;
-    }
-  }
-
-  // Apply data factor
-  s *= dataFactor;
-
-  // Convert to 0..100
-  const score = clamp(50 + s*18, 0, 100);
-
-  // Label
-  let label = "bad";
-  if(score >= 70) label = "good";
-  else if(score >= 55) label = "warn";
-
-  // Explain
-  const reasons = [];
-  if(f.lastSaldo != null) reasons.push(`Saldo ultimo: ${fmtMoney(f.lastSaldo)} (${zSaldo>=0 ? "↑" : "↓"})`);
-  if(f.lastResid != null) reasons.push(`Residuo ultimo: ${fmtMoney(f.lastResid)} (${zResid>=0 ? "↑" : "↓"})`);
-  if(f.outInRatio != null) reasons.push(`OUT/IN: ${(f.outInRatio*100).toFixed(1)}% (${invRatio>=0 ? "accumula" : "scarica"})`);
-  if(f.lastPerc != null) reasons.push(`% ciclo: ${f.lastPerc.toFixed(1)}%`);
-  if(f.saldoTrend != null) reasons.push(`Trend saldo: ${fmtMoney(f.saldoTrend)} per punto`);
-  if(f.residTrend != null) reasons.push(`Trend residuo: ${fmtMoney(f.residTrend)} per punto`);
-  if(f.cicloHint) reasons.push(`CicloSlot: riferimento modello trovato`);
-
-  machine.score = score;
-  machine.scoreLabel = label;
-  machine.scoreReasons = reasons;
-  return machine;
-}
-
-function fmtMoney(x){
-  if(x == null || !Number.isFinite(x)) return "n/d";
-  // keep decimals if needed
-  const n = x;
-  const sign = n < 0 ? "-" : "";
-  const abs = Math.abs(n);
-  const s = abs.toLocaleString("it-IT", {minimumFractionDigits:0, maximumFractionDigits:2});
-  return sign + s;
-}
-
-/* =========================
-   BUILD MACHINES FROM ROWS
-========================= */
-
-function computeGlobalStats(rows){
-  // Build distributions from last known values per machine
-  const byMachine = new Map();
-  for(const r of rows){
-    const id = machineIdFromRow(r);
-    let arr = byMachine.get(id);
-    if(!arr){ arr=[]; byMachine.set(id, arr); }
-    arr.push(r);
-  }
-
-  const lastSaldo = [];
-  const lastResid = [];
-  const ratio = [];
-
-  for(const [id, arr] of byMachine.entries()){
-    const sorted = arr.filter(x=>x.dateObj).slice().sort((a,b)=>+a.dateObj - +b.dateObj);
-    const last = sorted[sorted.length-1] || arr[arr.length-1];
-    if(last?.saldo != null) lastSaldo.push(last.saldo);
-    if(last?.residuo != null) lastResid.push(last.residuo);
-    if(last?.in != null && last.in !== 0 && last?.out != null){
-      ratio.push(last.out / last.in);
-    }
-  }
-
-  const medSaldo = median(lastSaldo);
-  const medResid = median(lastResid);
-  const medRatio = median(ratio);
-
-  const q25Saldo = percentile(lastSaldo, 0.25);
-  const q75Saldo = percentile(lastSaldo, 0.75);
-  const iqrSaldo = (q25Saldo!=null && q75Saldo!=null) ? (q75Saldo - q25Saldo) : null;
-
-  const q25Resid = percentile(lastResid, 0.25);
-  const q75Resid = percentile(lastResid, 0.75);
-  const iqrResid = (q25Resid!=null && q75Resid!=null) ? (q75Resid - q25Resid) : null;
-
-  const q25Ratio = percentile(ratio, 0.25);
-  const q75Ratio = percentile(ratio, 0.75);
-  const iqrRatio = (q25Ratio!=null && q75Ratio!=null) ? (q75Ratio - q25Ratio) : null;
-
-  return { medSaldo, iqrSaldo, medResid, iqrResid, medRatio, iqrRatio };
-}
-
-function rebuildMachines(){
-  const map = new Map();
-
-  for(const r of STATE.rawRows){
-    const id = machineIdFromRow(r);
-    let m = map.get(id);
-    if(!m){
-      m = {
-        id,
-        locale: r.locale || "",
-        pdv: r.pdv || "",
-        pda: r.pda || "",
-        matricola: r.matricola || "",
-        modello: r.modello || "",
-        aams: r.id || "",
-        lastSeen: r.dateObj || null,
-        latest: null,
-        rows: [],
-        rowsSorted: [],
-        score: 0,
-        scoreLabel: "bad",
-        scoreReasons: [],
-        features: null
-      };
-      map.set(id, m);
-    }
-    mergeRowIntoMachine(m, r);
-  }
-
-  // Global stats used to normalize scoring
-  const globalStats = computeGlobalStats(STATE.rawRows);
-
-  const machines = Array.from(map.values());
-  machines.forEach(m => scoreMachine(m, globalStats));
-
-  // Sort: best first
-  machines.sort((a,b)=> (b.score - a.score) || ((b.lastSeen?+b.lastSeen:0) - (a.lastSeen?+a.lastSeen:0)));
-
-  STATE.machines = machines;
-  STATE.machineById = map;
-
-  // KPIs
-  setKpi("#kpiMachines", machines.length);
-  const hot = machines.filter(m => m.scoreLabel === "good").length;
-  setKpi("#kpiHot", hot);
-
-  $("#kpiMachinesSub").textContent = "raggruppate";
-  $("#kpiHotSub").textContent = "score ≥ 70";
-}
-
-/* =========================
-   UI: RENDER MACHINES LIST
-========================= */
-
-function uniqueLocales(){
-  const locs = STATE.machines.map(m=>m.locale).filter(Boolean);
-  return uniq(locs).sort((a,b)=>a.localeCompare(b));
-}
-
-function renderLocaleFilter(){
-  const sel = $("#filterLocal");
-  const current = sel.value;
-  sel.innerHTML = `<option value="">Tutti i locali</option>`;
-  for(const l of uniqueLocales()){
-    const opt = document.createElement("option");
-    opt.value = l;
-    opt.textContent = l;
-    sel.appendChild(opt);
-  }
-  if(current) sel.value = current;
-}
-
-function machineTitle(m){
-  const name = m.modello || "Modello n/d";
-  const loc = m.locale || "Locale n/d";
-  const id = m.matricola || m.aams || m.id;
-  return `${name} • ${loc}`;
-}
-
-function renderMachines(){
-  const q = normStr($("#qMachine").value).toLowerCase();
-  const fLoc = $("#filterLocal").value;
-  const fScore = $("#filterScore").value;
-
-  const list = $("#machinesList");
-  list.innerHTML = "";
-
-  let shown = 0;
-
-  for(const m of STATE.machines){
-    if(fLoc && m.locale !== fLoc) continue;
-    if(fScore && m.scoreLabel !== fScore) continue;
-
-    const hay = [
-      m.modello, m.locale, m.pdv, m.pda, m.matricola, m.aams
-    ].join(" ").toLowerCase();
-    if(q && !hay.includes(q)) continue;
-
-    const card = document.createElement("div");
-    card.className = "machine" + (STATE.selectedMachineId === m.id ? " active" : "");
-    card.dataset.id = m.id;
-
-    const badgeText =
-      m.scoreLabel === "good" ? "Prob. pagamento" :
-      m.scoreLabel === "warn" ? "Osservazione" : "Bassa priorità";
-
-    const last = m.latest?.dateObj || m.lastSeen;
-    const lastTxt = last ? fmtDate(last) : "n/d";
-
-    const saldo = m.latest?.saldo ?? null;
-    const resid = m.latest?.residuo ?? null;
-    const perc = m.latest?.perc_ciclo ?? null;
-
-    card.innerHTML = `
-      <div class="top">
-        <div>
-          <div class="name">${escapeHtml(m.modello || "Modello n/d")}</div>
-          <div class="sub">${escapeHtml(m.locale || "Locale n/d")} • <span class="mono">${escapeHtml(m.matricola || m.aams || m.pdv || "n/d")}</span> • ultimo: ${lastTxt}</div>
-        </div>
-        <div class="badge ${m.scoreLabel}">${badgeText} • ${Math.round(m.score)}</div>
-      </div>
-      <div class="metrics">
-        <div class="mini">
-          <div class="t">Saldo</div>
-          <div class="v">${saldo==null ? "n/d" : fmtMoney(saldo)}</div>
-        </div>
-        <div class="mini">
-          <div class="t">Residuo</div>
-          <div class="v">${resid==null ? "n/d" : fmtMoney(resid)}</div>
-        </div>
-        <div class="mini">
-          <div class="t">% ciclo</div>
-          <div class="v">${perc==null ? "n/d" : perc.toFixed(1)+"%"}</div>
-        </div>
-      </div>
-    `;
-
-    card.addEventListener("click", ()=> selectMachine(m.id));
-    list.appendChild(card);
-    shown++;
-  }
-
-  setMetaMachines(`${shown} mostrate / ${STATE.machines.length} totali`);
-}
-
-function escapeHtml(s){
-  return String(s ?? '')
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-
-/* =========================
-   DETAILS + CHART
-========================= */
-
-function renderChips(m){
-  const chips = $("#machineChips");
-  chips.innerHTML = "";
-
-  const items = [
-    ["Locale", m.locale || "n/d"],
-    ["Modello", m.modello || "n/d"],
-    ["Matricola", m.matricola || "n/d"],
-    ["AAMS/ID", m.aams || "n/d"],
-    ["PDV", m.pdv || "n/d"],
-    ["PDA", m.pda || "n/d"],
-    ["Ultimo", (m.latest?.dateObj || m.lastSeen) ? fmtDate(m.latest?.dateObj || m.lastSeen) : "n/d"],
-    ["Score", `${Math.round(m.score)}/100`]
-  ];
-
-  for(const [k,v] of items){
-    const c = document.createElement("div");
-    c.className = "chip";
-    c.innerHTML = `<b>${escapeHtml(k)}:</b> ${escapeHtml(v)}`;
-    chips.appendChild(c);
-  }
-}
-
-function getSeriesForMachine(m, metric, rangeDays){
-  const rows = (m.rowsSorted && m.rowsSorted.length) ? m.rowsSorted : m.rows.filter(x=>x.dateObj).slice().sort((a,b)=>+a.dateObj - +b.dateObj);
-  if(!rows.length) return [];
-
-  let filtered = rows;
-  if(rangeDays !== "all"){
-    const days = Number(rangeDays);
-    const latest = rows[rows.length-1].dateObj;
-    const from = new Date(+latest - days*24*3600*1000);
-    filtered = rows.filter(r => r.dateObj >= from);
-  }
-
-  const points = [];
-  for(const r of filtered){
-    let y = null;
-    if(metric === "saldo") y = r.saldo;
-    else if(metric === "residuo") y = r.residuo;
-    else if(metric === "in") y = r.in;
-    else if(metric === "out") y = r.out;
-    if(y == null || !Number.isFinite(y)) continue;
-    points.push({t: r.dateObj, y});
-  }
-  return points;
-}
-
-function renderChart(m){
-  const metric = $("#metricSelect").value;
-  const range = $("#rangeSelect").value;
-
-  const pointsAll = getSeriesForMachine(m, metric, range);
-  const points = downsampleTimeSeries(pointsAll, CONFIG.chartMaxPoints);
-
-  const labelMap = {
-    saldo: "Saldo (IN - OUT)",
-    residuo: "Residuo",
-    in: "IN",
-    out: "OUT"
-  };
-
-  const data = {
-    labels: points.map(p=>p.t),
-    datasets: [{
-      label: labelMap[metric] || metric,
-      data: points.map(p=>p.y),
-      tension: 0.25,
-      pointRadius: 0,
-      borderWidth: 2
-    }]
-  };
-
-  if(!STATE.chart){
-    const ctx = $("#chart").getContext("2d");
-    STATE.chart = new Chart(ctx, {
+    state.chart = new Chart(el.chartCanvas, {
       type: "line",
-      data,
+      data: {
+        labels,
+        datasets: [
+          { label: "NET (€)", data: netData, borderWidth: 2, tension: .22, pointRadius: 0 },
+          { label: "IN (€)", data: inData, borderWidth: 1, tension: .22, pointRadius: 0 },
+          { label: "OUT (€)", data: outData, borderWidth: 1, tension: .22, pointRadius: 0 },
+        ]
+      },
       options: {
         responsive: true,
         maintainAspectRatio: false,
-        parsing: false,
-        scales: {
-          x: {
-            type: "time",
-            time: { unit: "day" },
-            ticks: { color: "rgba(255,255,255,.55)", maxTicksLimit: 8 },
-            grid: { color: "rgba(255,255,255,.06)" }
-          },
-          y: {
-            ticks: { color: "rgba(255,255,255,.55)" },
-            grid: { color: "rgba(255,255,255,.06)" }
-          }
-        },
         plugins: {
-          legend: { labels: { color: "rgba(255,255,255,.75)" } },
-          tooltip: {
-            callbacks: {
-              label: (ctx) => `${ctx.dataset.label}: ${fmtMoney(ctx.parsed.y)}`
-            }
-          }
-        }
+          legend: { labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--text') } },
+          tooltip: { mode: "index", intersect: false }
+        },
+        scales: {
+          x: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--muted'), maxTicksLimit: 10 } },
+          y: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--muted') } },
+        },
+        interaction: { mode:"index", intersect:false },
       }
     });
-  }else{
-    STATE.chart.data = data;
-    STATE.chart.update();
   }
 
-  const note = $("#chartNote");
-  const nAll = pointsAll.length;
-  const nShown = points.length;
-  note.textContent = (nAll === 0)
-    ? "Nessun dato per questa metrica."
-    : `Punti: ${nShown} (ridotti da ${nAll} per leggibilità). Dati completi sempre in RAM.`;
-}
+  // --- XLSX parsing (robust header search) ---
+  function sheetToJsonWithHeaderSearch(workbook){
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
 
-function renderAiExplain(m){
-  $("#metaAiScore").textContent = `${Math.round(m.score)}/100 • ${m.scoreLabel === "good" ? "Probabile pagamento" : m.scoreLabel === "warn" ? "In osservazione" : "Bassa priorità"}`;
+    // Convert to 2D array
+    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
 
-  const rowsN = m.features?.rowsCount ?? m.rows.length;
-  const last = m.features?.last?.dateObj ? fmtDate(m.features.last.dateObj) : (m.latest?.dateObj ? fmtDate(m.latest.dateObj) : "n/d");
+    // Find header row index: look for CODEID and at least a couple of known columns
+    const known = ["CODEID", "CNTTOTIN", "CNTTOTOUT", "CODICEID", "TOTIN", "TOTOUT"];
+    let headerRowIdx = -1;
 
-  const bullets = (m.scoreReasons || []).map(x=>`• ${x}`).join("\n");
-  const hint = buildPayPredictionHint(m);
-
-  $("#aiExplain").textContent =
-`Dati analizzati: ${rowsN} punti • ultimo: ${last}
-
-Segnali principali:
-${bullets || "• n/d"}
-
-Stima operativa:
-${hint}`;
-}
-
-function buildPayPredictionHint(m){
-  // A friendly hint: not a promise, just a data-driven guess
-  const f = m.features || {};
-  const score = m.score || 0;
-
-  // Use residuo closeness to a learned threshold per model/cluster
-  // We'll estimate a "payout threshold" from historical peaks (top percentiles of residuo) if residuo exists
-  const resid = (m.rowsSorted || []).map(r=>r.residuo).filter(x=>x!=null && Number.isFinite(x));
-  let thr = null;
-  if(resid.length >= 12){
-    thr = percentile(resid, 0.92);
-  }
-  if(f.cicloHint){
-    const t = safeNum(f.cicloHint.threshold || f.cicloHint.soglia || f.cicloHint.payout_threshold);
-    if(t != null) thr = t;
-  }
-
-  if(score < 55){
-    return "Bassa priorità ora. Se vuoi, chiedimi: “mostrami le top 10 in pagamento” oppure “filtra per locale”.";
-  }
-
-  if(thr != null && f.lastResid != null){
-    const dist = thr - f.lastResid;
-    const absThr = Math.abs(thr) + 1;
-    const closeness = 1 - Math.min(1, Math.abs(dist)/absThr);
-    if(closeness > 0.85){
-      return `Residuo vicino alla soglia stimata (${fmtMoney(thr)}). Potrebbe essere “calda”. Consiglio: controllo mirato / confronto con altri modelli nello stesso locale.`;
-    }
-    if(closeness > 0.65){
-      return `Residuo in avvicinamento alla soglia stimata (${fmtMoney(thr)}). Tienila sotto osservazione nelle prossime letture.`;
-    }
-  }
-
-  if(f.lastPerc != null && f.lastPerc >= 80){
-    return "Percentuale ciclo alta: spesso è un segnale di fase avanzata. Incrocia con residuo/saldo e andamento locale.";
-  }
-
-  return "Segnali positivi ma non conclusivi. Chiedimi: “quando paga questa macchina?” e ti faccio una stima con più dettagli (trend + confronti).";
-}
-
-function selectMachine(id){
-  const m = STATE.machineById.get(id);
-  if(!m) return;
-
-  STATE.selectedMachineId = id;
-  setMetaDetails(m.locale ? `${m.locale} • ${m.modello || "modello n/d"}` : (m.modello || "macchina selezionata"));
-
-  renderMachines();
-  renderChips(m);
-  renderChart(m);
-  renderAiExplain(m);
-
-  // Add a gentle system tip to SAGA context
-  sagaSystemHintForSelection(m);
-}
-
-/* =========================
-   CHAT: SAGA (rule-based, data-grounded)
-========================= */
-
-function chatPush(role, text){
-  STATE.chat.push({role, text, at: new Date().toISOString()});
-  if(STATE.chat.length > CONFIG.chatMaxTurns){
-    STATE.chat.splice(0, STATE.chat.length - CONFIG.chatMaxTurns);
-  }
-  renderChat();
-}
-
-function renderChat(){
-  const log = $("#chatLog");
-  log.innerHTML = "";
-  for(const m of STATE.chat){
-    const div = document.createElement("div");
-    div.className = "msg " + (m.role === "user" ? "user" : "ai");
-    div.innerHTML = `<div class="bubble">${escapeHtml(m.text)}</div>`;
-    log.appendChild(div);
-  }
-  log.scrollTop = log.scrollHeight;
-}
-
-function sagaIntro(){
-  STATE.chat = [];
-  chatPush("ai",
-`Ciao! Sono SAGA.
-
-Posso:
-• trovare quali macchine sembrano “in pagamento”
-• stimare “quando paga” una macchina (basato su storico e trend)
-• filtrare per locale / modello / matricola / PDA / PDV
-• spiegare perché una macchina è “calda” o no
-
-Prova: “quali sono in pagamento?” oppure “quando paga questa macchina?”`);
-}
-
-function sagaSystemHintForSelection(machine){
-  // keep chat clean: only add once or when empty
-  if(!STATE.chat.length) return;
-  // Add a short hint occasionally
-  if(STATE.chat.length < 2) return;
-}
-
-function parseIntent(text){
-  const t = normStr(text).toLowerCase();
-
-  const intents = {
-    topPaying: /(quali|mostra|dammi|lista).*(pagamento|in pagamento|paga|calde|migliori)/i,
-    whenPays: /(quando).*(paga|pagher[àa]|pagamento)/i,
-    explain: /(perch[eé]|spiega|motiv|come mai).*(paga|pagamento|score|calda|priorit)/i,
-    filterLocal: /(nel|nella|al|alla|locale|bar|ristorante).*(?:pdv|pda)?/i,
-    findMachine: /(cerca|trova|seleziona|apri|mostra).*(macchina|matricola|aams|id|pda|pdv|modello)/i,
-    stats: /(stat|riassunto|kpi|totali|quanti|numero).*(macchine|sinottici|record)/i,
-    help: /(aiuto|come funziona|cosa puoi fare|comandi)/i
-  };
-
-  for(const [k,rx] of Object.entries(intents)){
-    if(rx.test(t)) return k;
-  }
-
-  // fallback: if they mention a machine token
-  if(/[a-z]{2,}|\d{3,}/i.test(t)) return "findMachine";
-  return "unknown";
-}
-
-function tryFindMachineFromText(text){
-  const t = normStr(text).toLowerCase();
-
-  // If user has a selected machine and references "questa", return it
-  if(/\bquesta\b|\bquesta macchina\b|\bquesto\b/.test(t) && STATE.selectedMachineId){
-    return STATE.machineById.get(STATE.selectedMachineId) || null;
-  }
-
-  // Extract candidate tokens
-  const tokens = t.split(/\s+/).filter(x=>x.length>=3);
-  // Try match by matricola, pdv, pda, aams, model fragment
-  let best = null;
-  let bestScore = 0;
-
-  for(const m of STATE.machines){
-    const hay = [
-      m.modello, m.locale, m.pdv, m.pda, m.matricola, m.aams
-    ].join(" ").toLowerCase();
-
-    let s = 0;
-    for(const tok of tokens){
-      if(hay.includes(tok)) s++;
-    }
-    // boost if numeric token matches exactly in ids
-    for(const tok of tokens){
-      if(/^\d+$/.test(tok)){
-        if((m.matricola||"").toLowerCase().includes(tok)) s += 2;
-        if((m.pdv||"").toLowerCase().includes(tok)) s += 2;
-        if((m.pda||"").toLowerCase().includes(tok)) s += 2;
-        if((m.aams||"").toLowerCase().includes(tok)) s += 2;
+    for (let i=0;i<Math.min(rows.length, 30);i++){
+      const row = rows[i].map(x => normalizeHeader(x));
+      const hasCode = row.includes("CODEID") || row.includes("CODICEID");
+      const hits = known.filter(k => row.includes(k)).length;
+      if (hasCode && hits >= 2){
+        headerRowIdx = i;
+        break;
       }
     }
 
-    if(s > bestScore){
-      bestScore = s;
-      best = m;
+    if (headerRowIdx === -1){
+      // fallback: assume first row
+      headerRowIdx = 0;
     }
+
+    const header = rows[headerRowIdx].map(h => normalizeHeader(h));
+    const dataRows = rows.slice(headerRowIdx + 1);
+
+    // Map rows to objects
+    const out = [];
+    for (const r of dataRows){
+      if (!r || r.every(x => x === null || x === "")) continue;
+      const obj = {};
+      for (let c=0;c<header.length;c++){
+        const key = header[c] || ("COL_"+c);
+        obj[key] = r[c];
+      }
+      out.push(obj);
+    }
+    return out;
   }
 
-  if(bestScore >= 2) return best;
-  return null;
-}
+  function extractMachineRow(raw){
+    // Normalize keys we care about
+    const codeid = raw.CODEID ?? raw.CODICEID ?? raw["CODEID"] ?? raw["CODICEID"];
+    if (!codeid) return null;
 
-function sagaAnswer(text){
-  if(!STATE.rawRows.length){
-    return `Prima devo avere i dati in RAM.
-Premi “Analizza tutti i sinottici” (in alto). Poi chiedimi di nuovo.`;
+    const inC = normNumber(raw.CNTTOTIN ?? raw.TOTIN ?? raw["CNTTOTIN"] ?? raw["TOTIN"]);
+    const outC = normNumber(raw.CNTTOTOUT ?? raw.TOTOUT ?? raw["CNTTOTOUT"] ?? raw["TOTOUT"]);
+
+    // Most sinottici use cents in these totals; keep as number in cents
+    // If sometimes they're in euro, we can detect: if < 500000 and looks like euro, convert to cents
+    const inCents = (inC != null && inC < 500000 && Number.isInteger(inC) === false) ? Math.round(inC*100) : (inC != null ? Math.round(inC) : null);
+    const outCents = (outC != null && outC < 500000 && Number.isInteger(outC) === false) ? Math.round(outC*100) : (outC != null ? Math.round(outC) : null);
+
+    const net = (inCents != null && outCents != null) ? (inCents - outCents) : null;
+
+    // Optional fields
+    const pdv = raw.PDV ?? raw["PDV"];
+    const pda = raw.PDA ?? raw["PDA"];
+    const esercente = raw.ESERCENTE ?? raw["ESERCENTE"];
+    const comune = raw.COMUNE ?? raw["COMUNE"];
+    const provincia = raw.PROVINCIA ?? raw["PROVINCIA"];
+    const modello = raw.MODELLO ?? raw["MODELLO"];
+
+    // keep raw for extra details
+    return {
+      codeid: (""+codeid).trim(),
+      in: inCents,
+      out: outCents,
+      net,
+      PDV: pdv,
+      PDA: pda,
+      ESERCENTE: esercente,
+      COMUNE: comune,
+      PROVINCIA: provincia,
+      MODELLO: modello,
+      _raw: raw
+    };
   }
 
-  const intent = parseIntent(text);
-
-  if(intent === "help"){
-    return `Comandi utili:
-• “quali sono in pagamento?”
-• “top 10 in pagamento”
-• “quando paga questa macchina?”
-• “spiega perché paga”
-• “cerca [matricola/modello/locale]”
-• “statistiche”`;
+  async function fetchJson(path){
+    const res = await fetch(path, { cache:"no-store" });
+    if (!res.ok) throw new Error(`Impossibile leggere ${path} (${res.status})`);
+    return await res.json();
   }
 
-  if(intent === "stats"){
-    return `Riassunto:
-• sinottici letti: ${STATE.manifest?.files?.length ? `${STATE.manifest.files.length} (da manifest)` : $("#kpiFiles").textContent}
-• record in RAM: ${$("#kpiRows").textContent}
-• macchine uniche: ${$("#kpiMachines").textContent}
-• prob. pagamento: ${$("#kpiHot").textContent}`;
+  async function fetchArrayBuffer(path){
+    const res = await fetch(path, { cache:"no-store" });
+    if (!res.ok) throw new Error(`Impossibile scaricare ${path} (${res.status})`);
+    return await res.arrayBuffer();
   }
 
-  if(intent === "topPaying"){
-    const m = topMachines(10);
-    if(!m.length) return "Non trovo macchine con score alto. Prova a rianalizzare o verifica che i sinottici contengano IN/OUT/residuo.";
-    const lines = m.map((x,i)=>`${i+1}) ${x.modello || "modello n/d"} • ${x.locale || "locale n/d"} • ${x.matricola || x.aams || "id n/d"} • score ${Math.round(x.score)}`);
-    return `Top macchine “calde” (score alto):
-${lines.join("\n")}
+  // --- Loading pipeline ---
+  async function loadConfig(){
+    // Load cicloslot + manifest + users
+    // (paths are relative to index.html)
+    const [users, manifest, ciclos] = await Promise.all([
+      fetchJson("./users.json"),
+      fetchJson("./manifest.json"),
+      fetchJson("./cicloslot.json").catch(() => [])
+    ]);
 
-Vuoi che ne apra una? Scrivi: “apri la numero 1” oppure incolla matricola/modello.`;
+    state.users = Array.isArray(users) ? users : [];
+    state.manifest = manifest || {};
+    state.cicloslot = Array.isArray(ciclos) ? ciclos : [];
+
+    const list = state.manifest.sinottici || state.manifest.files || [];
+    state.sinottici = Array.isArray(list) ? list : [];
+
+    el.chipFiles.textContent = state.sinottici.length.toString();
   }
 
-  if(intent === "findMachine"){
-    // handle "apri la numero X"
-    const matchN = normStr(text).toLowerCase().match(/\bnumero\s+(\d{1,2})\b/);
-    if(matchN){
-      const n = Number(matchN[1]);
-      const list = topMachines(20);
-      if(n>=1 && n<=list.length){
-        const target = list[n-1];
-        selectMachine(target.id);
-        return `Ok, apro: ${target.modello || "modello n/d"} • ${target.locale || "locale n/d"} • score ${Math.round(target.score)}.`;
+  function todayISO(){
+    // use local time
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth()+1).padStart(2,"0");
+    const da = String(d.getDate()).padStart(2,"0");
+    return `${y}-${m}-${da}`;
+  }
+
+  function validateLogin(user, pin){
+    const u = state.users.find(x => (x.user ?? "").toLowerCase() === (user ?? "").toLowerCase());
+    if (!u) return { ok:false, msg:"Utente non trovato." };
+    if ((u.pin ?? "") !== (pin ?? "")) return { ok:false, msg:"PIN errato." };
+
+    if (u.expires){
+      // expires in YYYY-MM-DD
+      const exp = new Date(u.expires + "T23:59:59");
+      if (isNaN(exp.getTime())) return { ok:false, msg:"Scadenza utente non valida nel file users.json." };
+      if (Date.now() > exp.getTime()){
+        return { ok:false, msg:`Utente scaduto (${u.expires}).` };
       }
     }
 
-    const found = tryFindMachineFromText(text);
-    if(found){
-      selectMachine(found.id);
-      return `Trovata. Ho aperto: ${found.modello || "modello n/d"} • ${found.locale || "locale n/d"} • score ${Math.round(found.score)}.
-
-Chiedimi: “quando paga questa macchina?” oppure “spiega perché è in pagamento”.`;
-    }
-
-    return `Non ho trovato una corrispondenza sicura.
-Suggerimento: scrivi almeno uno tra:
-• matricola
-• PDV / PDA
-• nome locale
-• parte del modello`;
+    return { ok:true, user:u.user, level:u.level ?? "Base", expires:u.expires ?? null };
   }
 
-  if(intent === "whenPays"){
-    const m = tryFindMachineFromText(text) || (STATE.selectedMachineId ? STATE.machineById.get(STATE.selectedMachineId) : null);
-    if(!m) return `Dimmi quale macchina intendi (matricola/modello/locale) oppure selezionala dalla lista a sinistra.`;
-
-    // Build estimate based on how quickly it approaches threshold
-    const f = m.features || computeMachineFeatures(m);
-    const resid = (m.rowsSorted||[]).map(r=>({t:r.dateObj, y:r.residuo})).filter(p=>p.y!=null && Number.isFinite(p.y));
-    const saldo = (m.rowsSorted||[]).map(r=>({t:r.dateObj, y:r.saldo})).filter(p=>p.y!=null && Number.isFinite(p.y));
-
-    let thr = null;
-    if(resid.length >= 12) thr = percentile(resid.map(p=>p.y), 0.92);
-    if(f.cicloHint){
-      const t = safeNum(f.cicloHint.threshold || f.cicloHint.soglia || f.cicloHint.payout_threshold);
-      if(t != null) thr = t;
-    }
-
-    if(thr == null || f.lastResid == null){
-      return `Posso stimare “quando paga” in modo più affidabile se ho un residuo/soglia.
-Qui vedo pochi dati di residuo o non è presente nei sinottici.
-
-Comunque: score ${Math.round(m.score)}/100 (${m.scoreLabel}). Vuoi che usi saldo + OUT/IN come proxy? (Scrivi: “stima con saldo”).`;
-    }
-
-    // Estimate steps remaining based on average resid trend
-    const trend = f.residTrend;
-    const dist = thr - f.lastResid;
-
-    if(trend == null || Math.abs(trend) < 1e-9){
-      const closeness = 1 - Math.min(1, Math.abs(dist)/(Math.abs(thr)+1));
-      if(closeness > 0.85){
-        return `Questa è molto vicina alla soglia stimata (${fmtMoney(thr)}). Potrebbe pagare “a breve” (prossimi giri/letture), ma dipende dal comportamento reale nel locale.
-
-Dettaglio: residuo attuale ${fmtMoney(f.lastResid)}, distanza ${fmtMoney(dist)}.`;
-      }
-      return `Non vedo un trend residuo abbastanza stabile per stimare un tempo.
-Soglia stimata: ${fmtMoney(thr)} • residuo attuale: ${fmtMoney(f.lastResid)} • distanza: ${fmtMoney(dist)}.
-
-Suggerimento: guarda gli ultimi 30 giorni nel grafico e dimmi se vuoi confronto con altre macchine stesso modello.`;
-    }
-
-    // If trend positive and approaching
-    if(dist > 0 && trend > 0){
-      const steps = dist / trend; // in "points"
-      const recentDates = (m.rowsSorted||[]).slice(-10).map(r=>r.dateObj).filter(Boolean);
-      let avgDaysPerPoint = null;
-      if(recentDates.length >= 2){
-        const spanDays = (recentDates[recentDates.length-1] - recentDates[0]) / (24*3600*1000);
-        avgDaysPerPoint = spanDays / (recentDates.length-1);
-      }
-      const etaDays = avgDaysPerPoint != null ? steps * avgDaysPerPoint : null;
-
-      return `Stima (data-driven, non promessa):
-• soglia stimata: ${fmtMoney(thr)}
-• residuo attuale: ${fmtMoney(f.lastResid)}
-• trend residuo: ${fmtMoney(trend)} per punto
-• “punti” stimati alla soglia: ${steps.toFixed(1)}
-
-${etaDays != null ? `Tempo stimato: ~${Math.round(etaDays)} giorni (basato sulla frequenza delle letture nello storico).` : `Tempo: dipende dalla frequenza delle letture; posso stimare meglio se hai sinottici più ravvicinati.`}
-
-Vuoi che ti dica anche le 3 macchine più simili per confronto? (Scrivi: “confronta modello”).`;
-    }
-
-    // If already beyond
-    if(dist <= 0){
-      return `Residuo già oltre la soglia stimata (${fmtMoney(thr)}).
-Potrebbe aver già pagato (o essere in zona payout) ma serve verificare OUT/andamento.
-Score: ${Math.round(m.score)}/100.
-
-Vuoi che controlli gli ultimi punti per vedere se c’è stato “scarico” improvviso? (Scrivi: “controlla scarico”).`;
-    }
-
-    // If trend wrong direction
-    return `Vedo soglia stimata ${fmtMoney(thr)} ma il trend residuo non sta avvicinando la soglia in modo pulito.
-Residuo: ${fmtMoney(f.lastResid)} • distanza: ${fmtMoney(dist)} • trend residuo: ${fmtMoney(f.residTrend)} per punto
-
-Posso comunque dirti se è “calda” rispetto alle altre nello stesso locale: scrivi “confronta nel locale”.`;
+  function showLogin(show){
+    el.loginOverlay.style.display = show ? "flex" : "none";
   }
 
-  if(intent === "explain"){
-    const m = tryFindMachineFromText(text) || (STATE.selectedMachineId ? STATE.machineById.get(STATE.selectedMachineId) : null);
-    if(!m) return "Dimmi quale macchina (matricola/modello/locale) oppure selezionala a sinistra.";
-    const reasons = m.scoreReasons?.length ? m.scoreReasons.map(x=>`• ${x}`).join("\n") : "• n/d";
-    return `Per ${m.modello || "modello n/d"} • ${m.locale || "locale n/d"} (score ${Math.round(m.score)}/100):
-${reasons}
-
-Se vuoi, ti faccio anche:
-• confronto con stesso modello
-• confronto con stesso locale
-• range ultimi 30/60/90 giorni`;
+  function setUserChip(){
+    el.chipUser.textContent = state.user || "-";
+    el.chipLevel.textContent = state.level || "-";
   }
 
-  // Unknown / off-topic
-  return `Capisco solo richieste legate ai dati del programma (sinottici, macchine, cicli, utenti).
-
-Prova una di queste:
-• “quali sono in pagamento?”
-• “cerca [matricola/modello/locale]”
-• “quando paga questa macchina?”`;
-}
-
-function topMachines(n=10){
-  return STATE.machines
-    .slice()
-    .sort((a,b)=>b.score-a.score)
-    .slice(0,n);
-}
-
-/* =========================
-   LOAD + ANALYZE ALL SINOTTICI
-========================= */
-
-async function analyzeAll(){
-  if(!requireAuth()){
-    showLogin(true);
-    return;
+  function clearData(){
+    state.historyByMachine.clear();
+    state.summary = [];
+    state.selectedCodeId = null;
+    el.chipMachines.textContent = "0";
+    el.machineTbody.innerHTML = `<tr><td colspan="4" class="muted">Nessun dato ancora. Premi “Analizza tutti”.</td></tr>`;
+    el.detailSubtitle.textContent = "Seleziona una macchina dalla lista.";
+    el.d_codeid.textContent = "-";
+    el.d_pdv.textContent = "-";
+    el.d_cycle.textContent = "-";
+    el.d_net.textContent = "NET: -";
+    el.d_res.textContent = "Residuo: -";
+    el.d_when.textContent = "Quando paga: -";
+    el.d_note.textContent = "-";
+    el.d_lastRows.innerHTML = `<tr><td colspan="4" class="muted">-</td></tr>`;
+    if (state.chart){ state.chart.destroy(); state.chart = null; }
   }
 
-  $("#btnAnalyze").disabled = true;
-  $("#btnAnalyze").textContent = "Analisi in corso…";
+  async function analyzeSinottici({onlyLatest=false}={}){
+    clearData();
 
-  try{
-    toast("Analisi", "Carico manifest, cicloslot e sinottici…");
+    if (!state.sinottici.length){
+      setProgress(0, "manifest.json non contiene sinottici.");
+      return;
+    }
 
-    // reset RAM
-    STATE.rawRows = [];
-    STATE.machines = [];
-    STATE.machineById = new Map();
-    STATE.selectedMachineId = null;
+    // choose list
+    let files = state.sinottici.slice();
+    files = files.filter(f => (f || "").toLowerCase().endsWith(".xlsx"));
+    files.sort((a,b)=>{
+      const da = parseDateFromFilename(a)?.getTime() ?? 0;
+      const db = parseDateFromFilename(b)?.getTime() ?? 0;
+      return da - db;
+    });
 
-    const [manifest] = await Promise.all([loadManifest(), loadCicloslot()]);
-    const files = (manifest.files || []).slice(0, CONFIG.maxFilesToAutoLoad);
+    if (onlyLatest){
+      files = [files[files.length-1]];
+    }
 
-    setKpi("#kpiFiles", files.length);
-    $("#kpiFilesSub").textContent = "da manifest.json";
+    el.subTitle.textContent = onlyLatest ? "Analisi ultimo sinottico…" : "Analisi completa in corso…";
+    setProgress(2, "Scarico e analizzo i sinottici…");
 
-    let totalRows = 0;
+    const total = files.length;
+    let done = 0;
 
-    // Loop files
-    for(let i=0;i<files.length;i++){
-      const file = files[i];
+    for (const fn of files){
+      done++;
+      const ts = parseDateFromFilename(fn)?.getTime() ?? Date.now();
+      const path = "./Dati/" + fn;
 
-      // Determine filename string
-      const fileName = (typeof file === "string") ? file : (file.file || file.name || file.path || "");
-      if(!fileName) continue;
+      setProgress(Math.round((done-1)/total*100), `Carico ${fn} (${done}/${total})`);
 
-      const url = CONFIG.datiFolder + fileName;
-      let buf = null;
+      let buf;
       try{
-        const res = await fetch(url + `?v=${Date.now()}`, {cache:"no-store"});
-        if(!res.ok) continue;
-        buf = await res.arrayBuffer();
+        buf = await fetchArrayBuffer(path);
       }catch(err){
+        // skip but log
+        console.warn("Skip file", fn, err);
         continue;
       }
 
+      let wb;
       try{
-        const {headers, rows} = readXlsxToRows(buf);
-        const headerMap = detectHeaderMap(headers);
-
-        for(const r of rows){
-          const norm = normalizeRow(r, headerMap, fileName);
-          if(!norm) continue;
-          STATE.rawRows.push(norm);
-          totalRows++;
-        }
+        wb = XLSX.read(buf, { type:"array" });
       }catch(err){
-        // ignore single file parsing errors
+        console.warn("XLSX read failed", fn, err);
+        continue;
       }
 
-      // UI progress occasionally
-      if(i % 12 === 0){
-        setKpi("#kpiRows", totalRows);
-        $("#kpiRowsSub").textContent = "in RAM";
-        $("#btnAnalyze").textContent = `Analisi… ${i+1}/${files.length}`;
-        await new Promise(r=>setTimeout(r, 0));
+      let jsonRows;
+      try{
+        jsonRows = sheetToJsonWithHeaderSearch(wb);
+      }catch(err){
+        console.warn("sheet parse failed", fn, err);
+        continue;
       }
+
+      // Extract each machine
+      for (const raw of jsonRows){
+        const m = extractMachineRow(raw);
+        if (!m) continue;
+
+        const point = {
+          ts,
+          dateStr: dateStr(ts),
+          in: m.in,
+          out: m.out,
+          net: m.net,
+          PDV: m.PDV,
+          PDA: m.PDA,
+          ESERCENTE: m.ESERCENTE,
+          COMUNE: m.COMUNE,
+          PROVINCIA: m.PROVINCIA,
+          MODELLO: m.MODELLO,
+          ...m._raw // keep everything for later queries
+        };
+
+        const codeid = m.codeid;
+        if (!state.historyByMachine.has(codeid)){
+          state.historyByMachine.set(codeid, []);
+        }
+        state.historyByMachine.get(codeid).push(point);
+      }
+
+      // avoid freezing UI
+      if (done % 2 === 0) await sleep(10);
     }
 
-    // Build machines
-    rebuildMachines();
-    renderLocaleFilter();
-    renderMachines();
+    // Build summary from latest point per machine
+    setProgress(96, "Creo la lista macchine e calcolo le stime…");
 
-    setKpi("#kpiRows", totalRows);
-    $("#kpiRowsSub").textContent = "in RAM";
+    const summary = [];
+    for (const [codeid, hist] of state.historyByMachine.entries()){
+      const arr = hist.slice().sort((a,b)=>a.ts-b.ts);
+      const last = arr[arr.length-1];
+      const pred = computePredictionForMachine(codeid);
 
-    // Autoselect best machine
-    if(STATE.machines.length){
-      selectMachine(STATE.machines[0].id);
-    }else{
-      setMetaDetails("nessuna macchina trovata");
-      $("#machineChips").innerHTML = `<div class="muted2 small">Non ho trovato macchine. Controlla che nei sinottici ci siano colonne riconoscibili (IN/OUT, matricola o ID, data).</div>`;
+      summary.push({
+        codeid,
+        pdv: last.PDV ?? last["PDV"] ?? null,
+        pda: last.PDA ?? last["PDA"] ?? null,
+        esercente: last.ESERCENTE ?? last["ESERCENTE"] ?? null,
+        comune: last.COMUNE ?? last["COMUNE"] ?? null,
+        provincia: last.PROVINCIA ?? last["PROVINCIA"] ?? null,
+        modello: last.MODELLO ?? last["MODELLO"] ?? null,
+        lastNet: last.net ?? 0,
+        pred
+      });
     }
 
-    toast("Fatto", `Analizzati ${files.length} sinottici, ${totalRows} record, ${STATE.machines.length} macchine.`);
-    if(!STATE.chat.length) sagaIntro();
+    // Sort by "closest to payment" first
+    summary.sort((a,b)=> (b.pred?.score ?? 0) - (a.pred?.score ?? 0));
 
-  }catch(err){
-    console.error(err);
-    toast("Errore", String(err.message || err));
-  }finally{
-    $("#btnAnalyze").disabled = false;
-    $("#btnAnalyze").textContent = "Analizza tutti i sinottici";
-  }
-}
+    state.summary = summary;
 
-/* =========================
-   EVENTS
-========================= */
-$("#btnAnalyze").addEventListener("click", analyzeAll);
+    el.chipMachines.textContent = summary.length.toString();
+    el.subTitle.textContent = `Caricati ${summary.length} CODEID da ${total} sinottici`;
 
-$("#qMachine").addEventListener("input", ()=> renderMachines());
-$("#filterLocal").addEventListener("change", ()=> renderMachines());
-$("#filterScore").addEventListener("change", ()=> renderMachines());
+    setProgress(100, `Fatto. Trovate ${summary.length} macchine.`);
+    renderSummaryTable();
 
-$("#rangeSelect").addEventListener("change", ()=>{
-  const m = STATE.selectedMachineId ? STATE.machineById.get(STATE.selectedMachineId) : null;
-  if(m) renderChart(m);
-});
-$("#metricSelect").addEventListener("change", ()=>{
-  const m = STATE.selectedMachineId ? STATE.machineById.get(STATE.selectedMachineId) : null;
-  if(m) renderChart(m);
-});
-
-$("#btnSend").addEventListener("click", ()=>{
-  const val = $("#chatInput").value;
-  if(!val.trim()) return;
-  $("#chatInput").value = "";
-  chatPush("user", val);
-  const ans = sagaAnswer(val);
-  chatPush("ai", ans);
-});
-
-$("#chatInput").addEventListener("keydown", (e)=>{
-  if(e.key === "Enter"){
-    e.preventDefault();
-    $("#btnSend").click();
-  }
-});
-
-$("#btnChatReset").addEventListener("click", ()=>{
-  sagaIntro();
-});
-
-$("#btnLogout").addEventListener("click", ()=>{
-  clearSession();
-  updateSessionPill();
-  showLogin(true);
-});
-
-$("#btnLoginHelp").addEventListener("click", ()=>{
-  setLoginWarn(
-`Se dice “utente non trovato”, le cause tipiche sono:
-1) users.json non è dove si aspetta (deve stare vicino a index.html, oppure aggiorna CONFIG.usersPath)
-2) GitHub Pages sta servendo una versione cache. Premi “Pulisci cache” e riprova.
-3) JSON malformato (deve essere un array di oggetti).`
-  );
-});
-
-$("#btnClearCache").addEventListener("click", ()=>{
-  // clear caches we use
-  sessionStorage.removeItem("usersOverride");
-  // session remains until logout
-  toast("Cache", "Pulita la cache di sessione (override utenti).");
-});
-
-$("#btnApplyUsersOverride").addEventListener("click", ()=>{
-  const t = $("#overrideUsersJson").value.trim();
-  if(!t) return;
-  try{
-    const parsed = JSON.parse(t);
-    if(!Array.isArray(parsed)) throw new Error("JSON deve essere un array");
-    sessionStorage.setItem("usersOverride", JSON.stringify(parsed));
-    toast("Override", "Override utenti applicato (sessionStorage). Ora prova il login.");
-  }catch(err){
-    setLoginWarn("Override non valido: " + err.message);
-  }
-});
-
-$("#btnLogin").addEventListener("click", async ()=>{
-  const u = $("#loginUser").value;
-  const p = $("#loginPin").value;
-
-  setLoginWarn("");
-
-  try{
-    await loadUsers();
-  }catch(err){
-    setLoginWarn(`Non riesco a caricare users.json da ${CONFIG.usersPath}. Controlla che il file esista e sia pubblico su GitHub Pages.`);
-    return;
+    // auto open first if any
+    if (summary.length){
+      openMachine(summary[0].codeid);
+    } else {
+      // if no machines -> likely parsing mismatch
+      chatSay("N.E.U.R.A.", "Non vedo macchine estratte. Di solito significa: header non trovato oppure colonne diverse.\n\nDimmi se nei tuoi sinottici le colonne si chiamano ancora CODEID/CNTTOTIN/CNTTOTOUT. Se vuoi, incollami qui la prima riga (header) del file e lo adatto al 100%.");
+    }
   }
 
-  const found = loginFindUser(u,p);
-  if(!found){
-    setLoginWarn(`Utente non trovato o PIN errato. (Controlla users.json e caching)`);
-    return;
+  // --- Chat IA (NEURA) ---
+  function chatAppend(who, text){
+    const wrap = document.createElement("div");
+    wrap.className = "msg";
+
+    const av = document.createElement("div");
+    av.className = "avatar";
+    av.textContent = who === "TU" ? "TU" : "N";
+
+    const bub = document.createElement("div");
+    bub.className = "bubble";
+    bub.innerHTML = `<b>${who}</b><p>${escapeHtml(text)}</p>`;
+
+    wrap.appendChild(av);
+    wrap.appendChild(bub);
+
+    el.chatLog.appendChild(wrap);
+    el.chatLog.scrollTop = el.chatLog.scrollHeight;
   }
-  if(isExpired(found.expires)){
-    setLoginWarn(`Utente trovato ma scaduto: ${found.expires}.`);
-    return;
+
+  function escapeHtml(s){
+    return (s ?? "").toString()
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;");
   }
 
-  setSession(found);
-  updateSessionPill();
-  showLogin(false);
-  toast("Benvenuto", `${found.user} • ${found.level}`);
+  function chatSay(who, text){ chatAppend(who, text); }
 
-  // Prime chat
-  if(!STATE.chat.length) sagaIntro();
-});
-
-/* =========================
-   INIT
-========================= */
-async function init(){
-  // restore session
-  const s = restoreSession();
-  if(s){
-    STATE.session = s;
+  function neuraHelp(){
+    return [
+      "Puoi chiedermi cose tipo:",
+      "• quali macchine sono in pagamento",
+      "• quali sono le più vicine",
+      "• quando paga 12345",
+      "• apri 12345",
+      "• cerca pdv 4012",
+      "• cerca esercente fortini",
+      "• top 10 vicine",
+    ].join("\n");
   }
-  updateSessionPill();
 
-  // try load users in background (so login is instant)
-  try{ await loadUsers(); }catch{}
+  function parseCodeIdFromText(t){
+    const m = t.match(/\b(\d{4,10})\b/);
+    return m ? m[1] : null;
+  }
 
-  if(!STATE.session){
-    showLogin(true);
-  }else{
-    if(isExpired(STATE.session.expires)){
-      clearSession();
-      updateSessionPill();
+  function listByScore(minScore, maxItems=20){
+    const rows = state.summary.filter(r => (r.pred?.score ?? 0) >= minScore);
+    const top = rows.slice(0, maxItems);
+    if (!top.length) return "Nessuna trovata con questi criteri.";
+    return top.map((r,i)=>{
+      const s = r.pred?.score ?? 0;
+      const pdv = r.pdv ? `PDV ${r.pdv}` : "-";
+      return `${i+1}) ${r.codeid} · ${pdv} · ${r.pred.label} (score ${s.toFixed(2)})`;
+    }).join("\n");
+  }
+
+  function searchSummary(query){
+    const q = query.toUpperCase();
+    const rows = state.summary.filter(r=>{
+      const hay = [
+        r.codeid, r.pdv, r.pda, r.esercente, r.comune, r.provincia, r.modello
+      ].map(x => (x ?? "").toString().toUpperCase()).join(" | ");
+      return hay.includes(q);
+    });
+    return rows.slice(0, 25);
+  }
+
+  function neuraRespond(text){
+    const t = (text ?? "").trim();
+    if (!t) return;
+
+    // Guard rails: if no data loaded
+    if (!state.summary.length){
+      chatSay("N.E.U.R.A.", "Prima devo analizzare i sinottici. Premi “Analizza tutti”.");
+      return;
+    }
+
+    const low = t.toLowerCase();
+
+    // commands
+    if (low.includes("esempi") || low.includes("aiuto") || low === "?"){
+      chatSay("N.E.U.R.A.", neuraHelp());
+      return;
+    }
+
+    if (low.includes("in pagamento") || low.includes("pagamento")){
+      // "quali macchine sono in pagamento"
+      chatSay("N.E.U.R.A.", "Ecco le più probabili ‘in pagamento / molto vicine’:\n\n" + listByScore(0.84, 20));
+      return;
+    }
+
+    if (low.includes("più vicine") || low.includes("vicine") || low.includes("top")){
+      // top N
+      const nMatch = low.match(/\btop\s+(\d{1,2})\b/);
+      const n = nMatch ? Math.min(30, parseInt(nMatch[1],10)) : 15;
+      chatSay("N.E.U.R.A.", `Top ${n} più vicine:\n\n` + listByScore(0.70, n));
+      return;
+    }
+
+    if (low.includes("cerca")){
+      const q = t.replace(/cerca/i,"").trim();
+      if (!q){
+        chatSay("N.E.U.R.A.", "Dimmi cosa cercare (CODEID, PDV, esercente, comune…).");
+        return;
+      }
+      const found = searchSummary(q);
+      if (!found.length){
+        chatSay("N.E.U.R.A.", `Nessun risultato per “${q}”.`);
+        return;
+      }
+      chatSay("N.E.U.R.A.", `Trovate ${found.length} (mostro max 25):\n\n` + found.map((r,i)=>`${i+1}) ${r.codeid} · ${r.pdv?("PDV "+r.pdv):"-"} · ${r.esercente??"-"}`).join("\n"));
+      return;
+    }
+
+    if (low.includes("apri")){
+      const code = parseCodeIdFromText(t);
+      if (!code){
+        chatSay("N.E.U.R.A.", "Scrivi: apri 12345 (con un CODEID).");
+        return;
+      }
+      if (!state.historyByMachine.has(code)){
+        chatSay("N.E.U.R.A.", `Non trovo il CODEID ${code}.`);
+        return;
+      }
+      openMachine(code);
+      chatSay("N.E.U.R.A.", `Aperta macchina ${code}.`);
+      return;
+    }
+
+    if (low.includes("quando paga") || low.includes("quando") && low.includes("paga")){
+      const code = parseCodeIdFromText(t) || state.selectedCodeId;
+      if (!code){
+        chatSay("N.E.U.R.A.", "Dimmi il CODEID. Esempio: quando paga 12345");
+        return;
+      }
+      if (!state.historyByMachine.has(code)){
+        chatSay("N.E.U.R.A.", `Non trovo il CODEID ${code}.`);
+        return;
+      }
+      const pred = computePredictionForMachine(code);
+      const resid = pred.resid != null ? fmtEuroFromCents(pred.resid) : "N/D";
+      let whenTxt = "N/D";
+      if (pred.etaDays != null && isFinite(pred.etaDays)){
+        whenTxt = pred.etaDays < 0.6 ? "molto presto" : `${Math.round(pred.etaDays)} giorni (stima)`;
+      }
+      chatSay("N.E.U.R.A.", `Macchina ${code}\n• Stato: ${pred.label}\n• Residuo stimato: ${resid}\n• Quando paga: ${whenTxt}\n\nNota: ${pred.note || "—"}`);
+      openMachine(code);
+      return;
+    }
+
+    // If user just writes a number -> open machine
+    const codeGuess = parseCodeIdFromText(t);
+    if (codeGuess && state.historyByMachine.has(codeGuess)){
+      openMachine(codeGuess);
+      chatSay("N.E.U.R.A.", `Apro ${codeGuess}. Se vuoi: “quando paga ${codeGuess}”.`);
+      return;
+    }
+
+    // Otherwise: out-of-scope fallback
+    chatSay("N.E.U.R.A.", "Io lavoro solo sui dati AWP del programma.\n\nProva così:\n• “quali macchine sono in pagamento”\n• “quando paga 12345”\n• “cerca pdv 4012”\n• “apri 12345”");
+  }
+
+  // --- Export ---
+  function exportSelectedMachine(){
+    const code = state.selectedCodeId;
+    if (!code){
+      alert("Seleziona una macchina prima.");
+      return;
+    }
+    const hist = (state.historyByMachine.get(code) || []).slice().sort((a,b)=>a.ts-b.ts);
+    const blob = new Blob([JSON.stringify({codeid:code, history:hist}, null, 2)], {type:"application/json"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `machine-${code}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // --- Events ---
+  function bindEvents(){
+    el.themeSelect.addEventListener("change", () => setTheme(el.themeSelect.value));
+    el.loginTheme.addEventListener("change", () => setTheme(el.loginTheme.value));
+
+    el.btnLogout.addEventListener("click", () => {
+      localStorage.removeItem("awp_session");
+      state.user = null; state.level = null; state.expires = null;
+      setUserChip();
       showLogin(true);
-    }else{
-      // start with chat intro
-      sagaIntro();
-    }
-  }
-}
+      clearData();
+      el.subTitle.textContent = "Disconnesso.";
+    });
 
-init();
+    el.btnLogin.addEventListener("click", () => {
+      el.loginError.textContent = "";
+      const user = el.loginUser.value.trim();
+      const pin = el.loginPin.value.trim();
+      const r = validateLogin(user, pin);
+      if (!r.ok){
+        el.loginError.textContent = r.msg;
+        return;
+      }
+      state.user = r.user;
+      state.level = r.level;
+      state.expires = r.expires;
+
+      localStorage.setItem("awp_session", JSON.stringify({user:state.user, level:state.level, expires:state.expires}));
+      setUserChip();
+      showLogin(false);
+      el.subTitle.textContent = "Accesso OK. Premi “Analizza tutti”.";
+      chatSay("N.E.U.R.A.", `Ciao ${state.user}! 👋\nPremi “Analizza tutti” e poi chiedimi: “quali macchine sono in pagamento”.`);
+    });
+
+    el.btnLoad.addEventListener("click", () => analyzeSinottici({onlyLatest:false}));
+    el.btnOnlyLatest.addEventListener("click", () => analyzeSinottici({onlyLatest:true}));
+
+    el.filterText.addEventListener("input", () => renderSummaryTable());
+    el.filterMode.addEventListener("change", () => renderSummaryTable());
+
+    el.rangeSelect.addEventListener("change", () => {
+      if (state.selectedCodeId) openMachine(state.selectedCodeId);
+    });
+
+    el.btnExportMachine.addEventListener("click", exportSelectedMachine);
+
+    el.btnChatSend.addEventListener("click", () => {
+      const t = el.chatInput.value.trim();
+      if (!t) return;
+      el.chatInput.value = "";
+      chatAppend("TU", t);
+      neuraRespond(t);
+    });
+
+    el.chatInput.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter"){
+        el.btnChatSend.click();
+      }
+    });
+
+    el.btnChatClear.addEventListener("click", () => {
+      el.chatLog.innerHTML = "";
+      chatSay("N.E.U.R.A.", "Pulito. Se vuoi esempi digita “aiuto”.");
+    });
+
+    el.btnChatExamples.addEventListener("click", () => {
+      chatSay("N.E.U.R.A.", neuraHelp());
+    });
+  }
+
+  // --- Init ---
+  async function init(){
+    // theme
+    const savedTheme = localStorage.getItem("awp_theme") || "dark";
+    setTheme(savedTheme);
+
+    // load config
+    try{
+      await loadConfig();
+      el.subTitle.textContent = `Config OK. Sinottici trovati in manifest: ${state.sinottici.length}.`;
+    }catch(err){
+      console.error(err);
+      el.subTitle.textContent = "Errore caricamento config (users/manifest/cicloslot).";
+      setProgress(0, "Errore: controlla che users.json, manifest.json, cicloslot.json siano nella root.");
+      chatSay("N.E.U.R.A.", "Errore: non riesco a leggere users.json / manifest.json / cicloslot.json.\nControlla che siano nella root del repo (stessa cartella di index.html).");
+      return;
+    }
+
+    // session restore
+    const sessRaw = localStorage.getItem("awp_session");
+    if (sessRaw){
+      try{
+        const s = JSON.parse(sessRaw);
+        const r = validateLogin(s.user, (state.users.find(u => u.user===s.user)?.pin ?? "")); // soft
+        // Better: require manual login if we can't validate pin. We'll just accept username+level for session.
+        state.user = s.user;
+        state.level = s.level;
+        state.expires = s.expires;
+        setUserChip();
+        showLogin(false);
+        el.subTitle.textContent = "Sessione ripristinata. Premi “Analizza tutti”.";
+      }catch{
+        showLogin(true);
+      }
+    } else {
+      showLogin(true);
+    }
+
+    bindEvents();
+  }
+
+  return { init };
+})();
+
+window.addEventListener("load", App.init);
 </script>
 </body>
 </html>
