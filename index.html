@@ -1,2427 +1,1918 @@
 <!doctype html>
 <html lang="it">
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>SinotticoLab Pro</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Calcolatore AWP - Analisi Pagamento</title>
 
-  <!-- SheetJS (XLSX) -->
-  <script defer src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <!-- SheetJS (XLSX parser) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.3/dist/xlsx.full.min.js"></script>
+  <!-- Chart.js for readable charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 
   <style>
     :root{
-      --bg:#f7f8fb;
+      --bg:#f6f7fb;
       --card:#ffffff;
       --text:#111827;
       --muted:#6b7280;
-      --border:#e5e7eb;
-      --brand:#2563eb;
-      --brand-2:#0ea5e9;
-      --ok:#16a34a;
+      --line:#e5e7eb;
+      --shadow: 0 10px 30px rgba(17,24,39,.08);
+      --radius: 14px;
+
+      --accent:#2563eb; /* default blue */
+      --accent2:#1d4ed8;
+      --good:#16a34a;
       --warn:#f59e0b;
       --bad:#dc2626;
+
       --chip:#eef2ff;
-
-      --shadow: 0 8px 30px rgba(17,24,39,.06);
-      --radius: 16px;
-      --radius-sm: 12px;
-      --pad: 14px;
-
-      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --chipText:#1e3a8a;
     }
+    [data-accent="amber"]{ --accent:#d97706; --accent2:#b45309; --chip:#fffbeb; --chipText:#92400e;}
+    [data-accent="lime"]{ --accent:#65a30d; --accent2:#4d7c0f; --chip:#f7fee7; --chipText:#365314;}
+    [data-accent="violet"]{ --accent:#7c3aed; --accent2:#6d28d9; --chip:#f5f3ff; --chipText:#4c1d95;}
+    [data-accent="teal"]{ --accent:#0f766e; --accent2:#115e59; --chip:#f0fdfa; --chipText:#134e4a;}
 
-    /* Light professional themes (no dark) */
-    [data-theme="Light"] { --brand:#2563eb; --brand-2:#0ea5e9; --chip:#eef2ff; --bg:#f7f8fb; }
-    [data-theme="Amber"] { --brand:#b45309; --brand-2:#f59e0b; --chip:#fff7ed; --bg:#fbfaf7; }
-    [data-theme="Lime"]  { --brand:#3f6212; --brand-2:#84cc16; --chip:#f7fee7; --bg:#fbfcf6; }
-    [data-theme="Teal"]  { --brand:#0f766e; --brand-2:#14b8a6; --chip:#ecfeff; --bg:#f7fbfb; }
-
-    *{box-sizing:border-box}
-    html,body{height:100%}
+    *{ box-sizing:border-box; }
     body{
       margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
       background:var(--bg);
       color:var(--text);
-      font-family:var(--font);
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-    }
-    a{color:inherit; text-decoration:none}
-    button,input,select,textarea{font-family:inherit}
-    .app{
-      min-height:100%;
-      display:flex;
-      flex-direction:column;
     }
 
-    /* Topbar */
     .topbar{
-      position:sticky;
-      top:0;
-      z-index:50;
-      backdrop-filter:saturate(180%) blur(10px);
-      background:rgba(247,248,251,.78);
-      border-bottom:1px solid var(--border);
+      position:sticky; top:0; z-index:10;
+      background:rgba(246,247,251,.85);
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid var(--line);
     }
     .topbar-inner{
-      max-width:1200px;
-      margin:0 auto;
-      padding:12px 14px;
-      display:flex;
-      gap:10px;
-      align-items:center;
-      justify-content:space-between;
+      max-width:1200px; margin:0 auto;
+      padding:12px 16px;
+      display:flex; gap:12px; align-items:center; justify-content:space-between;
     }
     .brand{
-      display:flex;
-      gap:10px;
-      align-items:center;
-      min-width:0;
+      display:flex; gap:10px; align-items:center;
+      font-weight:800;
+      letter-spacing:.2px;
     }
     .logo{
-      width:40px;height:40px;border-radius:14px;
-      background:linear-gradient(135deg,var(--brand),var(--brand-2));
-      box-shadow: 0 10px 24px rgba(37,99,235,.18);
-      flex:0 0 auto;
+      width:38px; height:38px; border-radius:12px;
+      background:linear-gradient(135deg,var(--accent),var(--accent2));
+      box-shadow:0 10px 30px rgba(37,99,235,.25);
+      display:grid; place-items:center;
+      color:white; font-weight:900;
     }
-    .brand h1{
-      font-size:14px;
-      margin:0;
-      line-height:1.1;
-      letter-spacing:.2px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+    .brand small{ display:block; font-weight:600; color:var(--muted); letter-spacing:0; }
+    .actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; justify-content:flex-end;}
+    .btn{
+      border:1px solid var(--line);
+      background:var(--card);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:700;
+      display:inline-flex; align-items:center; gap:8px;
+      box-shadow: 0 6px 16px rgba(17,24,39,.06);
     }
-    .brand .sub{
-      font-size:12px;
+    .btn.primary{
+      background:var(--accent);
+      color:white;
+      border-color:transparent;
+      box-shadow:0 10px 22px rgba(37,99,235,.25);
+    }
+    .btn:active{ transform: translateY(1px); }
+    .pill{
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background:var(--card);
       color:var(--muted);
-      margin-top:2px;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .right-tools{
-      display:flex;
-      gap:8px;
-      align-items:center;
-      flex-wrap:wrap;
-      justify-content:flex-end;
+      font-weight:700;
+      font-size:13px;
+      display:flex; gap:8px; align-items:center;
     }
 
-    /* Layout */
-    .container{
-      max-width:1200px;
-      width:100%;
-      margin:0 auto;
-      padding:16px 14px 24px;
+    .wrap{
+      max-width:1200px; margin:0 auto;
+      padding:16px;
+    }
+
+    .grid{
       display:grid;
-      grid-template-columns: 320px 1fr;
+      grid-template-columns: 1fr;
       gap:14px;
     }
-    @media (max-width: 980px){
-      .container{ grid-template-columns: 1fr; }
+    @media(min-width: 980px){
+      .grid.two{ grid-template-columns: 1.2fr .8fr; }
+      .grid.three{ grid-template-columns: 1fr 1fr 1fr; }
     }
 
-    /* Cards */
     .card{
       background:var(--card);
-      border:1px solid var(--border);
+      border:1px solid var(--line);
       border-radius:var(--radius);
       box-shadow: var(--shadow);
       overflow:hidden;
     }
-    .card-h{
+    .card-head{
       padding:14px 14px 10px;
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:10px;
-      border-bottom:1px solid var(--border);
+      border-bottom:1px solid var(--line);
+      display:flex; align-items:flex-start; justify-content:space-between; gap:10px;
     }
-    .card-h h2{
-      font-size:13px;
-      margin:0;
+    .card-title{
+      font-weight:900;
       letter-spacing:.2px;
     }
-    .card-h .muted{
-      font-size:12px;color:var(--muted)
-    }
-    .card-b{
-      padding:14px;
-    }
-
-    /* Buttons / inputs */
-    .btn{
-      border:1px solid var(--border);
-      background:#fff;
-      padding:10px 12px;
-      border-radius:12px;
+    .card-sub{
+      margin-top:4px;
+      color:var(--muted);
+      font-weight:600;
       font-size:13px;
-      display:inline-flex;
-      gap:8px;
-      align-items:center;
-      cursor:pointer;
-      user-select:none;
-      transition: transform .05s ease, border-color .2s ease, box-shadow .2s ease;
+      line-height:1.3;
     }
-    .btn:hover{ border-color:#d1d5db; box-shadow: 0 10px 22px rgba(17,24,39,.06); }
-    .btn:active{ transform: translateY(1px); }
-    .btn.primary{
-      background:linear-gradient(135deg,var(--brand),var(--brand-2));
-      color:#fff;
-      border-color:transparent;
-    }
-    .btn.ghost{
-      background:transparent;
-    }
-    .btn.small{ padding:8px 10px; border-radius:10px; font-size:12px; }
+    .card-body{ padding:14px; }
 
-    .input, .select{
+    .row{ display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+    .grow{ flex:1; }
+    .input{
       width:100%;
-      padding:10px 12px;
+      padding:12px 12px;
       border-radius:12px;
-      border:1px solid var(--border);
+      border:1px solid var(--line);
       background:#fff;
-      font-size:13px;
+      font-weight:700;
       outline:none;
     }
-    .input:focus, .select:focus{ border-color: rgba(37,99,235,.45); box-shadow:0 0 0 4px rgba(37,99,235,.08); }
+    .input:focus{ border-color: rgba(37,99,235,.35); box-shadow: 0 0 0 4px rgba(37,99,235,.10); }
 
-    .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-    @media(max-width:520px){ .grid2{grid-template-columns:1fr;} }
-
-    /* Pills */
-    .chips{ display:flex; flex-wrap:wrap; gap:8px; }
-    .chip{
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      padding:8px 10px;
-      border-radius:999px;
-      background:var(--chip);
-      border:1px solid rgba(37,99,235,.14);
-      font-size:12px;
+    .select{
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--line);
+      background:#fff;
+      font-weight:800;
       cursor:pointer;
-      user-select:none;
     }
-    .chip code{ font-family:var(--mono); font-size:11px; }
 
-    /* List */
-    .list{
-      display:flex;
-      flex-direction:column;
+    .kpi{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
       gap:10px;
     }
-    .row{
-      border:1px solid var(--border);
+    @media(min-width: 760px){
+      .kpi{ grid-template-columns: 1fr 1fr 1fr 1fr; }
+    }
+    .kpi .box{
+      border:1px solid var(--line);
       border-radius:14px;
       padding:12px;
-      background:#fff;
-      display:flex;
-      gap:10px;
-      align-items:flex-start;
-      justify-content:space-between;
-      cursor:pointer;
-      transition: border-color .2s ease, box-shadow .2s ease;
+      background:linear-gradient(180deg,#fff, #fbfbff);
     }
-    .row:hover{ border-color:#d1d5db; box-shadow: 0 10px 22px rgba(17,24,39,.06); }
-    .row .title{
-      font-size:13px;
-      font-weight:650;
-      margin:0;
-      line-height:1.25;
-    }
-    .row .meta{
-      margin-top:4px;
+    .kpi .label{ color:var(--muted); font-weight:800; font-size:12px; letter-spacing:.2px;}
+    .kpi .value{ font-size:22px; font-weight:950; margin-top:6px;}
+    .kpi .hint{ color:var(--muted); font-weight:700; font-size:12px; margin-top:4px;}
+
+    .chip{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:7px 10px;
+      border-radius:999px;
+      background:var(--chip);
+      color:var(--chipText);
+      font-weight:900;
       font-size:12px;
-      color:var(--muted);
-      display:flex;
-      flex-wrap:wrap;
-      gap:8px 10px;
     }
-    .badge{
+
+    .tablewrap{ overflow:auto; border:1px solid var(--line); border-radius:14px; }
+    table{
+      width:100%;
+      border-collapse: collapse;
+      min-width: 980px;
+    }
+    th,td{
+      padding:10px 10px;
+      border-bottom:1px solid var(--line);
+      text-align:left;
+      font-size:13px;
+      white-space: nowrap;
+    }
+    th{
+      position:sticky; top:0; z-index:1;
+      background:#fafafa;
+      font-weight:950;
+      letter-spacing:.2px;
+    }
+    tr:hover td{ background:#fbfbff; }
+    .link{
+      color:var(--accent);
+      font-weight:900;
+      cursor:pointer;
+      text-decoration:none;
+    }
+    .muted{ color:var(--muted); font-weight:700; }
+    .tag{
+      display:inline-flex; align-items:center;
       padding:6px 10px;
       border-radius:999px;
+      font-weight:950;
       font-size:12px;
-      border:1px solid var(--border);
+      border:1px solid var(--line);
       background:#fff;
-      white-space:nowrap;
     }
-    .badge.ok{ border-color: rgba(22,163,74,.25); background: rgba(22,163,74,.06); color:#14532d; }
-    .badge.warn{ border-color: rgba(245,158,11,.25); background: rgba(245,158,11,.08); color:#7c2d12; }
-    .badge.bad{ border-color: rgba(220,38,38,.25); background: rgba(220,38,38,.07); color:#7f1d1d; }
+    .tag.good{ color:var(--good); border-color: rgba(22,163,74,.25); background: rgba(22,163,74,.06); }
+    .tag.warn{ color:var(--warn); border-color: rgba(245,158,11,.25); background: rgba(245,158,11,.08); }
+    .tag.bad{ color:var(--bad); border-color: rgba(220,38,38,.25); background: rgba(220,38,38,.07); }
 
-    /* Views */
-    .view{ display:none; }
-    .view.active{ display:block; }
-
-    /* Chart */
-    canvas{ max-width:100%; }
-    .chart-wrap{
-      width:100%;
-      border:1px solid var(--border);
+    .toast{
+      position:fixed; right:14px; bottom:14px;
+      background:var(--card);
+      border:1px solid var(--line);
+      box-shadow: var(--shadow);
       border-radius:14px;
-      padding:10px;
-      background:#fff;
+      padding:12px 14px;
+      max-width:min(520px, calc(100vw - 28px));
+      display:none;
+      z-index:50;
     }
+    .toast.show{ display:block; }
+    .toast b{ font-weight:950; }
+    .toast p{ margin:6px 0 0; color:var(--muted); font-weight:700; line-height:1.35; }
 
-    /* Login overlay */
-    .overlay{
+    /* Modal */
+    .modal{
       position:fixed; inset:0;
+      background: rgba(17,24,39,.45);
       display:none;
       align-items:center;
       justify-content:center;
-      padding:16px;
-      background: rgba(17,24,39,.28);
-      z-index:100;
+      padding:14px;
+      z-index:40;
     }
-    .overlay.active{ display:flex; }
-    .login-card{
-      width:min(480px, 100%);
-      border-radius:22px;
-      overflow:hidden;
-      box-shadow: 0 30px 90px rgba(17,24,39,.25);
-      border:1px solid rgba(229,231,235,.9);
-      background:#fff;
-    }
-    .login-top{
-      padding:18px 18px 14px;
-      background: linear-gradient(135deg, rgba(37,99,235,.12), rgba(14,165,233,.10));
-      border-bottom:1px solid rgba(229,231,235,.9);
-    }
-    .login-top h2{ margin:0; font-size:16px; letter-spacing:.2px; }
-    .login-top p{ margin:8px 0 0; color:var(--muted); font-size:13px; }
-    .login-body{ padding:18px; }
-
-    /* AI Chat */
-    .chat{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      height: 420px;
-    }
-    @media(max-width:980px){ .chat{ height: 360px; } }
-    .chat-log{
-      flex:1;
+    .modal.show{ display:flex; }
+    .modal .panel{
+      width:min(1100px, 100%);
+      max-height: 90vh;
       overflow:auto;
-      border:1px solid var(--border);
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.22);
+    }
+    .panel-head{
+      padding:14px;
+      border-bottom:1px solid var(--line);
+      display:flex; gap:10px; align-items:flex-start; justify-content:space-between;
+      position:sticky; top:0;
+      background: rgba(255,255,255,.9);
+      backdrop-filter: blur(10px);
+    }
+    .panel-title{ font-weight:950; }
+    .panel-sub{ color:var(--muted); font-weight:700; font-size:13px; margin-top:4px; }
+    .panel-body{ padding:14px; }
+
+    /* Login */
+    .login-wrap{
+      min-height: calc(100vh - 68px);
+      display:grid;
+      place-items:center;
+    }
+    .login-card{
+      width:min(520px, 100%);
+    }
+    .hero{
+      padding:16px 14px 0;
+      display:flex; gap:12px; align-items:center;
+    }
+    .hero h1{ margin:0; font-size:20px; font-weight:950; letter-spacing:.2px; }
+    .hero p{ margin:6px 0 0; color:var(--muted); font-weight:700; }
+
+    /* Assistant */
+    .chat{
+      border:1px solid var(--line);
       border-radius:14px;
-      padding:10px;
-      background:#fff;
+      overflow:hidden;
+    }
+    .chatlog{
+      height: 320px;
+      overflow:auto;
+      padding:12px;
+      background: linear-gradient(180deg, #fff, #fbfbff);
     }
     .msg{
+      margin:8px 0;
       display:flex;
       gap:10px;
-      margin:10px 0;
       align-items:flex-start;
     }
     .bubble{
       padding:10px 12px;
       border-radius:14px;
-      border:1px solid var(--border);
+      border:1px solid var(--line);
+      max-width: 86%;
+      font-weight:700;
+      line-height:1.35;
+    }
+    .me .bubble{
+      margin-left:auto;
+      background: rgba(37,99,235,.06);
+      border-color: rgba(37,99,235,.16);
+    }
+    .bot .bubble{
       background:#fff;
-      max-width: 92%;
-      font-size:13px;
-      line-height:1.35;
-      white-space:pre-wrap;
     }
-    .msg.me{ justify-content:flex-end; }
-    .msg.me .bubble{
-      background: linear-gradient(135deg, rgba(37,99,235,.10), rgba(14,165,233,.08));
-      border-color: rgba(37,99,235,.18);
+    .chatbar{
+      display:flex; gap:10px;
+      padding:12px;
+      border-top:1px solid var(--line);
+      background:#fff;
     }
-    .msg .who{
-      font-size:11px;
-      color:var(--muted);
-      margin-bottom:6px;
-    }
-    .chat-input{
-      display:flex;
-      gap:8px;
-    }
-    .chat-input input{ flex:1; }
-
-    /* Footer note */
-    .note{
-      font-size:12px;
-      color:var(--muted);
-      margin-top:10px;
-      line-height:1.35;
-    }
-    .mono{ font-family:var(--mono); font-size:12px; }
   </style>
 </head>
 
 <body>
-<div class="app" id="app" data-theme="Light">
-
   <div class="topbar">
     <div class="topbar-inner">
       <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
-        <div style="min-width:0">
-          <h1>Calcolatore AWP | Analisi Pagamento</h1>
-          <div class="sub" id="topSub">Pronto. Carica i sinottici da /Dati/manifest.json</div>
-        </div>
-      </div>
-
-      <div class="right-tools">
-        <select class="select" id="themeSel" title="Tema" style="width:auto">
-          <option>Light</option>
-          <option>Amber</option>
-          <option>Lime</option>
-          <option>Teal</option>
-        </select>
-        <button class="btn small" id="btnReload">Ricarica</button>
-        <button class="btn small" id="btnAnalyze">Analizza</button>
-        <button class="btn small ghost" id="btnLogout">Logout</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="container">
-
-    <!-- LEFT: navigation / filters -->
-    <div class="card">
-      <div class="card-h">
+        <div class="logo">AWP</div>
         <div>
-          <h2>Navigazione</h2>
-          <div class="muted" id="leftStatus">Non autenticato</div>
+          <div>Calcolatore AWP</div>
+          <small>Analisi pagamento e gestionale sinottici</small>
         </div>
       </div>
 
-      <div class="card-b">
-        <div class="grid2">
-          <button class="btn" id="navMachines">Macchine</button>
-          <button class="btn" id="navLocales">Locali</button>
-          <button class="btn" id="navChat">Assistente</button>
-          <button class="btn" id="navGloss">Glossario</button>
+      <div class="actions">
+        <div class="pill" id="sessionPill" style="display:none;">
+          <span id="sessionUser">—</span>
+          <span class="muted">·</span>
+          <span id="sessionLevel">—</span>
         </div>
 
-        <div style="height:12px"></div>
+        <select class="select" id="accentSelect" title="Colore interfaccia">
+          <option value="blue">Blu</option>
+          <option value="amber">Amber</option>
+          <option value="lime">Lime</option>
+          <option value="violet">Violet</option>
+          <option value="teal">Teal</option>
+        </select>
 
-        <label class="muted" style="font-size:12px">Cerca</label>
-        <input class="input" id="q" placeholder="Esempio: MARIM, Fortini, 7767..., PDA..." />
+        <button class="btn" id="btnLogout" style="display:none;">Esci</button>
+      </div>
+    </div>
+  </div>
 
-        <div style="height:10px"></div>
-
-        <div class="grid2">
-          <select class="select" id="filterType">
-            <option value="all">Tutto</option>
-            <option value="pay">Possibile pagamento</option>
-            <option value="warn">Warning/Problemi</option>
-            <option value="inactive">Non attive / ferie / manut.</option>
-          </select>
-
-          <select class="select" id="sortBy">
-            <option value="score">Score pagamento</option>
-            <option value="incasso">Incasso giornaliero</option>
-            <option value="locale">Locale</option>
-            <option value="model">Modello</option>
-            <option value="updated">Ultima lettura</option>
-          </select>
+  <div class="wrap" id="app">
+    <!-- LOGIN -->
+    <div id="viewLogin" class="login-wrap" style="display:none;">
+      <div class="card login-card">
+        <div class="hero">
+          <div class="logo" style="width:46px;height:46px;border-radius:16px;">A</div>
+          <div>
+            <h1>Calcolatore AWP</h1>
+            <p>Analisi pagamento da sinottici e gestione locali/PDA.</p>
+          </div>
         </div>
-
-        <div style="height:10px"></div>
-
-        <div class="grid2">
-          <select class="select" id="periodSel">
-            <option value="day">Oggi (stimato)</option>
-            <option value="week" selected>Ultimi 7 giorni</option>
-            <option value="month">Ultimi 30 giorni</option>
-          </select>
-          <button class="btn" id="btnComputeKPIs">Aggiorna KPI</button>
+        <div class="card-body">
+          <div class="row">
+            <div class="grow">
+              <label class="muted">Utente</label>
+              <input id="loginUser" class="input" placeholder="Es. user" autocomplete="username" />
+            </div>
+            <div class="grow">
+              <label class="muted">PIN</label>
+              <input id="loginPin" class="input" placeholder="Es. 0000" autocomplete="current-password" inputmode="numeric" />
+            </div>
+          </div>
+          <div style="height:10px"></div>
+          <div class="row">
+            <button class="btn primary" id="btnLogin">Entra</button>
+            <span class="muted" id="loginStatus">Caricamento utenti…</span>
+          </div>
+          <div style="margin-top:12px" class="muted">
+            I file dati sono letti da <b>/Dati/</b> (GitHub). Tutto gira nel browser.
+          </div>
         </div>
+      </div>
+    </div>
 
-        <div style="height:12px"></div>
-
-        <div class="card" style="box-shadow:none">
-          <div class="card-h">
+    <!-- MAIN -->
+    <div id="viewMain" style="display:none;">
+      <div class="grid two">
+        <div class="card">
+          <div class="card-head">
             <div>
-              <h2>KPI</h2>
-              <div class="muted">Per periodo selezionato</div>
+              <div class="card-title">Dashboard AWP</div>
+              <div class="card-sub">
+                Carica i sinottici da <b>Dati/manifest.json</b> e analizza tutte le macchine.
+              </div>
+            </div>
+            <div class="row">
+              <button class="btn primary" id="btnAnalyze">Analizza tutti i sinottici</button>
             </div>
           </div>
-          <div class="card-b" id="kpiBox" style="display:flex; flex-direction:column; gap:10px">
-            <div class="muted">Carica dati e premi “Aggiorna KPI”.</div>
+
+          <div class="card-body">
+            <div class="kpi">
+              <div class="box">
+                <div class="label">Sinottici</div>
+                <div class="value" id="kpiFiles">0</div>
+                <div class="hint" id="kpiFilesHint">—</div>
+              </div>
+              <div class="box">
+                <div class="label">Macchine uniche</div>
+                <div class="value" id="kpiMachines">0</div>
+                <div class="hint">per CODEID</div>
+              </div>
+              <div class="box">
+                <div class="label">Letture (storico)</div>
+                <div class="value" id="kpiReads">0</div>
+                <div class="hint">deduplicate per lettura</div>
+              </div>
+              <div class="box">
+                <div class="label">In pagamento (stima)</div>
+                <div class="value" id="kpiPaying">0</div>
+                <div class="hint">probabilità alta</div>
+              </div>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <div class="row">
+              <input id="searchBox" class="input" placeholder="Cerca per locale, modello, comune, provincia, pda, codeid…" />
+              <select id="filterPay" class="select">
+                <option value="all">Tutte</option>
+                <option value="paying">Prob. pagamento alta</option>
+                <option value="notpaying">Prob. pagamento bassa</option>
+              </select>
+              <select id="filterState" class="select">
+                <option value="all">Stato: tutti</option>
+                <option value="ATTIVA">ATTIVA</option>
+                <option value="MANUTENZIONE">MANUTENZIONE</option>
+                <option value="BLOCCATA">BLOCCATA</option>
+                <option value="FERIE">FERIE</option>
+              </select>
+            </div>
+
+            <div style="height:12px"></div>
+
+            <div class="tablewrap">
+              <table id="machinesTable">
+                <thead>
+                  <tr>
+                    <th>Locale</th>
+                    <th>Comune</th>
+                    <th>Prov.</th>
+                    <th>Modello</th>
+                    <th>CODEID</th>
+                    <th>PDA</th>
+                    <th>Ultima lettura</th>
+                    <th>IN (€)</th>
+                    <th>OUT (€)</th>
+                    <th>Δ IN</th>
+                    <th>Δ OUT</th>
+                    <th>Ciclo</th>
+                    <th>Posizione ciclo</th>
+                    <th>Prob. pagamento</th>
+                    <th>Stato</th>
+                  </tr>
+                </thead>
+                <tbody id="machinesTbody">
+                  <tr><td colspan="15" class="muted">Premi “Analizza tutti i sinottici” per popolare la lista.</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style="height:10px"></div>
+            <div class="muted" id="loadLog">—</div>
           </div>
         </div>
 
-        <div class="note">
-          Dati letti da <span class="mono">/Dati/</span>. Tutto gira in RAM.
-          Le preferenze (tema, ultimo utente) sono salvate solo in cache del browser.
-        </div>
-      </div>
-    </div>
-
-    <!-- RIGHT: main views -->
-    <div style="display:flex; flex-direction:column; gap:14px">
-
-      <!-- Machines list -->
-      <div class="card view active" id="viewMachines">
-        <div class="card-h">
-          <div>
-            <h2>Macchine</h2>
-            <div class="muted" id="machinesMeta">0 macchine</div>
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Assistente A.W.I.S.E.</div>
+              <div class="card-sub">Capisce domande “umane” e usa i dati caricati. Offline, quindi niente magie: solo logica + dataset.</div>
+            </div>
+            <span class="chip">A.W.I.S.E.</span>
           </div>
-          <div class="chips">
-            <div class="chip" id="chipAll">Tutte</div>
-            <div class="chip" id="chipPay">In pagamento</div>
-            <div class="chip" id="chipWarn">Warning</div>
-          </div>
-        </div>
-        <div class="card-b">
-          <div class="list" id="machinesList"></div>
-        </div>
-      </div>
-
-      <!-- Locales list -->
-      <div class="card view" id="viewLocales">
-        <div class="card-h">
-          <div>
-            <h2>Locali</h2>
-            <div class="muted" id="localesMeta">0 locali</div>
-          </div>
-          <button class="btn small" id="btnRebuildLocales">Ricostruisci</button>
-        </div>
-        <div class="card-b">
-          <div class="list" id="localesList"></div>
-        </div>
-      </div>
-
-      <!-- Machine detail -->
-      <div class="card view" id="viewMachineDetail">
-        <div class="card-h">
-          <div>
-            <h2 id="mdTitle">Macchina</h2>
-            <div class="muted" id="mdSub">Dettagli</div>
-          </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end">
-            <button class="btn small" id="btnBackFromMachine">Indietro</button>
-            <button class="btn small" id="btnOpenLocaleFromMachine">Apri locale</button>
-          </div>
-        </div>
-        <div class="card-b" id="machineDetailBody"></div>
-      </div>
-
-      <!-- Locale detail -->
-      <div class="card view" id="viewLocaleDetail">
-        <div class="card-h">
-          <div>
-            <h2 id="ldTitle">Locale</h2>
-            <div class="muted" id="ldSub">Dettagli e aggregati</div>
-          </div>
-          <div style="display:flex; gap:8px; flex-wrap:wrap">
-            <button class="btn small" id="btnBackFromLocale">Indietro</button>
-          </div>
-        </div>
-        <div class="card-b" id="localeDetailBody"></div>
-      </div>
-
-      <!-- AI -->
-      <div class="card view" id="viewChat">
-        <div class="card-h">
-          <div>
-            <h2>Assistente (S.I.N.A.)</h2>
-            <div class="muted">Sinottico Intelligent Navigation Assistant</div>
-          </div>
-          <button class="btn small" id="btnChatHelp">Aiuto</button>
-        </div>
-        <div class="card-b">
-          <div class="chat">
-            <div class="chat-log" id="chatLog"></div>
-            <div class="chat-input">
-              <input class="input" id="chatInput" placeholder="Esempi: “quale macchina è in pagamento?”, “quando paga la MARIM FIRE al Fortini?”, “cos’è PDV?”" />
-              <button class="btn primary" id="chatSend">Invia</button>
+          <div class="card-body">
+            <div class="chat">
+              <div class="chatlog" id="chatLog"></div>
+              <div class="chatbar">
+                <input id="chatInput" class="input" placeholder='Es. "quando paga la MARIM FIRE al Bar Fortini?"' />
+                <button class="btn primary" id="chatSend">Invia</button>
+              </div>
+            </div>
+            <div style="height:10px"></div>
+            <div class="muted">
+              Suggerimenti: “spiegami NOE”, “quali sono in pagamento a Sanremo”, “scheda locale Bar X”.
             </div>
           </div>
         </div>
       </div>
-
-      <!-- Glossary -->
-      <div class="card view" id="viewGloss">
-        <div class="card-h">
-          <div>
-            <h2>Glossario colonne</h2>
-            <div class="muted">Significato e uso nel gestionale</div>
-          </div>
-        </div>
-        <div class="card-b" id="glossBody"></div>
-      </div>
-
     </div>
   </div>
 
-  <!-- Login overlay -->
-  <div class="overlay" id="loginOverlay">
-    <div class="login-card">
-      <div class="login-top">
-        <h2>Accesso</h2>
-        <p>Calcolatore AWP | Analisi pagamento</p>
-      </div>
-      <div class="login-body">
-        <div class="grid2">
-          <div>
-            <label class="muted" style="font-size:12px">Utente</label>
-            <input class="input" id="loginUser" placeholder="Esempio: user" autocomplete="username"/>
-          </div>
-          <div>
-            <label class="muted" style="font-size:12px">PIN</label>
-            <input class="input" id="loginPin" placeholder="Esempio: 0000" autocomplete="current-password" inputmode="numeric"/>
-          </div>
+  <!-- MACHINE MODAL -->
+  <div class="modal" id="modalMachine">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title" id="mTitle">Macchina</div>
+          <div class="panel-sub" id="mSub">—</div>
         </div>
-
-        <div style="height:12px"></div>
-        <button class="btn primary" id="btnLogin" style="width:100%; justify-content:center">Entra</button>
-
-        <div class="note" id="loginMsg" style="margin-top:12px"></div>
+        <div class="row">
+          <button class="btn" id="mClose">Chiudi</button>
+        </div>
+      </div>
+      <div class="panel-body" id="mBody">
+        <!-- filled by JS -->
       </div>
     </div>
   </div>
-</div>
+
+  <!-- LIST MODAL -->
+  <div class="modal" id="modalList">
+    <div class="panel">
+      <div class="panel-head">
+        <div>
+          <div class="panel-title" id="lTitle">Lista</div>
+          <div class="panel-sub" id="lSub">—</div>
+        </div>
+        <div class="row">
+          <button class="btn" id="lClose">Chiudi</button>
+        </div>
+      </div>
+      <div class="panel-body" id="lBody"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast">
+    <b id="toastTitle">Info</b>
+    <p id="toastMsg">—</p>
+  </div>
 
 <script>
-/* =========================
-   SinotticoLab Pro (Single File)
-   - Login: /Dati/users.json
-   - Manifest: /Dati/manifest.json
-   - Cicli: /Dati/cicloslot.json (fallback: embedded none)
-   - Sinottici: /Dati/<file>.xlsx
-   - RAM only (localStorage for prefs)
-========================= */
+/* =========================================================
+   CALCOLATORE AWP - Single file
+   Path corretto per GitHub Pages: NON usare "/Dati/.."
+   Usare "Dati/.." relativo.
+========================================================= */
 
-(() => {
-  "use strict";
+(function(){
+  // ---------- Helpers ----------
+  const $ = (q)=>document.querySelector(q);
+  const el = (tag, props={}) => Object.assign(document.createElement(tag), props);
+  const fmtEUR = (n)=> (isFinite(n)? n.toLocaleString("it-IT",{minimumFractionDigits:0, maximumFractionDigits:0}) : "—");
+  const fmtNum = (n)=> (isFinite(n)? n.toLocaleString("it-IT") : "—");
+  const sleep = (ms)=>new Promise(r=>setTimeout(r,ms));
 
-  /* ---------- DOM ---------- */
-  const $ = (id) => document.getElementById(id);
+  function toast(title,msg){
+    $("#toastTitle").textContent = title;
+    $("#toastMsg").textContent = msg;
+    const t = $("#toast");
+    t.classList.add("show");
+    clearTimeout(toast._t);
+    toast._t = setTimeout(()=>t.classList.remove("show"), 4200);
+  }
 
-  const app = $("app");
-  const topSub = $("topSub");
-  const leftStatus = $("leftStatus");
-
-  const themeSel = $("themeSel");
-  const btnReload = $("btnReload");
-  const btnAnalyze = $("btnAnalyze");
-  const btnLogout = $("btnLogout");
-
-  const navMachines = $("navMachines");
-  const navLocales  = $("navLocales");
-  const navChat     = $("navChat");
-  const navGloss    = $("navGloss");
-
-  const q = $("q");
-  const filterType = $("filterType");
-  const sortBy = $("sortBy");
-  const periodSel = $("periodSel");
-  const btnComputeKPIs = $("btnComputeKPIs");
-
-  const kpiBox = $("kpiBox");
-
-  const viewMachines = $("viewMachines");
-  const viewLocales = $("viewLocales");
-  const viewMachineDetail = $("viewMachineDetail");
-  const viewLocaleDetail = $("viewLocaleDetail");
-  const viewChat = $("viewChat");
-  const viewGloss = $("viewGloss");
-
-  const chipAll = $("chipAll");
-  const chipPay = $("chipPay");
-  const chipWarn = $("chipWarn");
-
-  const machinesList = $("machinesList");
-  const machinesMeta = $("machinesMeta");
-
-  const localesList = $("localesList");
-  const localesMeta = $("localesMeta");
-  const btnRebuildLocales = $("btnRebuildLocales");
-
-  const mdTitle = $("mdTitle");
-  const mdSub = $("mdSub");
-  const machineDetailBody = $("machineDetailBody");
-  const btnBackFromMachine = $("btnBackFromMachine");
-  const btnOpenLocaleFromMachine = $("btnOpenLocaleFromMachine");
-
-  const ldTitle = $("ldTitle");
-  const ldSub = $("ldSub");
-  const localeDetailBody = $("localeDetailBody");
-  const btnBackFromLocale = $("btnBackFromLocale");
-
-  const loginOverlay = $("loginOverlay");
-  const loginUser = $("loginUser");
-  const loginPin = $("loginPin");
-  const btnLogin = $("btnLogin");
-  const loginMsg = $("loginMsg");
-
-  const chatLog = $("chatLog");
-  const chatInput = $("chatInput");
-  const chatSend = $("chatSend");
-  const btnChatHelp = $("btnChatHelp");
-
-  const glossBody = $("glossBody");
-
-  /* ---------- Storage keys ---------- */
-  const LS_THEME = "sinotticolab_theme";
-  const LS_LAST_USER = "sinotticolab_last_user";
-  const LS_SESSION = "sinotticolab_session"; // basic session token
-
-  /* ---------- Config ---------- */
-  const DATA_DIR = "Dati"; // must be capital D
-  const PATH_USERS = `/${DATA_DIR}/users.json`;
-  const PATH_MANIFEST = `/${DATA_DIR}/manifest.json`;
-  const PATH_CICLO = `/${DATA_DIR}/cicloslot.json`;
-
-  // columns mapping (headers in XLSX)
-  const COL = {
-    CODEID: "CODEID",
-    CODEID_PROVV: "CODEID PROVV",
-    STATO: "DESCR. STATO",
-    DATA_ATT: "DATA ATTIVAZIONE",
-    DATA_ULT_COL: "DATA ULTIMO COLLEGAMENTO",
-    GG_MANC: "GG MANCATO COLLEGAMENTO",
-    GG_DEC: "GG DECADENZA",
-    DATA_ULT_LETT: "DATA ULTIMA LETTURA VAL.",
-    MS_FERIE: "M.S. / FERIE",
-    PDA: "MACADDRESS PDA",
-    COD_SEDE: "CODICE SEDE",
-    COD_PDV: "CODICE PDV AAMS",
-    DENOM_SEDE: "DENOMIN. SEDE",
-    INDIRIZZO: "INDIRIZZO",
-    PROVINCIA: "PROVINCIA",
-    COMUNE: "COMUNE",
-    COD_IS_ESERC: "CODICE IS ESERCENTE",
-    PRAT_AMM: "PRATICA AMMINISTRATIVA",
-    STATO_PRAT: "STATO PRATICA",
-    DATA_NOE: "DATA RILASCIO N.O.E.",
-    COD_MODELLO: "CODICE MODELLO",
-    MODELLO: "MODELLO",
-    PCT_OUT: "% OUT",
-    EM: "E/M",
-    NOE: "NOE",
-    INCASSO_GG: "INCASSO GIORNALIERO",
-    MEDIA_INCASSO: "MEDIA INCASSO GG ESERCIZIO",
-    WARNING: "WARNING",
-    IR_AWP: "IR AWP",
-    CNT_IN: "CNTTOTIN",
-    CNT_OUT: "CNTTOTOT",
+  // ---------- Config paths ----------
+  // IMPORTANT: relative path. Works on:
+  // https://user.github.io/Repo/  AND local server.
+  const PATH = {
+    users: "Dati/users.json",
+    manifest: "Dati/manifest.json",
+    cicloslot: "Dati/cicloslot.json",
+    sinottico: (name)=> `Dati/${encodeURIComponent(name)}`
   };
 
-  const GLOSSARY = [
-    ["CODEID", "Codice univoco identificativo assegnato da AAMS (identifica la macchina)."],
-    ["CODEID PROVV", "Codice univoco provvisorio assegnato dal produttore della scheda."],
-    ["DESCR. STATO", "Stato (attiva, manutenzione, bloccata, ferie...)."],
-    ["DATA ULTIMA LETTURA VAL.", "Timestamp della lettura contatori. È la base dello storico: se è uguale su più sinottici, NON si duplica la lettura."],
-    ["CNTTOTIN / CNTTOTOT", "Contatori globali IN/OUT in centesimi: gli ultimi 2 zeri sono centesimi (vengono convertiti in euro)."],
-    ["MACADDRESS PDA", "MAC del PDA/modem a cui è collegata la AWP. Un locale può avere più PDA."],
-    ["CODICE SEDE / DENOMIN. SEDE", "Identifica il locale (codice e nome)."],
-    ["CODICE PDV AAMS", "Pratica del proprietario. Un proprietario può avere più locali."],
-    ["CODICE MODELLO / MODELLO", "Identifica modello AWP. Usato per associare il ciclo da cicloslot.json."],
-    ["% OUT", "Percentuale di payout di legge (es. 65%)."],
-    ["E/M", "Esercizio/Magazzino."],
-    ["NOE", "Codice nullaosta di messa in esercizio."],
-    ["GG DECADENZA", "Giorni in magazzino. A 90 il nullaosta decade e la macchina viene dismessa."],
-    ["GG MANCATO COLLEGAMENTO", "Giorni senza trasmissione rete/AAMS."],
-    ["INCASSO GIORNALIERO", "Incasso del giorno precedente (dato dal sinottico)."],
-    ["MEDIA INCASSO GG ESERCIZIO", "Media incasso da quando è in esercizio."],
-    ["WARNING", "Indicatore problemi/avvisi amministrativi (se presenti)."],
-    ["IR AWP", "Colonna non definita: attualmente ignorata nel calcolo (come richiesto)."],
-  ];
-
-  /* ---------- State (RAM) ---------- */
-  const state = {
-    session: null,      // {user, level, expires}
+  // ---------- State in RAM ----------
+  const S = {
     users: [],
-    manifest: [],
-    cicloMap: new Map(), // codiceModello => ciclo
-
-    // Latest snapshot per machine (from latest valid reading)
-    machines: new Map(), // codeId => latest record
-
-    // History per machine: [{t, inE, outE, ...fields}]
-    history: new Map(),  // codeId => array points sorted by t
-    // For locale management
-    locales: new Map(),  // localeKey => {name, codeSede, pdv, addr, prov, com, pdaSet, machines:Set(codeId)}
-
-    lastAnalysisAt: null,
-    kpi: null,
+    session: null, // {user, level, expires}
+    manifest: {sinottici:[]},
+    ciclos: [], // mapping modello->ciclo
+    byCodeId: new Map(), // CODEID -> machine object
+    machineList: [], // derived list for table
+    filesLoaded: 0,
+    readsTotal: 0,
+    payingCount: 0,
+    analyzing: false
   };
 
-  /* =========================
-     Utils
-  ========================= */
+  // ---------- Accent preference ----------
+  const savedAccent = localStorage.getItem("awp_accent") || "blue";
+  document.documentElement.dataset.accent = savedAccent;
+  $("#accentSelect").value = savedAccent;
+  $("#accentSelect").addEventListener("change", ()=>{
+    const v = $("#accentSelect").value;
+    document.documentElement.dataset.accent = v;
+    localStorage.setItem("awp_accent", v);
+  });
 
-  function setSub(text){ topSub.textContent = text; }
-  function setLeft(text){ leftStatus.textContent = text; }
-
-  function clamp(n, a, b){ return Math.max(a, Math.min(b, n)); }
-  function safeStr(v){ return (v === null || v === undefined) ? "" : String(v).trim(); }
-
-  function parseMaybeNumber(v){
-    if(v === null || v === undefined) return null;
-    if(typeof v === "number" && Number.isFinite(v)) return v;
-    let s = String(v).trim();
-    if(!s) return null;
-    // replace comma decimal, remove spaces
-    s = s.replace(/\s+/g,"").replace(",",".");
-    const n = Number(s);
-    return Number.isFinite(n) ? n : null;
-  }
-
-  function parsePercent(v){
-    const n = parseMaybeNumber(v);
-    if(n === null) return null;
-    // Could be 65 or 0.65
-    return n > 1 ? n/100 : n;
-  }
-
-  function parseDateValue(v){
-    // Handles:
-    // - JS Date
-    // - Excel serial date number
-    // - string "dd/mm/yyyy hh:mm" or similar
-    if(!v && v !== 0) return null;
-    if(v instanceof Date){
-      const t = v.getTime();
-      return Number.isNaN(t) ? null : t;
-    }
-    if(typeof v === "number"){
-      // Excel serial date: use XLSX.SSF to parse if available; else approximate.
-      // We can convert via epoch 1899-12-30
-      const t = Math.round((v - 25569) * 86400 * 1000);
-      if(Number.isFinite(t) && t > 0) return t;
-    }
-    const s = String(v).trim();
-    if(!s) return null;
-
-    // Try ISO
-    const t1 = Date.parse(s);
-    if(!Number.isNaN(t1)) return t1;
-
-    // Try dd/mm/yyyy hh:mm(:ss)
-    const m = s.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
-    if(m){
-      const dd = Number(m[1]), mm = Number(m[2])-1, yyyy = Number(m[3].length===2 ? ("20"+m[3]) : m[3]);
-      const hh = m[4] ? Number(m[4]) : 0;
-      const mi = m[5] ? Number(m[5]) : 0;
-      const ss = m[6] ? Number(m[6]) : 0;
-      const dt = new Date(yyyy, mm, dd, hh, mi, ss);
-      const t = dt.getTime();
-      return Number.isNaN(t) ? null : t;
-    }
-
-    return null;
-  }
-
-  function fmtMoney(eur){
-    if(eur === null || eur === undefined || !Number.isFinite(eur)) return "—";
-    return eur.toLocaleString("it-IT",{style:"currency", currency:"EUR"});
-  }
-  function fmtInt(n){
-    if(n === null || n === undefined || !Number.isFinite(n)) return "—";
-    return Math.round(n).toLocaleString("it-IT");
-  }
-  function fmtDate(t){
-    if(!t || !Number.isFinite(t)) return "—";
-    const d = new Date(t);
-    return d.toLocaleString("it-IT");
-  }
-
-  function normalizeCounterToEuro(v){
-    // CNT in centesimi, remove last 2 zeros: divide by 100
-    const n = parseMaybeNumber(v);
-    if(n === null) return null;
-    return n / 100;
-  }
-
-  function pickRowValue(row, header){
-    // header exact
-    if(row && Object.prototype.hasOwnProperty.call(row, header)) return row[header];
-    // try tolerant match (trim, remove double spaces)
-    const keys = row ? Object.keys(row) : [];
-    const target = header.trim().toLowerCase().replace(/\s+/g," ");
-    for(const k of keys){
-      const kk = k.trim().toLowerCase().replace(/\s+/g," ");
-      if(kk === target) return row[k];
-    }
-    return undefined;
-  }
-
-  function localeKeyFromRecord(r){
-    const code = safeStr(r.codeSede);
-    const name = safeStr(r.denomSede);
-    // prefer code, fallback name
-    return code ? `SEDE:${code}` : `SEDE_NAME:${name.toLowerCase()}`;
-  }
-
-  /* =========================
-     Fetch helpers
-  ========================= */
-
-  async function fetchJSON(path){
-    const res = await fetch(path, {cache:"no-store"});
-    if(!res.ok) throw new Error(`HTTP ${res.status} su ${path}`);
-    return await res.json();
-  }
-
-  async function fetchArrayBuffer(path){
-    const res = await fetch(path, {cache:"no-store"});
-    if(!res.ok) throw new Error(`HTTP ${res.status} su ${path}`);
-    return await res.arrayBuffer();
-  }
-
-  /* =========================
-     Auth
-  ========================= */
-
-  function showLogin(msg=""){
-    loginOverlay.classList.add("active");
-    loginMsg.textContent = msg || "";
-    loginUser.value = localStorage.getItem(LS_LAST_USER) || "";
-    loginPin.value = "";
-    setLeft("Non autenticato");
-  }
-
-  function hideLogin(){
-    loginOverlay.classList.remove("active");
-    loginMsg.textContent = "";
-  }
-
-  function makeSessionToken(){
-    return Math.random().toString(16).slice(2) + "-" + Date.now().toString(16);
-  }
-
-  function isExpired(expires){
-    if(!expires) return false;
-    const t = Date.parse(expires);
-    if(Number.isNaN(t)) return false;
-    return Date.now() > t;
-  }
-
-  async function loadUsers(){
-    state.users = await fetchJSON(PATH_USERS);
-    if(!Array.isArray(state.users)) state.users = [];
-  }
-
-  async function doLogin(user, pin){
-    const u = safeStr(user).toLowerCase();
-    const p = safeStr(pin);
-    const found = state.users.find(x => safeStr(x.user).toLowerCase() === u && safeStr(x.pin) === p);
-    if(!found) throw new Error("Utente non trovato");
-    if(isExpired(found.expires)) throw new Error("Abbonamento scaduto");
-    state.session = { user: found.user, level: found.level, expires: found.expires || null, token: makeSessionToken() };
-    localStorage.setItem(LS_LAST_USER, found.user);
-    localStorage.setItem(LS_SESSION, JSON.stringify(state.session));
-    return state.session;
-  }
-
-  function logout(){
-    state.session = null;
-    localStorage.removeItem(LS_SESSION);
-    showLogin("");
-    setSub("Effettua l'accesso per caricare i dati.");
-  }
-
-  function restoreSession(){
-    const raw = localStorage.getItem(LS_SESSION);
-    if(!raw) return null;
+  // ---------- Session persistence ----------
+  function loadSession(){
     try{
+      const raw = localStorage.getItem("awp_session");
+      if(!raw) return null;
       const s = JSON.parse(raw);
       if(!s || !s.user) return null;
-      if(isExpired(s.expires)) return null;
+      // expiry check
+      if(s.expires){
+        const exp = new Date(s.expires + "T00:00:00");
+        if(isFinite(exp) && exp < new Date()){
+          localStorage.removeItem("awp_session");
+          return null;
+        }
+      }
       return s;
     }catch{ return null; }
   }
-
-  /* =========================
-     Data loading
-  ========================= */
-
-  async function loadManifest(){
-    const data = await fetchJSON(PATH_MANIFEST);
-    const list = data && data.sinottici ? data.sinottici : [];
-    if(!Array.isArray(list)) throw new Error("manifest.json non valido: manca 'sinottici'");
-    state.manifest = list.map(String);
+  function saveSession(sess){
+    localStorage.setItem("awp_session", JSON.stringify(sess));
+  }
+  function clearSession(){
+    localStorage.removeItem("awp_session");
   }
 
-  async function loadCiclo(){
-    const arr = await fetchJSON(PATH_CICLO);
-    state.cicloMap.clear();
-    if(Array.isArray(arr)){
-      for(const x of arr){
-        const k = safeStr(x.codiceModello);
-        const c = parseMaybeNumber(x.ciclo);
-        if(k && c) state.cicloMap.set(k, c);
-      }
+  // ---------- Fetch JSON with better errors ----------
+  async function fetchJSON(url){
+    const res = await fetch(url, {cache:"no-store"});
+    if(!res.ok){
+      throw new Error(`HTTP ${res.status} su ${url}`);
     }
+    return await res.json();
   }
 
-  function ensureXLSX(){
-    if(typeof window.XLSX === "undefined") throw new Error("Libreria XLSX non caricata. Verifica connessione o blocchi CDN.");
-  }
-
-  function parseWorkbookRows(arrayBuffer){
-    ensureXLSX();
-    const wb = XLSX.read(arrayBuffer, {type:"array"});
-    const sheetName = wb.SheetNames && wb.SheetNames[0];
-    if(!sheetName) return [];
-    const ws = wb.Sheets[sheetName];
-    // defval keeps empty cells
-    const rows = XLSX.utils.sheet_to_json(ws, {defval: null});
-    return rows;
-  }
-
-  function mapRowToPoint(row, fallbackFileName){
-    // Extract fields
-    const codeId = safeStr(pickRowValue(row, COL.CODEID));
-    if(!codeId) return null;
-
-    const codiceModello = safeStr(pickRowValue(row, COL.COD_MODELLO));
-    const modello = safeStr(pickRowValue(row, COL.MODELLO));
-    const denomSede = safeStr(pickRowValue(row, COL.DENOM_SEDE));
-    const codeSede = safeStr(pickRowValue(row, COL.COD_SEDE));
-    const pda = safeStr(pickRowValue(row, COL.PDA));
-    const provincia = safeStr(pickRowValue(row, COL.PROVINCIA));
-    const comune = safeStr(pickRowValue(row, COL.COMUNE));
-    const indirizzo = safeStr(pickRowValue(row, COL.INDIRIZZO));
-    const pdv = safeStr(pickRowValue(row, COL.COD_PDV));
-    const noe = safeStr(pickRowValue(row, COL.NOE));
-    const stato = safeStr(pickRowValue(row, COL.STATO));
-    const warning = safeStr(pickRowValue(row, COL.WARNING));
-    const em = safeStr(pickRowValue(row, COL.EM));
-    const msferie = safeStr(pickRowValue(row, COL.MS_FERIE));
-    const ggDec = parseMaybeNumber(pickRowValue(row, COL.GG_DEC));
-    const ggManc = parseMaybeNumber(pickRowValue(row, COL.GG_MANC));
-
-    const inE = normalizeCounterToEuro(pickRowValue(row, COL.CNT_IN));
-    const outE = normalizeCounterToEuro(pickRowValue(row, COL.CNT_OUT));
-
-    const pct = parsePercent(pickRowValue(row, COL.PCT_OUT)) ?? 0.65;
-
-    const incassoGg = parseMaybeNumber(pickRowValue(row, COL.INCASSO_GG));
-    const mediaInc = parseMaybeNumber(pickRowValue(row, COL.MEDIA_INCASSO));
-
-    const t = parseDateValue(pickRowValue(row, COL.DATA_ULT_LETT));
-    // IMPORTANT: user said per-machine reading times vary. We treat t as truth.
-    // If t missing, we fallback to file timestamp (weak).
-    const tFallback = parseTimeFromFilenameLoose(fallbackFileName);
-
-    return {
-      codeId,
-      codiceModello,
-      modello,
-      denomSede,
-      codeSede,
-      pda,
-      provincia,
-      comune,
-      indirizzo,
-      pdv,
-      noe,
-      stato,
-      warning,
-      em,
-      msferie,
-      ggDec,
-      ggManc,
-      inE,
-      outE,
-      pct,
-      incassoGg,
-      mediaInc,
-
-      t: (t ?? tFallback ?? null),
-      file: fallbackFileName
-    };
-  }
-
-  function parseTimeFromFilenameLoose(file){
-    // Sinottico-YYYY-MM-DD-hhmm.xlsx (fallback only)
-    const m = String(file).match(/Sinottico-(\d{4})-(\d{2})-(\d{2})(?:-(\d{2})(\d{2}))?/i);
-    if(!m) return null;
-    const Y = Number(m[1]), Mo = Number(m[2])-1, D = Number(m[3]);
-    const hh = m[4] ? Number(m[4]) : 9;
-    const mm = m[5] ? Number(m[5]) : 0;
-    const dt = new Date(Y, Mo, D, hh, mm, 0);
-    const t = dt.getTime();
-    return Number.isNaN(t) ? null : t;
-  }
-
-  /* =========================
-     History building with dedupe
-     Rule: if a machine has same DATA ULTIMA LETTURA VAL. across multiple sinottici
-     => it was not updated, so do not duplicate.
-  ========================= */
-
-  function addPointToHistory(p){
-    if(!p || !p.codeId) return;
-    if(!state.history.has(p.codeId)) state.history.set(p.codeId, []);
-    const arr = state.history.get(p.codeId);
-
-    // If t missing, we still store but with special dedupe by (file,inE,outE) - last resort
-    const t = p.t;
-
-    if(t){
-      // Dedupe on same timestamp
-      if(arr.some(x => x.t === t)) return;
-
-      arr.push(p);
+  // ---------- Load base data ----------
+  async function boot(){
+    // Check external libs
+    if(typeof XLSX === "undefined"){
+      toast("Errore", "Libreria XLSX non caricata. Verifica connessione o blocco CDN.");
+      $("#loginStatus").textContent = "Errore: XLSX non caricato.";
       return;
     }
 
-    // no timestamp: dedupe by exact counters+file to avoid spam
-    const sig = `${p.file}|${p.inE}|${p.outE}`;
-    if(arr.some(x => `${x.file}|${x.inE}|${x.outE}` === sig)) return;
-    arr.push(p);
-  }
-
-  function finalizeHistories(){
-    for(const [codeId, arr] of state.history.entries()){
-      arr.sort((a,b) => (a.t||0) - (b.t||0));
+    try{
+      S.users = await fetchJSON(PATH.users);
+      $("#loginStatus").textContent = "Utenti caricati.";
+    }catch(err){
+      $("#loginStatus").textContent = "Errore caricamento utenti.";
+      toast("Errore", `Non riesco a leggere ${PATH.users}. Hai usato path assoluto nel codice? Dettaglio: ${err.message}`);
     }
-  }
 
-  function rebuildLatestMachinesFromHistory(){
-    state.machines.clear();
-    for(const [codeId, arr] of state.history.entries()){
-      if(!arr.length) continue;
-      // choose latest with valid t; else last item
-      const withT = arr.filter(x => x.t).sort((a,b)=>a.t-b.t);
-      const latest = withT.length ? withT[withT.length-1] : arr[arr.length-1];
-      state.machines.set(codeId, latest);
+    // Auto session
+    const sess = loadSession();
+    if(sess){
+      S.session = sess;
+      showMain();
+      return;
     }
+    showLogin();
   }
 
-  /* =========================
-     Locales management
-  ========================= */
+  // ---------- Views ----------
+  function showLogin(){
+    $("#viewLogin").style.display = "grid";
+    $("#viewMain").style.display = "none";
+    $("#btnLogout").style.display = "none";
+    $("#sessionPill").style.display = "none";
+  }
+  function showMain(){
+    $("#viewLogin").style.display = "none";
+    $("#viewMain").style.display = "block";
+    $("#btnLogout").style.display = "inline-flex";
+    $("#sessionPill").style.display = "flex";
+    $("#sessionUser").textContent = S.session?.user || "—";
+    $("#sessionLevel").textContent = S.session?.level || "—";
+    awiseHello();
+  }
 
-  function rebuildLocales(){
-    state.locales.clear();
+  // ---------- Login ----------
+  $("#btnLogin").addEventListener("click", doLogin);
+  $("#loginPin").addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
+  $("#loginUser").addEventListener("keydown", (e)=>{ if(e.key==="Enter") doLogin(); });
 
-    for(const [codeId, m] of state.machines.entries()){
-      const key = localeKeyFromRecord(m);
-      if(!key) continue;
-      if(!state.locales.has(key)){
-        state.locales.set(key, {
-          key,
-          name: safeStr(m.denomSede) || "—",
-          codeSede: safeStr(m.codeSede) || "",
-          pdv: safeStr(m.pdv) || "",
-          indirizzo: safeStr(m.indirizzo) || "",
-          provincia: safeStr(m.provincia) || "",
-          comune: safeStr(m.comune) || "",
-          pdaSet: new Set(),
-          machines: new Set(),
-        });
+  function normalizeUser(u){ return (u||"").trim().toLowerCase(); }
+
+  function doLogin(){
+    const user = normalizeUser($("#loginUser").value);
+    const pin = ($("#loginPin").value||"").trim();
+
+    if(!user || !pin){
+      toast("Login", "Inserisci utente e PIN.");
+      return;
+    }
+    const found = (S.users||[]).find(x => normalizeUser(x.user)===user && String(x.pin).trim()===pin);
+    if(!found){
+      toast("Login", "Utente non trovato o PIN errato.");
+      return;
+    }
+    // expiry
+    if(found.expires){
+      const exp = new Date(found.expires + "T00:00:00");
+      if(isFinite(exp) && exp < new Date()){
+        toast("Login", "Utente scaduto (abbonamento terminato).");
+        return;
       }
-      const L = state.locales.get(key);
-      if(m.pda) L.pdaSet.add(m.pda);
-      L.machines.add(codeId);
+    }
+
+    S.session = { user: found.user, level: found.level, expires: found.expires || null };
+    saveSession(S.session);
+    toast("Accesso", `Benvenuto ${found.user} (${found.level})`);
+    showMain();
+  }
+
+  $("#btnLogout").addEventListener("click", ()=>{
+    clearSession();
+    S.session = null;
+    toast("Sessione", "Sei uscito.");
+    showLogin();
+  });
+
+  // ---------- Analysis Pipeline ----------
+  $("#btnAnalyze").addEventListener("click", analyzeAll);
+
+  async function analyzeAll(){
+    if(S.analyzing) return;
+    S.analyzing = true;
+    $("#loadLog").textContent = "Avvio analisi…";
+
+    try{
+      // load manifest & ciclos
+      S.manifest = await fetchJSON(PATH.manifest);
+      S.ciclos = await fetchJSON(PATH.cicloslot);
+
+      const files = (S.manifest?.sinottici || []).slice();
+      $("#kpiFiles").textContent = String(files.length);
+      $("#kpiFilesHint").textContent = files.length ? `Da manifest.json` : "manifest vuoto";
+
+      if(!files.length){
+        toast("Manifest", "Nessun sinottico in manifest.json.");
+        S.analyzing = false;
+        return;
+      }
+
+      // reset RAM datasets
+      S.byCodeId.clear();
+      S.machineList = [];
+      S.filesLoaded = 0;
+      S.readsTotal = 0;
+      S.payingCount = 0;
+
+      // load with concurrency
+      const concurrency = 3;
+      let i = 0;
+
+      async function worker(id){
+        while(i < files.length){
+          const idx = i++;
+          const fname = files[idx];
+          $("#loadLog").textContent = `Carico (${idx+1}/${files.length}) ${fname}…`;
+          try{
+            await loadOneSinottico(fname);
+            S.filesLoaded++;
+          }catch(err){
+            console.warn("Load fail", fname, err);
+          }
+          await sleep(10);
+        }
+      }
+
+      const workers = Array.from({length:concurrency}, (_,k)=>worker(k));
+      await Promise.all(workers);
+
+      // finalize list
+      buildMachineList();
+      renderTable();
+
+      $("#kpiMachines").textContent = String(S.byCodeId.size);
+      $("#kpiReads").textContent = String(S.readsTotal);
+      $("#kpiPaying").textContent = String(S.payingCount);
+
+      toast("Analisi completata", `Letti ${S.filesLoaded}/${files.length} sinottici. Macchine: ${S.byCodeId.size}.`);
+      $("#loadLog").textContent = `OK. Sinottici letti: ${S.filesLoaded}/${files.length}. Macchine: ${S.byCodeId.size}. Letture: ${S.readsTotal}.`;
+    }catch(err){
+      toast("Errore", err.message);
+      $("#loadLog").textContent = `Errore: ${err.message}`;
+    }finally{
+      S.analyzing = false;
     }
   }
 
-  /* =========================
-     Payment scoring + projections
-  ========================= */
-
-  function computeFeatures(point){
-    const modelKey = safeStr(point.codiceModello);
-    const ciclo = state.cicloMap.get(modelKey) || null;
-    const pct = point.pct ?? 0.65;
-
-    const inE = point.inE;
-    const outE = point.outE;
-    if(!Number.isFinite(inE) || !Number.isFinite(outE)) return {ciclo, pct, residuo:null, cycleProgress:null};
-
-    const residuo = (inE * pct) - outE;   // how much "should have paid" minus actual paid
-    let cycleProgress = null;
-    if(ciclo && ciclo > 0){
-      const mod = ((inE % ciclo) + ciclo) % ciclo;
-      cycleProgress = mod / ciclo; // 0..1
-    }
-    return {ciclo, pct, residuo, cycleProgress};
+  // ---------- XLSX parsing ----------
+  function toNumberEuroFromCounters(v){
+    // CNT fields: last 2 digits are cents to remove
+    if(v===null || v===undefined || v==="") return NaN;
+    const s = String(v).replace(/\s/g,"").replace(/\./g,"").replace(/,/g,"");
+    if(!/^\d+$/.test(s)) return NaN;
+    const n = parseInt(s,10);
+    return Math.floor(n/100); // remove cents
   }
 
-  function computeTrend(codeId){
-    // Use last few points to see if residuo is increasing (more likely to pay soon)
-    const arr = state.history.get(codeId) || [];
-    const last = arr.filter(x => x.t && Number.isFinite(x.inE) && Number.isFinite(x.outE)).slice(-8);
-    if(last.length < 3) return {trend: 0.5, slope: 0};
-
-    const pct = last[last.length-1].pct ?? 0.65;
-    const xs = [], ys = [];
-    for(const p of last){
-      xs.push(p.t);
-      ys.push((p.inE*pct) - p.outE);
-    }
-    const n = xs.length;
-    const mx = xs.reduce((a,b)=>a+b,0)/n;
-    const my = ys.reduce((a,b)=>a+b,0)/n;
-    let num=0, den=0;
-    for(let i=0;i<n;i++){
-      num += (xs[i]-mx)*(ys[i]-my);
-      den += (xs[i]-mx)*(xs[i]-mx);
-    }
-    const slope = den ? num/den : 0; // eur per ms
-    // Convert slope to eur/day
-    const slopeDay = slope * 86400000;
-    // trend factor 0..1 (positive slope good)
-    const trend = clamp((slopeDay / 500) + 0.5, 0, 1); // 500€/day as "strong"
-    return {trend, slopeDay};
+  function toText(v){
+    if(v===null || v===undefined) return "";
+    return String(v).trim();
   }
 
-  function computePaymentScore(latestPoint){
-    const {ciclo, pct, residuo, cycleProgress} = computeFeatures(latestPoint);
-    if(residuo === null) return 0;
+  function parseDateTime(value){
+    // Excel can provide Date object, ISO, or string
+    if(value instanceof Date && isFinite(value)) return value;
+    const s = toText(value);
+    if(!s) return null;
+    // Try Italian formats: "28/12/2025 09:20" etc
+    // Or "2025-12-28 09:20"
+    let d = new Date(s);
+    if(isFinite(d)) return d;
 
-    // 1) residuo scale
-    const scale = (ciclo ? (ciclo*pct*0.60) : 12000);
-    const sResid = clamp(residuo / scale, 0, 1);
-
-    // 2) towards end of cycle
-    const sCycle = (cycleProgress === null) ? 0.35 : clamp((cycleProgress - 0.50) / 0.50, 0, 1);
-
-    // 3) trend
-    const {trend} = computeTrend(latestPoint.codeId);
-
-    // 4) penalties for not in esercizio / warnings
-    let penalty = 1;
-    const st = (latestPoint.stato||"").toLowerCase();
-    const em = (latestPoint.em||"").toLowerCase();
-    const ms = (latestPoint.msferie||"").toLowerCase();
-    if(em.includes("mag")) penalty *= 0.65;
-    if(st.includes("ferie") || ms.includes("ferie")) penalty *= 0.70;
-    if(st.includes("manut") || ms.includes("manut")) penalty *= 0.75;
-    if(safeStr(latestPoint.warning)) penalty *= 0.85;
-    if(latestPoint.ggManc !== null && latestPoint.ggManc >= 2) penalty *= 0.90;
-
-    const score = 100 * (0.35*sResid + 0.30*sCycle + 0.35*trend) * penalty;
-    return Math.round(clamp(score, 0, 100));
-  }
-
-  function estimateWhenPay(codeId){
-    const m = state.machines.get(codeId);
-    if(!m) return null;
-
-    const hist = (state.history.get(codeId) || []).filter(x => x.t && Number.isFinite(x.inE) && Number.isFinite(x.outE));
-    if(hist.length < 3) return {msg:"Dati storici insufficienti per stimare (servono più letture).", eta:null};
-
-    const {ciclo, pct} = computeFeatures(m);
-    if(!ciclo) return {msg:"Ciclo non trovato per questo CODICE MODELLO nel cicloslot.json.", eta:null};
-
-    const {trend, slopeDay} = computeTrend(codeId);
-    if(!Number.isFinite(slopeDay) || slopeDay <= 0){
-      return {msg:"Trend non positivo: al momento non posso stimare una data (la macchina non sta accumulando residuo in modo coerente).", eta:null};
-    }
-
-    const {residuo, cycleProgress} = computeFeatures(m);
-    // target residuo threshold for "likely payout zone"
-    const target = ciclo * pct * 0.45; // heuristic
-    const remaining = target - (residuo ?? 0);
-    if(remaining <= 0){
-      return {msg:"È già in zona pagamento secondo lo score attuale.", eta:{days:0, when:Date.now()}};
-    }
-
-    const days = remaining / slopeDay;
-    const when = Date.now() + days * 86400000;
-    return {
-      msg:`Stima (euristica): ~${days.toFixed(1)} giorni per entrare in zona pagamento (basato su trend recente).`,
-      eta:{days, when, trend}
-    };
-  }
-
-  /* =========================
-     Aggregations (gestionale)
-     - For a given set of machines, compute played in period
-     played ~ delta CNTTOTIN within range
-  ========================= */
-
-  function getRange(period){
-    const end = Date.now();
-    let start = end - 7*86400000;
-    if(period === "day") start = end - 1*86400000;
-    if(period === "month") start = end - 30*86400000;
-    return {start, end};
-  }
-
-  function valueAtOrBefore(hist, t){
-    // hist sorted by time, return last point <= t
-    let best = null;
-    for(const p of hist){
-      if(!p.t) continue;
-      if(p.t <= t) best = p;
-      else break;
-    }
-    return best;
-  }
-
-  function valueAtOrAfter(hist, t){
-    for(const p of hist){
-      if(!p.t) continue;
-      if(p.t >= t) return p;
+    // dd/mm/yyyy hh:mm
+    const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/);
+    if(m){
+      const dd = parseInt(m[1],10);
+      const mm = parseInt(m[2],10)-1;
+      const yy = parseInt(m[3],10);
+      const hh = m[4]? parseInt(m[4],10):0;
+      const mi = m[5]? parseInt(m[5],10):0;
+      const dt = new Date(yy,mm,dd,hh,mi,0);
+      return isFinite(dt)? dt : null;
     }
     return null;
   }
 
-  function computePlayedForMachineInRange(codeId, start, end){
-    const hist = (state.history.get(codeId) || []).filter(p => p.t && Number.isFinite(p.inE));
-    if(hist.length < 2) return {played:null, startP:null, endP:null};
-
-    // best practice for counters:
-    // take point just before start and just before end
-    const p0 = valueAtOrBefore(hist, start) || valueAtOrAfter(hist, start);
-    const p1 = valueAtOrBefore(hist, end) || hist[hist.length-1];
-    if(!p0 || !p1) return {played:null, startP:p0||null, endP:p1||null};
-    const played = (p1.inE - p0.inE);
-    return {played: Number.isFinite(played) ? played : null, startP:p0, endP:p1};
+  function normalizeHeader(h){
+    return toText(h)
+      .toUpperCase()
+      .replace(/\s+/g," ")
+      .replace(/[’']/g,"'")
+      .replace(/\./g,".")
+      .trim();
   }
 
-  function computePlayedForLocale(localeKey, period){
-    const L = state.locales.get(localeKey);
-    if(!L) return null;
-    const {start, end} = getRange(period);
-    let total = 0;
-    let valid = 0;
-    for(const codeId of L.machines){
-      const r = computePlayedForMachineInRange(codeId, start, end);
-      if(r.played !== null){
-        total += r.played;
-        valid++;
+  const COL = {
+    CODEID: ["CODEID"],
+    CODEID_PROVV: ["CODEID PROVV","CODEID PROVV."],
+    DESCR_STATO: ["DESCR. STATO","DESCR STATO","STATO"],
+    DATA_ATTIVAZIONE: ["DATA ATTIVAZIONE"],
+    DATA_ULTIMO_COLLEGAMENTO: ["DATA ULTIMO COLLEGAMENTO"],
+    GG_MANCATO_COLLEGAMENTO: ["GG MANCATO COLLEGAMENTO"],
+    GG_DECADENZA: ["GG DECADENZA"],
+    DATA_ULTIMA_LETTURA: ["DATA ULTIMA LETTURA VAL.","DATA ULTIMA LETTURA VAL", "DATA ULTIMA LETTURA"],
+    CNTTOTIN: ["CNTTOTIN"],
+    CNTTOTOT: ["CNTTOTOT","CNTTOTOUT","CNTTOTO T","CNTTOTOT."],
+    MS_FERIE: ["M.S. / FERIE","M.S./ FERIE","M.S./FERIE"],
+    MAC_PDA: ["MACADDRESS PDA","MACADDRESS", "MAC PDA", "PDA"],
+    CODICE_SEDE: ["CODICE SEDE"],
+    CODICE_PDV_AAMS: ["CODICE PDV AAMS","PDV AAMS","CODICE PDV"],
+    DENOM_SEDE: ["DENOMIN. SEDE","DENOMIN SEDE","DENOMINAZIONE SEDE","SEDE"],
+    INDIRIZZO: ["INDIRIZZO"],
+    PROVINCIA: ["PROVINCIA","PROV."],
+    COMUNE: ["COMUNE"],
+    CODICE_IS_ESERCENTE: ["CODICE IS ESERCENTE","IS ESERCENTE"],
+    PRATICA_AMM: ["PRATICA AMMINISTRATIVA"],
+    STATO_PRATICA: ["STATO PRATICA"],
+    DATA_RILASCIO_NOE: ["DATA RILASCIO N.O.E.","DATA RILASCIO NOE"],
+    CODICE_MODELLO: ["CODICE MODELLO"],
+    MODELLO: ["MODELLO"],
+    PERC_OUT: ["% OUT","%OUT"],
+    EM: ["E/M"],
+    NOE: ["NOE"],
+    INCASSO_GIORNALIERO: ["INCASSO GIORNALIERO"],
+    MEDIA_INCASSO: ["MEDIA INCASSO GG ESERCIZIO"],
+    WARNING: ["WARNING"],
+    IR_AWP: ["IR AWP"]
+  };
+
+  function buildHeaderMap(headers){
+    const map = {};
+    const norm = headers.map(normalizeHeader);
+
+    function findKey(possibles){
+      for(const p of possibles){
+        const target = normalizeHeader(p);
+        const idx = norm.indexOf(target);
+        if(idx>=0) return idx;
       }
-    }
-    return {total: valid ? total : null, machines: L.machines.size, valid, start, end};
-  }
-
-  /* =========================
-     Rendering
-  ========================= */
-
-  function showView(el){
-    for(const v of [viewMachines, viewLocales, viewMachineDetail, viewLocaleDetail, viewChat, viewGloss]){
-      v.classList.remove("active");
-    }
-    el.classList.add("active");
-  }
-
-  function badgeForScore(score){
-    if(score >= 75) return `<span class="badge ok">Score ${score}</span>`;
-    if(score >= 50) return `<span class="badge warn">Score ${score}</span>`;
-    return `<span class="badge">Score ${score}</span>`;
-  }
-
-  function badgeForWarning(w){
-    if(!w) return "";
-    return `<span class="badge warn">WARNING</span>`;
-  }
-
-  function badgeForState(m){
-    const st = (m.stato||"").toLowerCase();
-    const em = (m.em||"").toLowerCase();
-    const ms = (m.msferie||"").toLowerCase();
-    if(em.includes("mag")) return `<span class="badge">MAGAZZINO</span>`;
-    if(st.includes("ferie") || ms.includes("ferie")) return `<span class="badge">FERIE</span>`;
-    if(st.includes("manut") || ms.includes("manut")) return `<span class="badge">MANUT.</span>`;
-    return `<span class="badge ok">ATTIVA</span>`;
-  }
-
-  function renderMachines(){
-    const query = safeStr(q.value).toLowerCase();
-    const fType = filterType.value;
-    const sBy = sortBy.value;
-
-    const items = [];
-    for(const [codeId, m] of state.machines.entries()){
-      const score = computePaymentScore(m);
-
-      // filters
-      if(fType === "pay" && score < 60) continue;
-      if(fType === "warn" && !safeStr(m.warning)) continue;
-      if(fType === "inactive"){
-        const st = (m.stato||"").toLowerCase();
-        const em = (m.em||"").toLowerCase();
-        const ms = (m.msferie||"").toLowerCase();
-        const inactive = em.includes("mag") || st.includes("ferie") || ms.includes("ferie") || st.includes("manut") || ms.includes("manut");
-        if(!inactive) continue;
-      }
-
-      // search
-      if(query){
-        const blob = [
-          m.codeId, m.codiceModello, m.modello, m.denomSede, m.codeSede, m.pda,
-          m.provincia, m.comune, m.indirizzo, m.pdv, m.noe
-        ].map(x => safeStr(x).toLowerCase()).join(" | ");
-        if(!blob.includes(query)) continue;
-      }
-
-      items.push({codeId, m, score});
+      return -1;
     }
 
-    // sort
-    items.sort((a,b) => {
-      if(sBy === "score") return b.score - a.score;
-      if(sBy === "incasso") return (parseMaybeNumber(b.m.incassoGg)||0) - (parseMaybeNumber(a.m.incassoGg)||0);
-      if(sBy === "locale") return safeStr(a.m.denomSede).localeCompare(safeStr(b.m.denomSede));
-      if(sBy === "model") return safeStr(a.m.modello).localeCompare(safeStr(b.m.modello));
-      if(sBy === "updated") return (b.m.t||0) - (a.m.t||0);
-      return 0;
-    });
+    for(const k of Object.keys(COL)){
+      const idx = findKey(COL[k]);
+      map[k] = idx;
+    }
+    return map;
+  }
 
-    machinesMeta.textContent = `${items.length} macchine (su ${state.machines.size})`;
+  async function loadOneSinottico(filename){
+    const url = PATH.sinottico(filename);
+    const res = await fetch(url, {cache:"no-store"});
+    if(!res.ok) throw new Error(`HTTP ${res.status} su ${url}`);
+    const ab = await res.arrayBuffer();
+    const wb = XLSX.read(ab, {type:"array"});
+    const sheetName = wb.SheetNames[0];
+    const ws = wb.Sheets[sheetName];
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:""});
+    if(rows.length < 2) return;
 
-    machinesList.innerHTML = "";
-    if(!items.length){
-      machinesList.innerHTML = `<div class="muted">Nessun risultato. Verifica filtri o ricerca.</div>`;
+    const headers = rows[0];
+    const H = buildHeaderMap(headers);
+
+    // sanity check: must have CODEID and DATA_ULTIMA_LETTURA
+    if(H.CODEID < 0){
+      console.warn("No CODEID in", filename, headers);
       return;
     }
 
-    for(const it of items.slice(0, 500)){ // avoid insane DOM
-      const m = it.m;
-      const score = it.score;
+    for(let r=1; r<rows.length; r++){
+      const row = rows[r];
+      const codeid = toText(row[H.CODEID]);
+      if(!codeid) continue;
 
-      const {residuo, ciclo, cycleProgress} = computeFeatures(m);
-      const residText = (residuo===null) ? "—" : fmtMoney(residuo);
-      const progText = (cycleProgress===null) ? "—" : `${Math.round(cycleProgress*100)}%`;
-
-      const row = document.createElement("div");
-      row.className = "row";
-      row.innerHTML = `
-        <div style="min-width:0">
-          <div class="title">${safeStr(m.modello) || "—"} <span class="muted" style="font-weight:500">(${safeStr(m.codeId)})</span></div>
-          <div class="meta">
-            <span>Locale: <b>${safeStr(m.denomSede) || "—"}</b></span>
-            <span>PDA: <span class="mono">${safeStr(m.pda) || "—"}</span></span>
-            <span>Ultima lettura: <b>${fmtDate(m.t)}</b></span>
-            <span>Residuo: <b>${residText}</b></span>
-            <span>Ciclo: <b>${ciclo ? fmtInt(ciclo) : "—"}</b> | Prog: <b>${progText}</b></span>
-          </div>
-        </div>
-        <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end">
-          ${badgeForScore(score)}
-          <div style="display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end">
-            ${badgeForState(m)}
-            ${badgeForWarning(safeStr(m.warning))}
-          </div>
-        </div>
-      `;
-      row.addEventListener("click", () => openMachineDetail(it.codeId));
-      machinesList.appendChild(row);
-    }
-
-    if(items.length > 500){
-      const more = document.createElement("div");
-      more.className = "muted";
-      more.textContent = `Mostrate 500 su ${items.length}. Raffina la ricerca per vedere il resto.`;
-      machinesList.appendChild(more);
+      const rec = extractRecord(row, H, filename);
+      upsertRecord(rec);
     }
   }
 
-  function renderLocales(){
-    rebuildLocales();
-    localesMeta.textContent = `${state.locales.size} locali`;
+  function extractRecord(row, H, filename){
+    const get = (key)=> (H[key]>=0 ? row[H[key]] : "");
+    const codeid = toText(get("CODEID"));
 
-    const query = safeStr(q.value).toLowerCase();
-    const period = periodSel.value;
+    const lastRead = parseDateTime(get("DATA_ULTIMA_LETTURA"));
+    const inEuro = toNumberEuroFromCounters(get("CNTTOTIN"));
+    const outEuro = toNumberEuroFromCounters(get("CNTTOTOT"));
 
-    const items = [];
-    for(const [key, L] of state.locales.entries()){
-      if(query){
-        const blob = [L.name, L.codeSede, L.pdv, L.indirizzo, L.provincia, L.comune].map(x => safeStr(x).toLowerCase()).join(" | ");
-        if(!blob.includes(query)) continue;
-      }
-      const kpi = computePlayedForLocale(key, period);
-      items.push({key, L, kpi});
-    }
-
-    items.sort((a,b) => (b.kpi?.total||0) - (a.kpi?.total||0));
-
-    localesList.innerHTML = "";
-    if(!items.length){
-      localesList.innerHTML = `<div class="muted">Nessun locale trovato.</div>`;
-      return;
-    }
-
-    for(const it of items.slice(0, 300)){
-      const L = it.L;
-      const total = it.kpi?.total;
-      const row = document.createElement("div");
-      row.className = "row";
-      row.innerHTML = `
-        <div style="min-width:0">
-          <div class="title">${safeStr(L.name) || "—"}</div>
-          <div class="meta">
-            <span>COD SEDE: <span class="mono">${safeStr(L.codeSede)||"—"}</span></span>
-            <span>PDV: <span class="mono">${safeStr(L.pdv)||"—"}</span></span>
-            <span>${safeStr(L.comune) || "—"} (${safeStr(L.provincia) || "—"})</span>
-            <span>Macchine: <b>${L.machines.size}</b></span>
-            <span>PDA: <b>${L.pdaSet.size}</b></span>
-          </div>
-        </div>
-        <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end">
-          <span class="badge ${total!==null ? "ok":""}">Giocato ${periodLabel(period)}: <b>${total!==null ? fmtMoney(total) : "—"}</b></span>
-        </div>
-      `;
-      row.addEventListener("click", () => openLocaleDetail(it.key));
-      localesList.appendChild(row);
-    }
-  }
-
-  function periodLabel(p){
-    if(p==="day") return "24h";
-    if(p==="week") return "7g";
-    if(p==="month") return "30g";
-    return p;
-  }
-
-  function renderGlossary(){
-    glossBody.innerHTML = `
-      <div class="list">
-        ${GLOSSARY.map(([k,v]) => `
-          <div class="row" style="cursor:default">
-            <div style="min-width:0">
-              <div class="title">${k}</div>
-              <div class="meta">${v}</div>
-            </div>
-          </div>
-        `).join("")}
-      </div>
-    `;
-  }
-
-  /* =========================
-     Machine detail view
-     - full data
-     - clickable chips: locale / pda / provincia / comune / pdv
-     - chart with readable density (decimation)
-  ========================= */
-
-  function openMachineDetail(codeId){
-    const m = state.machines.get(codeId);
-    if(!m) return;
-
-    showView(viewMachineDetail);
-
-    const score = computePaymentScore(m);
-    const feat = computeFeatures(m);
-    const est = estimateWhenPay(codeId);
-
-    mdTitle.textContent = `${safeStr(m.modello) || "Macchina"} (${safeStr(m.codeId)})`;
-    mdSub.textContent = `Locale: ${safeStr(m.denomSede)||"—"} | Ultima lettura: ${fmtDate(m.t)} | Score: ${score}`;
-
-    btnOpenLocaleFromMachine.onclick = () => {
-      const k = localeKeyFromRecord(m);
-      if(k) openLocaleDetail(k);
+    const record = {
+      sourceFile: filename,
+      codeid,
+      codeidProvv: toText(get("CODEID_PROVV")),
+      stato: toText(get("DESCR_STATO")).toUpperCase(),
+      dataAttivazione: parseDateTime(get("DATA_ATTIVAZIONE")),
+      dataUltimoColleg: parseDateTime(get("DATA_ULTIMO_COLLEGAMENTO")),
+      ggMancato: Number(toText(get("GG_MANCATO_COLLEGAMENTO")) || NaN),
+      ggDecadenza: Number(toText(get("GG_DECADENZA")) || NaN),
+      lastRead,
+      cntIn: inEuro,
+      cntOut: outEuro,
+      msFerie: toText(get("MS_FERIE")),
+      pdaMac: toText(get("MAC_PDA")),
+      codiceSede: toText(get("CODICE_SEDE")),
+      codicePDV: toText(get("CODICE_PDV_AAMS")),
+      denominSede: toText(get("DENOM_SEDE")),
+      indirizzo: toText(get("INDIRIZZO")),
+      provincia: toText(get("PROVINCIA")).toUpperCase(),
+      comune: toText(get("COMUNE")),
+      codiceISEsercente: toText(get("CODICE_IS_ESERCENTE")),
+      praticaAmm: toText(get("PRATICA_AMM")),
+      statoPratica: toText(get("STATO_PRATICA")),
+      dataRilascioNOE: parseDateTime(get("DATA_RILASCIO_NOE")),
+      codiceModello: toText(get("CODICE_MODELLO")),
+      modello: toText(get("MODELLO")),
+      percOut: Number(String(get("PERC_OUT")).replace("%","").replace(",",".") || NaN),
+      em: toText(get("EM")),
+      noe: toText(get("NOE")),
+      incassoGiornaliero: Number(String(get("INCASSO_GIORNALIERO")).replace(",",".") || NaN),
+      mediaIncasso: Number(String(get("MEDIA_INCASSO")).replace(",",".") || NaN),
+      warning: toText(get("WARNING")),
+      irAwp: toText(get("IR_AWP"))
     };
 
-    const chips = [
-      ["Locale", safeStr(m.denomSede), () => openLocaleDetail(localeKeyFromRecord(m))],
-      ["COD SEDE", safeStr(m.codeSede), () => openLocaleDetail(localeKeyFromRecord(m))],
-      ["PDA", safeStr(m.pda), () => openFilteredList("pda", safeStr(m.pda))],
-      ["Provincia", safeStr(m.provincia), () => openFilteredList("provincia", safeStr(m.provincia))],
-      ["Comune", safeStr(m.comune), () => openFilteredList("comune", safeStr(m.comune))],
-      ["PDV", safeStr(m.pdv), () => openFilteredList("pdv", safeStr(m.pdv))],
-      ["NOE", safeStr(m.noe), () => openFilteredList("noe", safeStr(m.noe))],
-      ["CODICE MODELLO", safeStr(m.codiceModello), () => openFilteredList("codiceModello", safeStr(m.codiceModello))],
-    ].filter(x => x[1]);
+    return record;
+  }
 
-    const hist = (state.history.get(codeId) || []).slice().sort((a,b)=>(a.t||0)-(b.t||0));
-    const valid = hist.filter(p => p.t && Number.isFinite(p.inE) && Number.isFinite(p.outE));
-    const chartId = "chart_" + Math.random().toString(16).slice(2);
+  function cicloFor(codiceModello){
+    if(!codiceModello) return null;
+    const x = S.ciclos.find(c => String(c.codiceModello) === String(codiceModello));
+    return x ? Number(x.ciclo) : null;
+  }
 
-    machineDetailBody.innerHTML = `
-      <div class="grid2">
-        <div class="card" style="box-shadow:none">
-          <div class="card-h">
-            <div>
-              <h2>Stato & contatori</h2>
-              <div class="muted">Dati dall’ultima lettura valida</div>
-            </div>
-          </div>
-          <div class="card-b" style="display:flex; flex-direction:column; gap:10px">
-            <div class="chips">
-              ${chips.map(([k,v])=>`<div class="chip" data-chip="${k}"><b>${k}:</b> <span>${escapeHtml(v)}</span></div>`).join("")}
-            </div>
-            <div class="grid2">
-              <div class="row" style="cursor:default">
-                <div style="min-width:0">
-                  <div class="title">CNT IN (EUR)</div>
-                  <div class="meta"><span class="mono">${m.inE!==null? fmtInt(m.inE):"—"}</span></div>
-                </div>
-              </div>
-              <div class="row" style="cursor:default">
-                <div style="min-width:0">
-                  <div class="title">CNT OUT (EUR)</div>
-                  <div class="meta"><span class="mono">${m.outE!==null? fmtInt(m.outE):"—"}</span></div>
-                </div>
-              </div>
-              <div class="row" style="cursor:default">
-                <div style="min-width:0">
-                  <div class="title">Residuo (IN×%OUT - OUT)</div>
-                  <div class="meta"><b>${feat.residuo!==null? fmtMoney(feat.residuo):"—"}</b></div>
-                </div>
-              </div>
-              <div class="row" style="cursor:default">
-                <div style="min-width:0">
-                  <div class="title">Ciclo / Progresso</div>
-                  <div class="meta">
-                    <span>${feat.ciclo? fmtInt(feat.ciclo):"—"}</span>
-                    <span class="muted">|</span>
-                    <span>${feat.cycleProgress!==null? (Math.round(feat.cycleProgress*100)+"%"):"—"}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+  function upsertRecord(rec){
+    // Dedup rule: same machine + same lastRead + same in/out -> ignore
+    const keyRead = [
+      rec.lastRead ? rec.lastRead.toISOString() : "noDate",
+      isFinite(rec.cntIn) ? rec.cntIn : "NaN",
+      isFinite(rec.cntOut) ? rec.cntOut : "NaN"
+    ].join("|");
 
-            <div class="row" style="cursor:default">
-              <div style="min-width:0">
-                <div class="title">Stima pagamento</div>
-                <div class="meta">${escapeHtml(est?.msg || "—")}${est?.eta?.when ? ` • <b>${fmtDate(est.eta.when)}</b>` : ""}</div>
-              </div>
-              <div>${badgeForScore(score)}</div>
-            </div>
+    let m = S.byCodeId.get(rec.codeid);
+    if(!m){
+      m = {
+        codeid: rec.codeid,
+        codiceModello: rec.codiceModello,
+        modello: rec.modello,
+        ciclo: cicloFor(rec.codiceModello),
+        locale: rec.denominSede,
+        comune: rec.comune,
+        provincia: rec.provincia,
+        indirizzo: rec.indirizzo,
+        codiceSede: rec.codiceSede,
+        codicePDV: rec.codicePDV,
+        pdaMac: rec.pdaMac,
+        noe: rec.noe,
+        stato: rec.stato,
+        warning: rec.warning,
+        em: rec.em,
+        percOut: rec.percOut,
+        history: [],
+        _dedup: new Set()
+      };
+      S.byCodeId.set(rec.codeid, m);
+    }
 
-            <div class="row" style="cursor:default">
-              <div style="min-width:0">
-                <div class="title">Info sinottico</div>
-                <div class="meta">
-                  <span>Stato: <b>${escapeHtml(m.stato||"—")}</b></span>
-                  <span>E/M: <b>${escapeHtml(m.em||"—")}</b></span>
-                  <span>M.S/Ferie: <b>${escapeHtml(m.msferie||"—")}</b></span>
-                  <span>GG mancato collegamento: <b>${m.ggManc ?? "—"}</b></span>
-                  <span>GG decadenza: <b>${m.ggDec ?? "—"}</b></span>
-                  <span>Warning: <b>${escapeHtml(m.warning||"—")}</b></span>
-                </div>
-              </div>
-            </div>
+    // update “static-ish” fields if empty
+    if(!m.modello && rec.modello) m.modello = rec.modello;
+    if(!m.codiceModello && rec.codiceModello) m.codiceModello = rec.codiceModello;
+    if(!m.ciclo) m.ciclo = cicloFor(m.codiceModello);
 
-          </div>
-        </div>
+    if(!m.locale && rec.denominSede) m.locale = rec.denominSede;
+    if(!m.comune && rec.comune) m.comune = rec.comune;
+    if(!m.provincia && rec.provincia) m.provincia = rec.provincia;
+    if(!m.indirizzo && rec.indirizzo) m.indirizzo = rec.indirizzo;
 
-        <div class="card" style="box-shadow:none">
-          <div class="card-h">
-            <div>
-              <h2>Storico contatori</h2>
-              <div class="muted">${valid.length} punti (deduplicati per DATA ULTIMA LETTURA VAL.)</div>
-            </div>
-          </div>
-          <div class="card-b">
-            <div class="chart-wrap">
-              <canvas id="${chartId}" height="220"></canvas>
-            </div>
-            <div style="height:10px"></div>
-            <div class="grid2">
-              <button class="btn" id="btnHist7">Vista 7 giorni</button>
-              <button class="btn" id="btnHist30">Vista 30 giorni</button>
-            </div>
-            <div class="note">
-              Nota: se una lettura ha la stessa <b>DATA ULTIMA LETTURA VAL.</b> in sinottici diversi, non viene duplicata.
-            </div>
-          </div>
-        </div>
-      </div>
-    `;
+    if(!m.codiceSede && rec.codiceSede) m.codiceSede = rec.codiceSede;
+    if(!m.codicePDV && rec.codicePDV) m.codicePDV = rec.codicePDV;
+    if(!m.pdaMac && rec.pdaMac) m.pdaMac = rec.pdaMac;
+    if(!m.noe && rec.noe) m.noe = rec.noe;
 
-    // Wire chip clicks
-    const chipEls = machineDetailBody.querySelectorAll("[data-chip]");
-    chipEls.forEach((el, i) => {
-      const handler = chips[i]?.[2];
-      if(handler) el.addEventListener("click", handler);
+    // keep latest status
+    if(rec.stato) m.stato = rec.stato;
+    if(rec.warning) m.warning = rec.warning;
+    if(rec.em) m.em = rec.em;
+    if(isFinite(rec.percOut)) m.percOut = rec.percOut;
+
+    // dedup
+    if(m._dedup.has(keyRead)) return;
+    m._dedup.add(keyRead);
+
+    // push history entry
+    m.history.push({
+      t: rec.lastRead ? rec.lastRead.getTime() : null,
+      iso: rec.lastRead ? rec.lastRead.toISOString() : null,
+      in: rec.cntIn,
+      out: rec.cntOut,
+      incassoGiornaliero: rec.incassoGiornaliero,
+      mediaIncasso: rec.mediaIncasso,
+      stato: rec.stato,
+      pdaMac: rec.pdaMac || m.pdaMac || "",
+      locale: rec.denominSede || m.locale || "",
+      comune: rec.comune || m.comune || "",
+      provincia: rec.provincia || m.provincia || "",
+      sourceFile: rec.sourceFile
     });
+
+    // sort by time (nulls at end)
+    m.history.sort((a,b)=>{
+      if(a.t===null && b.t===null) return 0;
+      if(a.t===null) return 1;
+      if(b.t===null) return -1;
+      return a.t - b.t;
+    });
+
+    S.readsTotal++;
+  }
+
+  // ---------- Derived list & “payment probability” ----------
+  function buildMachineList(){
+    S.machineList = [];
+
+    for(const m of S.byCodeId.values()){
+      const h = m.history.filter(x => x.t!==null);
+
+      // latest
+      const last = h.length ? h[h.length-1] : null;
+      const prev = h.length>=2 ? h[h.length-2] : null;
+
+      const inLast = last?.in;
+      const outLast = last?.out;
+
+      const dIn = (last && prev && isFinite(last.in) && isFinite(prev.in)) ? (last.in - prev.in) : NaN;
+      const dOut = (last && prev && isFinite(last.out) && isFinite(prev.out)) ? (last.out - prev.out) : NaN;
+
+      // ciclo position estimate: (IN - OUT) mod ciclo (very rough)
+      const ciclo = m.ciclo || null;
+      let pos = null;
+      if(ciclo && isFinite(inLast) && isFinite(outLast)){
+        const net = Math.max(0, (inLast - outLast));
+        pos = net % ciclo;
+      }
+
+      // “probabilità pagamento” (robusta ma onesta):
+      // - usa posizione nel ciclo (se disponibile)
+      // - confronta variabilità ΔOUT vs ΔIN
+      // - confronta pattern modello: distribuzione pos su tutte le macchine stesso modello
+      const pay = paymentScore(m, pos);
+
+      S.machineList.push({
+        codeid: m.codeid,
+        locale: m.locale || "",
+        comune: m.comune || "",
+        provincia: m.provincia || "",
+        modello: m.modello || "",
+        codiceModello: m.codiceModello || "",
+        pda: (last?.pdaMac || m.pdaMac || ""),
+        lastRead: last?.iso || "",
+        in: inLast,
+        out: outLast,
+        dIn, dOut,
+        ciclo,
+        pos,
+        payScore: pay.score,
+        payLabel: pay.label,
+        stato: m.stato || ""
+      });
+    }
+
+    // count paying
+    S.payingCount = S.machineList.filter(x=>x.payScore>=0.72).length;
+
+    // Sort: paying first, then by lastRead desc
+    S.machineList.sort((a,b)=>{
+      if(b.payScore !== a.payScore) return b.payScore - a.payScore;
+      return String(b.lastRead).localeCompare(String(a.lastRead));
+    });
+  }
+
+  function paymentScore(machine, pos){
+    const h = machine.history.filter(x=>x.t!==null);
+    const ciclo = machine.ciclo;
+
+    // fallback if too little data
+    if(h.length < 2){
+      return {score:0.40, label:"Dati insufficienti"};
+    }
+
+    const last = h[h.length-1];
+    const prev = h[h.length-2];
+
+    const dIn = (isFinite(last.in) && isFinite(prev.in)) ? (last.in - prev.in) : 0;
+    const dOut = (isFinite(last.out) && isFinite(prev.out)) ? (last.out - prev.out) : 0;
+
+    // base score
+    let score = 0.50;
+
+    // If ciclo known, the closer to end, the higher.
+    if(ciclo && pos!==null){
+      const ratio = pos / ciclo; // 0..1
+      // emphasize last 20%
+      score += Math.max(0, (ratio - 0.80)) * 1.8; // up to +0.36
+      // mid-late 60..80%
+      score += Math.max(0, Math.min(0.80, ratio) - 0.60) * 0.35; // up to +0.07
+    }
+
+    // If ΔOUT spikes relative to ΔIN -> suggests payout event happened
+    if(dOut > 0 && dIn > 0){
+      const rel = dOut / dIn; // >0
+      if(rel > 0.75) score += 0.12;
+      else if(rel < 0.35) score -= 0.06;
+    }
+
+    // Model correlation: compare current pos distribution among same model
+    if(ciclo && pos!==null){
+      const same = [];
+      for(const m2 of S.byCodeId.values()){
+        if(String(m2.codiceModello) !== String(machine.codiceModello)) continue;
+        const h2 = m2.history.filter(x=>x.t!==null);
+        if(!h2.length) continue;
+        const last2 = h2[h2.length-1];
+        if(!isFinite(last2.in) || !isFinite(last2.out) || !m2.ciclo) continue;
+        const net = Math.max(0,(last2.in-last2.out));
+        const p2 = net % m2.ciclo;
+        same.push(p2 / m2.ciclo);
+      }
+      if(same.length >= 6){
+        // percentile of current ratio within same-model ratios
+        const r = pos / ciclo;
+        const sorted = same.slice().sort((a,b)=>a-b);
+        const idx = sorted.findIndex(x => x >= r);
+        const pct = idx<0 ? 1 : idx / sorted.length;
+        // higher percentile -> closer to "late cycle" relative to others
+        score += (pct - 0.5) * 0.14; // -0.07 .. +0.07
+      }
+    }
+
+    // clamp
+    score = Math.max(0.05, Math.min(0.98, score));
+
+    let label = "Media";
+    if(score >= 0.72) label = "Alta";
+    else if(score <= 0.38) label = "Bassa";
+
+    return {score, label};
+  }
+
+  // ---------- Render table + filters ----------
+  $("#searchBox").addEventListener("input", renderTable);
+  $("#filterPay").addEventListener("change", renderTable);
+  $("#filterState").addEventListener("change", renderTable);
+
+  function renderTable(){
+    const q = ($("#searchBox").value||"").trim().toLowerCase();
+    const fp = $("#filterPay").value;
+    const fs = $("#filterState").value;
+
+    const tb = $("#machinesTbody");
+    tb.innerHTML = "";
+
+    if(!S.machineList.length){
+      tb.innerHTML = `<tr><td colspan="15" class="muted">Nessun dato. Premi “Analizza tutti i sinottici”.</td></tr>`;
+      return;
+    }
+
+    let list = S.machineList.slice();
+
+    if(q){
+      list = list.filter(x=>{
+        const hay = [
+          x.locale, x.comune, x.provincia, x.modello, x.codeid, x.pda, x.codiceModello
+        ].join(" ").toLowerCase();
+        return hay.includes(q);
+      });
+    }
+    if(fp==="paying") list = list.filter(x=>x.payScore>=0.72);
+    if(fp==="notpaying") list = list.filter(x=>x.payScore<0.72);
+
+    if(fs!=="all"){
+      list = list.filter(x => (x.stato||"").toUpperCase().includes(fs));
+    }
+
+    if(!list.length){
+      tb.innerHTML = `<tr><td colspan="15" class="muted">Nessun risultato con questi filtri.</td></tr>`;
+      return;
+    }
+
+    // keep table responsive: show top 800 rows for safety
+    const maxRows = 800;
+    const show = list.slice(0,maxRows);
+
+    for(const x of show){
+      const tr = el("tr");
+      tr.append(
+        tdLink(x.locale || "—", ()=>openLocale(x.locale)),
+        tdLink(x.comune || "—", ()=>openList("Comune", x.comune, (m)=> (m.comune||"")===(x.comune||""))),
+        tdLink(x.provincia || "—", ()=>openList("Provincia", x.provincia, (m)=> (m.provincia||"")===(x.provincia||""))),
+        tdLink(x.modello || "—", ()=>openMachine(x.codeid)),
+        tdMono(x.codeid),
+        tdLink(x.pda || "—", ()=>openList("PDA", x.pda, (m)=> latestPda(m) === (x.pda||""))),
+        tdMono(x.lastRead ? x.lastRead.replace("T"," ").slice(0,16) : "—"),
+        tdNum(x.in),
+        tdNum(x.out),
+        tdDelta(x.dIn),
+        tdDelta(x.dOut),
+        tdMono(x.ciclo ? fmtNum(x.ciclo) : "—"),
+        tdMono(x.pos!==null ? `${fmtNum(x.pos)} / ${fmtNum(x.ciclo||0)}` : "—"),
+        tdPay(x.payScore, x.payLabel),
+        tdTagState(x.stato)
+      );
+      tr.addEventListener("click",(e)=>{
+        // If user clicked links, they already handled.
+        // otherwise open machine detail:
+        if(e.target.classList.contains("link")) return;
+        openMachine(x.codeid);
+      });
+      tb.appendChild(tr);
+    }
+
+    if(list.length > maxRows){
+      const tr = el("tr");
+      tr.innerHTML = `<td colspan="15" class="muted">Mostro ${maxRows} righe su ${list.length} (per prestazioni). Usa i filtri per restringere.</td>`;
+      tb.appendChild(tr);
+    }
+  }
+
+  function tdMono(text){
+    const td = el("td");
+    td.textContent = text;
+    td.style.fontFamily = "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace";
+    td.style.fontWeight = "800";
+    return td;
+  }
+  function tdNum(n){
+    const td = el("td");
+    td.textContent = isFinite(n) ? fmtEUR(n) : "—";
+    td.style.fontWeight = "900";
+    return td;
+  }
+  function tdDelta(n){
+    const td = el("td");
+    if(!isFinite(n)){ td.textContent="—"; td.className="muted"; return td; }
+    td.textContent = (n>=0? "+":"") + fmtEUR(n);
+    td.style.fontWeight = "950";
+    td.style.color = n>0 ? "var(--text)" : "var(--muted)";
+    return td;
+  }
+  function tdLink(text, fn){
+    const td = el("td");
+    const a = el("span",{className:"link", textContent: text});
+    a.addEventListener("click",(e)=>{ e.stopPropagation(); fn(); });
+    td.appendChild(a);
+    return td;
+  }
+  function tdPay(score,label){
+    const td = el("td");
+    const tag = el("span",{className:"tag " + (score>=0.72?"good": score<=0.38?"bad":"warn")});
+    tag.textContent = `${label} (${Math.round(score*100)}%)`;
+    td.appendChild(tag);
+    return td;
+  }
+  function tdTagState(stato){
+    const td = el("td");
+    const s = (stato||"").toUpperCase();
+    let cls = "warn";
+    if(s.includes("ATT")) cls="good";
+    if(s.includes("BLOCC")) cls="bad";
+    const tag = el("span",{className:"tag "+cls});
+    tag.textContent = stato || "—";
+    td.appendChild(tag);
+    return td;
+  }
+
+  function latestPda(machine){
+    const h = machine.history.filter(x=>x.t!==null);
+    if(!h.length) return machine.pdaMac || "";
+    return h[h.length-1].pdaMac || machine.pdaMac || "";
+  }
+
+  // ---------- Machine modal ----------
+  let chartInstance = null;
+
+  $("#mClose").addEventListener("click", ()=>$("#modalMachine").classList.remove("show"));
+
+  function openMachine(codeid){
+    const m = S.byCodeId.get(codeid);
+    if(!m){ toast("Macchina", "Non trovata."); return; }
+
+    $("#mTitle").textContent = `${m.modello || "Macchina"} · ${m.codeid}`;
+    $("#mSub").textContent = `${m.locale || "—"} · ${m.comune || "—"} (${m.provincia || "—"})`;
+
+    const h = m.history.filter(x=>x.t!==null);
+    const last = h.length ? h[h.length-1] : null;
+    const ciclo = m.ciclo || null;
+    let pos = null;
+    if(ciclo && last && isFinite(last.in) && isFinite(last.out)){
+      const net = Math.max(0,(last.in-last.out));
+      pos = net % ciclo;
+    }
+    const pay = paymentScore(m, pos);
+
+    // build details
+    const root = el("div");
+
+    // header chips
+    const chips = el("div",{className:"row"});
+    chips.append(
+      chip("Locale", m.locale || "—", ()=>openLocale(m.locale)),
+      chip("Comune", m.comune || "—", ()=>openList("Comune", m.comune, (x)=> (x.comune||"")===(m.comune||""))),
+      chip("Provincia", m.provincia || "—", ()=>openList("Provincia", m.provincia, (x)=> (x.provincia||"")===(m.provincia||""))),
+      chip("PDA", latestPda(m) || "—", ()=>openList("PDA", latestPda(m), (x)=> latestPda(x) === latestPda(m))),
+    );
+    root.appendChild(chips);
+
+    // KPI
+    const box = el("div",{className:"kpi", style:"margin-top:12px"});
+    box.append(
+      kpiBox("Ultima lettura", last?.iso ? last.iso.replace("T"," ").slice(0,16) : "—", "DATA ULTIMA LETTURA VAL."),
+      kpiBox("IN totale", isFinite(last?.in)? fmtEUR(last.in) : "—", "CNTTOTIN (€/100)"),
+      kpiBox("OUT totale", isFinite(last?.out)? fmtEUR(last.out) : "—", "CNTTOTOT (€/100)"),
+      kpiBox("Prob. pagamento", `${pay.label} (${Math.round(pay.score*100)}%)`, ciclo ? `ciclo ${fmtNum(ciclo)}` : "ciclo non noto")
+    );
+    root.appendChild(box);
+
+    // Detail grid
+    const det = el("div",{className:"grid two", style:"margin-top:12px"});
+    det.appendChild(detailCard("Anagrafica", [
+      ["CODEID", m.codeid],
+      ["CODEID PROVV", (m.history[0]?.codeidProvv)||"—"],
+      ["CODICE MODELLO", m.codiceModello || "—"],
+      ["MODELLO", m.modello || "—"],
+      ["NOE", m.noe || "—"],
+      ["E/M", m.em || "—"],
+      ["% OUT", isFinite(m.percOut)? (m.percOut+"%") : "—"],
+      ["STATO", m.stato || "—"],
+      ["WARNING", m.warning || "—"],
+      ["CODICE SEDE", m.codiceSede || "—"],
+      ["CODICE PDV AAMS", m.codicePDV || "—"]
+    ]));
+
+    det.appendChild(detailCard("Dati locale", [
+      ["DENOMIN. SEDE", m.locale || "—"],
+      ["INDIRIZZO", m.indirizzo || "—"],
+      ["COMUNE", m.comune || "—"],
+      ["PROVINCIA", m.provincia || "—"],
+      ["PDA (MACADDRESS)", latestPda(m) || "—"]
+    ]));
+    root.appendChild(det);
 
     // Chart
-    const ctx = document.getElementById(chartId).getContext("2d");
-    const chartData = buildChartSeries(valid);
-    drawSimpleLineChart(ctx, chartData);
+    const chartCard = el("div",{className:"card", style:"margin-top:12px"});
+    chartCard.appendChild(el("div",{className:"card-head", innerHTML: `<div><div class="card-title">Storico contatori</div><div class="card-sub">Grafico decimato per leggibilità (mantiene trend e punti chiave).</div></div>`}));
+    const cb = el("div",{className:"card-body"});
+    const canvas = el("canvas");
+    cb.appendChild(canvas);
+    chartCard.appendChild(cb);
+    root.appendChild(chartCard);
 
-    // Buttons for quick ranges
-    const btnHist7 = $("btnHist7");
-    const btnHist30 = $("btnHist30");
-    btnHist7.onclick = () => {
-      const {start, end} = getRange("week");
-      const sliced = valid.filter(p => p.t >= start && p.t <= end);
-      drawSimpleLineChart(ctx, buildChartSeries(sliced.length? sliced : valid));
-    };
-    btnHist30.onclick = () => {
-      const {start, end} = getRange("month");
-      const sliced = valid.filter(p => p.t >= start && p.t <= end);
-      drawSimpleLineChart(ctx, buildChartSeries(sliced.length? sliced : valid));
-    };
+    // Table history (last N but with option all)
+    const histCard = el("div",{className:"card", style:"margin-top:12px"});
+    histCard.appendChild(el("div",{className:"card-head", innerHTML:`<div><div class="card-title">Letture</div><div class="card-sub">Deduplicate: stesso timestamp e stessi contatori non viene duplicato.</div></div>`}));
+    const hb = el("div",{className:"card-body"});
+
+    const limit = 120;
+    const show = h.length > limit ? h.slice(h.length-limit) : h.slice();
+    hb.appendChild(buildHistoryTable(show, h.length > limit ? `Mostro ultime ${limit} su ${h.length}` : `Totale letture: ${h.length}`));
+    histCard.appendChild(hb);
+    root.appendChild(histCard);
+
+    $("#mBody").innerHTML = "";
+    $("#mBody").appendChild(root);
+    $("#modalMachine").classList.add("show");
+
+    renderHistoryChart(canvas, h);
   }
 
-  function openFilteredList(field, value){
-    // Switch to machines view and set search query to value
-    // plus optional specialized filters
-    q.value = value || "";
-    filterType.value = "all";
-    sortBy.value = "score";
-    showView(viewMachines);
-    renderMachines();
-    // also send a small AI hint
-    aiSay(`Filtro applicato: ${field} = "${value}".`);
+  function chip(label, value, onClick){
+    const c = el("span",{className:"chip"});
+    c.innerHTML = `<span style="opacity:.75">${label}:</span> <span>${escapeHtml(value)}</span>`;
+    if(onClick){
+      c.style.cursor = "pointer";
+      c.addEventListener("click",(e)=>{ e.stopPropagation(); onClick(); });
+    }
+    return c;
+  }
+  function kpiBox(label, value, hint){
+    const b = el("div",{className:"box"});
+    b.append(
+      el("div",{className:"label", textContent: label}),
+      el("div",{className:"value", textContent: value}),
+      el("div",{className:"hint", textContent: hint})
+    );
+    return b;
   }
 
-  function openLocaleDetail(localeKey){
-    const L = state.locales.get(localeKey) || null;
-    if(!L) return;
+  function detailCard(title, pairs){
+    const c = el("div",{className:"card"});
+    c.appendChild(el("div",{className:"card-head", innerHTML:`<div><div class="card-title">${escapeHtml(title)}</div><div class="card-sub">Tocca le voci cliccabili per filtrare.</div></div>`}));
+    const b = el("div",{className:"card-body"});
+    const tw = el("div",{className:"tablewrap"});
+    const t = el("table",{style:"min-width: 520px"});
+    t.innerHTML = `<thead><tr><th>Campo</th><th>Valore</th></tr></thead>`;
+    const tb = el("tbody");
+    for(const [k,v] of pairs){
+      const tr = el("tr");
+      tr.appendChild(el("td",{textContent:k, className:"muted"}));
+      const tdv = el("td");
+      tdv.textContent = v ?? "—";
+      tdv.style.fontWeight="900";
+      tr.appendChild(tdv);
+      tb.appendChild(tr);
+    }
+    t.appendChild(tb);
+    tw.appendChild(t);
+    b.appendChild(tw);
+    c.appendChild(b);
+    return c;
+  }
 
-    showView(viewLocaleDetail);
+  function buildHistoryTable(rows, caption){
+    const wrap = el("div");
+    wrap.appendChild(el("div",{className:"muted", textContent: caption, style:"margin-bottom:8px"}));
+    const tw = el("div",{className:"tablewrap"});
+    const t = el("table",{style:"min-width: 980px"});
+    t.innerHTML = `<thead><tr>
+      <th>DATA ULTIMA LETTURA</th>
+      <th>IN</th>
+      <th>OUT</th>
+      <th>NET (IN-OUT)</th>
+      <th>PDA</th>
+      <th>FILE</th>
+    </tr></thead>`;
+    const tb = el("tbody");
+    for(const r of rows){
+      const tr = el("tr");
+      tr.append(
+        tdMono(r.iso ? r.iso.replace("T"," ").slice(0,16) : "—"),
+        tdNum(r.in),
+        tdNum(r.out),
+        tdNum(isFinite(r.in)&&isFinite(r.out)? (r.in-r.out) : NaN),
+        tdMono(r.pdaMac || "—"),
+        tdMono(r.sourceFile || "—")
+      );
+      tb.appendChild(tr);
+    }
+    t.appendChild(tb);
+    tw.appendChild(t);
+    wrap.appendChild(tw);
+    return wrap;
+  }
 
-    const period = periodSel.value;
-    const agg = computePlayedForLocale(localeKey, period);
-
-    ldTitle.textContent = safeStr(L.name) || "Locale";
-    ldSub.textContent = `Macchine: ${L.machines.size} • PDA: ${L.pdaSet.size} • Giocato ${periodLabel(period)}: ${agg?.total!==null ? fmtMoney(agg.total) : "—"}`;
-
-    // build PDA grouping
-    const byPDA = new Map(); // pda => [codeId]
-    for(const codeId of L.machines){
-      const m = state.machines.get(codeId);
-      const pda = safeStr(m?.pda) || "Senza PDA";
-      if(!byPDA.has(pda)) byPDA.set(pda, []);
-      byPDA.get(pda).push(codeId);
+  function renderHistoryChart(canvas, history){
+    if(chartInstance){
+      chartInstance.destroy();
+      chartInstance = null;
+    }
+    const h = history.filter(x=>x.t!==null && isFinite(x.in) && isFinite(x.out));
+    if(h.length < 2){
+      canvas.parentElement.innerHTML = `<div class="muted">Storico insufficiente per un grafico leggibile.</div>`;
+      return;
     }
 
-    // compute day/week/month tiles
-    const dayAgg = computePlayedForLocale(localeKey, "day");
-    const weekAgg = computePlayedForLocale(localeKey, "week");
-    const monthAgg = computePlayedForLocale(localeKey, "month");
+    // Decimation: keep first, last, and sample evenly up to 240 points
+    const maxPts = 240;
+    let sampled = h;
+    if(h.length > maxPts){
+      const step = Math.ceil(h.length / maxPts);
+      sampled = [];
+      for(let i=0; i<h.length; i+=step) sampled.push(h[i]);
+      if(sampled[sampled.length-1] !== h[h.length-1]) sampled.push(h[h.length-1]);
+    }
 
-    localeDetailBody.innerHTML = `
-      <div class="grid2">
-        <div class="card" style="box-shadow:none">
-          <div class="card-h">
-            <div>
-              <h2>Anagrafica</h2>
-              <div class="muted">Dati dal sinottico più recente</div>
-            </div>
-          </div>
-          <div class="card-b" style="display:flex; flex-direction:column; gap:10px">
-            <div class="chips">
-              ${chipHtml("COD SEDE", L.codeSede, () => openFilteredList("codeSede", L.codeSede))}
-              ${chipHtml("PDV", L.pdv, () => openFilteredList("pdv", L.pdv))}
-              ${chipHtml("Comune", L.comune, () => openFilteredList("comune", L.comune))}
-              ${chipHtml("Provincia", L.provincia, () => openFilteredList("provincia", L.provincia))}
-            </div>
+    const labels = sampled.map(x=>{
+      const d = new Date(x.t);
+      const dd = String(d.getDate()).padStart(2,"0");
+      const mm = String(d.getMonth()+1).padStart(2,"0");
+      const hh = String(d.getHours()).padStart(2,"0");
+      const mi = String(d.getMinutes()).padStart(2,"0");
+      return `${dd}/${mm} ${hh}:${mi}`;
+    });
 
-            <div class="row" style="cursor:default">
-              <div style="min-width:0">
-                <div class="title">Indirizzo</div>
-                <div class="meta">${escapeHtml(L.indirizzo || "—")}</div>
-              </div>
-            </div>
+    const dataIn = sampled.map(x=>x.in);
+    const dataOut = sampled.map(x=>x.out);
+    const dataNet = sampled.map(x=>x.in - x.out);
 
-            <div class="grid2">
-              <div class="row" style="cursor:default">
-                <div style="min-width:0">
-                  <div class="title">Giocato 24h</div>
-                  <div class="meta"><b>${dayAgg?.total!==null ? fmtMoney(dayAgg.total) : "—"}</b></div>
-                </div>
-              </div>
-              <div class="row" style="cursor:default">
-                <div style="min-width:0">
-                  <div class="title">Giocato 7g</div>
-                  <div class="meta"><b>${weekAgg?.total!==null ? fmtMoney(weekAgg.total) : "—"}</b></div>
-                </div>
-              </div>
-              <div class="row" style="cursor:default">
-                <div style="min-width:0">
-                  <div class="title">Giocato 30g</div>
-                  <div class="meta"><b>${monthAgg?.total!==null ? fmtMoney(monthAgg.total) : "—"}</b></div>
-                </div>
-              </div>
-              <div class="row" style="cursor:default">
-                <div style="min-width:0">
-                  <div class="title">PDA attivi</div>
-                  <div class="meta"><b>${L.pdaSet.size}</b></div>
-                </div>
-              </div>
-            </div>
-
-            <div class="note">
-              Il “giocato” è stimato da differenza contatore <span class="mono">CNTTOTIN</span> nel periodo, usando lo storico deduplicato per la singola macchina.
-            </div>
-          </div>
-        </div>
-
-        <div class="card" style="box-shadow:none">
-          <div class="card-h">
-            <div>
-              <h2>Macchine per PDA</h2>
-              <div class="muted">Struttura gestionale</div>
-            </div>
-          </div>
-          <div class="card-b">
-            ${[...byPDA.entries()].sort((a,b)=>a[0].localeCompare(b[0])).map(([pda, list]) => {
-              const pdaLabel = pda === "Senza PDA" ? pda : `<span class="mono">${escapeHtml(pda)}</span>`;
-              return `
-                <div class="row" style="cursor:default; flex-direction:column; align-items:stretch">
-                  <div style="display:flex; justify-content:space-between; gap:10px; align-items:flex-start">
-                    <div style="min-width:0">
-                      <div class="title">PDA: ${pdaLabel}</div>
-                      <div class="meta">Macchine: <b>${list.length}</b></div>
-                    </div>
-                    <button class="btn small" data-open-pda="${escapeAttr(pda)}">Apri lista</button>
-                  </div>
-                  <div style="height:8px"></div>
-                  <div class="chips">
-                    ${list.slice(0,10).map(codeId => {
-                      const m = state.machines.get(codeId);
-                      const s = computePaymentScore(m);
-                      return `<div class="chip" data-open-machine="${escapeAttr(codeId)}">${escapeHtml(m?.modello||"—")} • <b>${s}</b></div>`;
-                    }).join("")}
-                    ${list.length>10 ? `<div class="chip" data-open-pda="${escapeAttr(pda)}">+${list.length-10} altre</div>` : ""}
-                  </div>
-                </div>
-              `;
-            }).join("")}
-          </div>
-        </div>
-      </div>
-
-      <div style="height:14px"></div>
-
-      <div class="card" style="box-shadow:none">
-        <div class="card-h">
-          <div>
-            <h2>Tutte le macchine del locale</h2>
-            <div class="muted">Ordinate per score pagamento</div>
-          </div>
-        </div>
-        <div class="card-b">
-          <div class="list">
-            ${[...L.machines].map(codeId => {
-              const m = state.machines.get(codeId);
-              const score = computePaymentScore(m);
-              const {residuo} = computeFeatures(m);
-              return {codeId, m, score, residuo};
-            }).sort((a,b)=>b.score-a.score).map(it => `
-              <div class="row" data-open-machine="${escapeAttr(it.codeId)}">
-                <div style="min-width:0">
-                  <div class="title">${escapeHtml(it.m?.modello||"—")} <span class="muted" style="font-weight:500">(${escapeHtml(it.codeId)})</span></div>
-                  <div class="meta">
-                    <span>PDA: <span class="mono">${escapeHtml(it.m?.pda||"—")}</span></span>
-                    <span>Ultima lettura: <b>${fmtDate(it.m?.t)}</b></span>
-                    <span>Residuo: <b>${it.residuo!==null ? fmtMoney(it.residuo) : "—"}</b></span>
-                  </div>
-                </div>
-                <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end">
-                  ${badgeForScore(it.score)}
-                  ${badgeForState(it.m||{})}
-                </div>
-              </div>
-            `).join("")}
-          </div>
-        </div>
-      </div>
-    `;
-
-    // Wire locale chips
-    localeDetailBody.querySelectorAll("[data-chip-click]").forEach(el => {
-      const payload = el.getAttribute("data-chip-click");
-      if(payload){
-        const [f, v] = payload.split("::");
-        el.addEventListener("click", () => openFilteredList(f, v));
+    chartInstance = new Chart(canvas.getContext("2d"),{
+      type:"line",
+      data:{
+        labels,
+        datasets:[
+          {label:"IN", data:dataIn, borderWidth:2, pointRadius:0, tension:0.22},
+          {label:"OUT", data:dataOut, borderWidth:2, pointRadius:0, tension:0.22},
+          {label:"NET (IN-OUT)", data:dataNet, borderWidth:2, pointRadius:0, tension:0.22}
+        ]
+      },
+      options:{
+        responsive:true,
+        maintainAspectRatio:false,
+        plugins:{
+          legend:{display:true, labels:{boxWidth:12, font:{weight:"700"}}},
+          tooltip:{mode:"index", intersect:false}
+        },
+        interaction:{mode:"index", intersect:false},
+        scales:{
+          x:{ticks:{maxRotation:0, autoSkip:true, maxTicksLimit:10}},
+          y:{ticks:{callback:(v)=>fmtEUR(v)}}
+        }
       }
     });
-
-    // Wire open machine / pda
-    localeDetailBody.querySelectorAll("[data-open-machine]").forEach(el=>{
-      el.addEventListener("click", (e)=>{
-        const codeId = el.getAttribute("data-open-machine");
-        if(codeId) openMachineDetail(codeId);
-      });
-    });
-    localeDetailBody.querySelectorAll("[data-open-pda]").forEach(el=>{
-      el.addEventListener("click", ()=>{
-        const pda = el.getAttribute("data-open-pda");
-        if(pda && pda !== "Senza PDA") openFilteredList("pda", pda);
-        else openFilteredList("pda", "");
-      });
-    });
+    canvas.style.height = "320px";
   }
 
-  function chipHtml(label, value, onClick){
-    if(!value) return "";
-    // we attach data for later wiring in locale view (simple)
-    return `<div class="chip" data-chip-click="${escapeAttr(label.toLowerCase())}::${escapeAttr(value)}"><b>${escapeHtml(label)}:</b> ${escapeHtml(value)}</div>`;
+  // ---------- List & Locale modal ----------
+  $("#lClose").addEventListener("click", ()=>$("#modalList").classList.remove("show"));
+
+  function openList(kind, value, predicate){
+    const matches = [];
+    for(const m of S.byCodeId.values()){
+      if(predicate(m)) matches.push(m);
+    }
+    matches.sort((a,b)=> String(a.locale||"").localeCompare(String(b.locale||"")));
+
+    $("#lTitle").textContent = `${kind}: ${value || "—"}`;
+    $("#lSub").textContent = `Macchine: ${matches.length}`;
+
+    const body = el("div");
+
+    const tw = el("div",{className:"tablewrap"});
+    const t = el("table",{style:"min-width: 980px"});
+    t.innerHTML = `<thead><tr>
+      <th>Locale</th><th>Comune</th><th>Prov</th><th>Modello</th><th>CODEID</th><th>PDA</th><th>Ultima lettura</th><th>IN</th><th>OUT</th>
+    </tr></thead>`;
+    const tb = el("tbody");
+
+    for(const m of matches){
+      const h = m.history.filter(x=>x.t!==null);
+      const last = h.length ? h[h.length-1] : null;
+      const tr = el("tr");
+      tr.append(
+        tdLink(m.locale||"—", ()=>openLocale(m.locale)),
+        tdMono(m.comune||"—"),
+        tdMono(m.provincia||"—"),
+        tdLink(m.modello||"—", ()=>openMachine(m.codeid)),
+        tdMono(m.codeid),
+        tdMono(latestPda(m)||"—"),
+        tdMono(last?.iso ? last.iso.replace("T"," ").slice(0,16) : "—"),
+        tdNum(last?.in),
+        tdNum(last?.out),
+      );
+      tb.appendChild(tr);
+    }
+    t.appendChild(tb);
+    tw.appendChild(t);
+    body.appendChild(tw);
+
+    $("#lBody").innerHTML = "";
+    $("#lBody").appendChild(body);
+    $("#modalList").classList.add("show");
+  }
+
+  function openLocale(localeName){
+    if(!localeName){
+      toast("Locale", "Nome locale mancante.");
+      return;
+    }
+    // Find all machines with same locale (exact match)
+    const machines = [];
+    for(const m of S.byCodeId.values()){
+      if((m.locale||"") === localeName) machines.push(m);
+    }
+    machines.sort((a,b)=> String(latestPda(a)).localeCompare(String(latestPda(b))) || String(a.modello||"").localeCompare(String(b.modello||"")));
+
+    $("#lTitle").textContent = `Scheda locale: ${localeName}`;
+    $("#lSub").textContent = `Macchine: ${machines.length}`;
+
+    // Group by PDA
+    const byPda = new Map();
+    for(const m of machines){
+      const p = latestPda(m) || "—";
+      if(!byPda.has(p)) byPda.set(p, []);
+      byPda.get(p).push(m);
+    }
+
+    // Totals by day/week/month from available history
+    const now = new Date();
+    const dayAgo = now.getTime() - 24*3600*1000;
+    const weekAgo = now.getTime() - 7*24*3600*1000;
+    const monthAgo = now.getTime() - 30*24*3600*1000;
+
+    function sumDeltaSince(ts){
+      let sum = 0;
+      for(const m of machines){
+        const h = m.history.filter(x=>x.t!==null && isFinite(x.in));
+        if(h.length < 2) continue;
+        // find last entry <= now, and earliest entry >= ts
+        const last = h[h.length-1];
+        // find oldest entry after ts (closest to ts)
+        let base = null;
+        for(let i=h.length-1; i>=0; i--){
+          if(h[i].t >= ts) base = h[i];
+          else break;
+        }
+        if(base && isFinite(last.in) && isFinite(base.in)){
+          sum += (last.in - base.in);
+        }
+      }
+      return sum;
+    }
+
+    const body = el("div");
+    const k = el("div",{className:"kpi"});
+    k.append(
+      kpiBox("Giocato 24h", fmtEUR(sumDeltaSince(dayAgo)), "stima da contatori IN"),
+      kpiBox("Giocato 7gg", fmtEUR(sumDeltaSince(weekAgo)), "stima da contatori IN"),
+      kpiBox("Giocato 30gg", fmtEUR(sumDeltaSince(monthAgo)), "stima da contatori IN"),
+      kpiBox("PDA", String(byPda.size), "gruppi MACADDRESS")
+    );
+    body.appendChild(k);
+
+    // Render groups
+    for(const [pda, list] of byPda.entries()){
+      const c = el("div",{className:"card", style:"margin-top:12px"});
+      c.appendChild(el("div",{className:"card-head", innerHTML:`<div><div class="card-title">PDA: ${escapeHtml(pda)}</div><div class="card-sub">Macchine collegate a questo PDA</div></div>`}));
+      const cb = el("div",{className:"card-body"});
+      const tw = el("div",{className:"tablewrap"});
+      const t = el("table",{style:"min-width: 980px"});
+      t.innerHTML = `<thead><tr>
+        <th>Modello</th><th>CODEID</th><th>Ultima lettura</th><th>IN</th><th>OUT</th><th>Prob. pagamento</th><th>Stato</th>
+      </tr></thead>`;
+      const tb = el("tbody");
+      for(const m of list){
+        const h = m.history.filter(x=>x.t!==null);
+        const last = h.length ? h[h.length-1] : null;
+        let pos = null;
+        if(m.ciclo && last && isFinite(last.in) && isFinite(last.out)){
+          pos = Math.max(0,(last.in-last.out)) % m.ciclo;
+        }
+        const pay = paymentScore(m, pos);
+
+        const tr = el("tr");
+        tr.append(
+          tdLink(m.modello||"—", ()=>openMachine(m.codeid)),
+          tdMono(m.codeid),
+          tdMono(last?.iso ? last.iso.replace("T"," ").slice(0,16) : "—"),
+          tdNum(last?.in),
+          tdNum(last?.out),
+          tdPay(pay.score, pay.label),
+          tdTagState(m.stato)
+        );
+        tb.appendChild(tr);
+      }
+      t.appendChild(tb);
+      tw.appendChild(t);
+      cb.appendChild(tw);
+      c.appendChild(cb);
+      body.appendChild(c);
+    }
+
+    $("#lBody").innerHTML = "";
+    $("#lBody").appendChild(body);
+    $("#modalList").classList.add("show");
+  }
+
+  // ---------- A.W.I.S.E. Assistant ----------
+  const A = {
+    acronym: {
+      "PDA":"MACADDRESS del modem/terminalino collegato alla rete. Un locale può avere più PDA.",
+      "PDV":"Punto vendita AAMS: codice pratica/proprietario/struttura.",
+      "NOE":"Nullaosta di messa in esercizio (codice).",
+      "E/M":"Esercizio o Magazzino.",
+      "CNTTOTIN":"Contatore totale IN (euro introdotti). Nel sinottico gli ultimi 2 zeri sono centesimi.",
+      "CNTTOTOT":"Contatore totale OUT (euro pagati). Anche qui ultimi 2 zeri sono centesimi.",
+      "DATA ULTIMA LETTURA":"Timestamp reale dei contatori: è la chiave per lo storico corretto.",
+      "GG DECADENZA":"Giorni in magazzino. A 90 il nullaosta decade.",
+      "M.S. / FERIE":"Stato manutenzione/ferie (locale chiuso o macchina non trasmette)."
+    }
+  };
+
+  function awiseHello(){
+    const log = $("#chatLog");
+    if(log.dataset.init==="1") return;
+    log.dataset.init="1";
+    addBot(`Ciao ${S.session?.user || ""}! Sono A.W.I.S.E.\n\nPosso:
+• dirti quali macchine hanno probabilità alta di pagamento\n• aprire schede macchina/locale/PDA/comune\n• spiegare acronimi del sinottico\n\nEsempi: “quando paga la MARIM FIRE al Bar Fortini?” oppure “spiegami NOE”.`);
+  }
+
+  $("#chatSend").addEventListener("click", onChatSend);
+  $("#chatInput").addEventListener("keydown", (e)=>{ if(e.key==="Enter") onChatSend(); });
+
+  function addMe(text){
+    const node = el("div",{className:"msg me"});
+    node.appendChild(el("div",{className:"bubble", textContent:text}));
+    $("#chatLog").appendChild(node);
+    $("#chatLog").scrollTop = $("#chatLog").scrollHeight;
+  }
+  function addBot(text){
+    const node = el("div",{className:"msg bot"});
+    node.appendChild(el("div",{className:"bubble", textContent:text}));
+    $("#chatLog").appendChild(node);
+    $("#chatLog").scrollTop = $("#chatLog").scrollHeight;
+  }
+
+  function onChatSend(){
+    const t = ($("#chatInput").value||"").trim();
+    if(!t) return;
+    $("#chatInput").value="";
+    addMe(t);
+    const reply = awiseReply(t);
+    addBot(reply.text);
+    if(reply.openMachine) openMachine(reply.openMachine);
+    if(reply.openLocale) openLocale(reply.openLocale);
+  }
+
+  function awiseReply(text){
+    const q = text.toLowerCase();
+
+    // If no data loaded yet, guide
+    if(!S.machineList.length && !q.includes("spiega") && !q.includes("acronim")){
+      return {text:"Prima devo avere i dati: premi “Analizza tutti i sinottici”. Poi posso rispondere usando lo storico delle macchine."};
+    }
+
+    // explain acronyms
+    const acr = Object.keys(A.acronym).find(k => q.includes(k.toLowerCase()));
+    if(q.includes("spiega") || q.includes("cosa vuol dire") || q.includes("significa")){
+      if(acr){
+        return {text:`${acr}: ${A.acronym[acr]}`};
+      }
+      // try match any acronym token
+      const token = (text.match(/[A-Z]{2,5}/g) || [])[0];
+      if(token && A.acronym[token]){
+        return {text:`${token}: ${A.acronym[token]}`};
+      }
+      return {text:"Dimmi l’acronimo preciso (es. PDA, PDV, NOE, E/M, CNTTOTIN, CNTTOTOT) e te lo spiego."};
+    }
+
+    // "quali sono in pagamento"
+    if(q.includes("quali") && (q.includes("pag") || q.includes("in pagamento"))){
+      // optional filter by comune/provincia/locale
+      const foundPlace = extractPlace(text);
+      let list = S.machineList.filter(x=>x.payScore>=0.72);
+      if(foundPlace){
+        list = list.filter(x=>{
+          return (x.comune||"").toLowerCase().includes(foundPlace) ||
+                 (x.provincia||"").toLowerCase().includes(foundPlace) ||
+                 (x.locale||"").toLowerCase().includes(foundPlace);
+        });
+      }
+      if(!list.length) return {text:"Non vedo macchine con probabilità alta (o il filtro è troppo stretto). Prova senza specificare luogo."};
+      const top = list.slice(0,8).map(x=>`• ${x.modello} @ ${x.locale} (${x.comune}) → ${Math.round(x.payScore*100)}%`).join("\n");
+      return {text:`Ecco le migliori candidate:\n${top}\n\nSe vuoi apro una macchina: dimmi “apri CODEID …” oppure scrivi il modello+locale.`};
+    }
+
+    // "quando paga questa macchina"
+    if(q.includes("quando") && q.includes("pag")){
+      const match = findMachineFromText(text);
+      if(!match){
+        return {text:"Dimmi quale macchina: puoi scrivere CODEID, oppure modello + nome locale (es. “MARIM FIRE Bar Fortini”)."};
+      }
+      const m = match.machine;
+      const h = m.history.filter(x=>x.t!==null);
+      const last = h.length ? h[h.length-1] : null;
+      const ciclo = m.ciclo;
+      let pos=null;
+      if(ciclo && last && isFinite(last.in) && isFinite(last.out)){
+        pos = Math.max(0,(last.in-last.out)) % ciclo;
+      }
+      const pay = paymentScore(m, pos);
+
+      let eta = "";
+      if(ciclo && pos!==null){
+        const left = ciclo - pos;
+        // stima rozza: usa delta IN medio per lettura (se disponibile)
+        const avg = avgDeltaInPerRead(m);
+        if(avg>0){
+          const readsNeeded = Math.ceil(left / avg);
+          eta = `\nStima rozza: mancano ~${fmtEUR(left)} di “posizione ciclo”. Con media ΔIN≈${fmtEUR(avg)} per lettura, potrebbero servire ~${readsNeeded} letture.`;
+        }else{
+          eta = `\nPosizione ciclo: ${fmtEUR(pos)} / ${fmtEUR(ciclo)} (mancano ~${fmtEUR(left)}).`;
+        }
+      }else{
+        eta = "\nNon ho il ciclo per questo modello oppure mancano contatori validi.";
+      }
+
+      return {
+        text:`Per ${m.modello} @ ${m.locale}:\nProbabilità pagamento: ${pay.label} (${Math.round(pay.score*100)}%).${eta}\n\nVuoi che apro la scheda macchina?`,
+        openMachine: m.codeid
+      };
+    }
+
+    // open locale
+    if(q.startsWith("scheda locale") || q.includes("apri locale")){
+      const name = text.split(":").pop().trim();
+      if(!name) return {text:"Scrivi: “scheda locale: NOME LOCALE”"};
+      return {text:`Ok, apro la scheda del locale “${name}”.`, openLocale:name};
+    }
+
+    // generic help
+    return {text:"Posso aiutarti su: analisi pagamento, schede macchina/locale/PDA, e spiegazione campi del sinottico.\n\nEsempi:\n• “quali sono in pagamento a Sanremo?”\n• “quando paga CODEID 123…”\n• “spiegami CNTTOTIN”"};
+  }
+
+  function extractPlace(text){
+    // very simple: last word after "a/in" etc
+    const m = text.toLowerCase().match(/\b(a|in|su)\s+([a-zàèéìòù' ]{3,})$/i);
+    if(!m) return null;
+    return m[2].trim().toLowerCase();
+  }
+
+  function findMachineFromText(text){
+    const t = text.toLowerCase();
+
+    // try CODEID
+    const id = (text.match(/\b\d{8,}\b/) || [])[0]; // codeid often long digits
+    if(id && S.byCodeId.has(id)) return {machine: S.byCodeId.get(id), reason:"codeid"};
+
+    // try match by locale + modello words
+    // score candidate by word overlap
+    const words = t.replace(/[^\wàèéìòù]+/g," ").split(/\s+/).filter(w=>w.length>=3);
+    let best = null;
+    let bestScore = 0;
+
+    for(const m of S.byCodeId.values()){
+      const hay = `${m.modello||""} ${m.locale||""} ${m.comune||""}`.toLowerCase();
+      let score = 0;
+      for(const w of words){
+        if(hay.includes(w)) score++;
+      }
+      // prefer exact locale hit
+      if(m.locale && t.includes(m.locale.toLowerCase())) score += 2;
+      if(score > bestScore){
+        bestScore = score;
+        best = m;
+      }
+    }
+    if(best && bestScore >= 3) return {machine: best, reason:"match"};
+    return null;
+  }
+
+  function avgDeltaInPerRead(machine){
+    const h = machine.history.filter(x=>x.t!==null && isFinite(x.in));
+    if(h.length < 3) return 0;
+    const diffs = [];
+    for(let i=1;i<h.length;i++){
+      const d = h[i].in - h[i-1].in;
+      if(isFinite(d) && d>=0) diffs.push(d);
+    }
+    if(diffs.length < 2) return 0;
+    diffs.sort((a,b)=>a-b);
+    // median
+    return diffs[Math.floor(diffs.length/2)];
   }
 
   function escapeHtml(s){
-    return String(s ?? "").replace(/[&<>"']/g, m => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
-    }[m]));
-  }
-  function escapeAttr(s){ return escapeHtml(s).replace(/"/g,"&quot;"); }
-
-  /* =========================
-     Simple chart (no external libs)
-     - plots IN and OUT (and residuo lightly)
-     - decimates to max points for readability
-  ========================= */
-
-  function buildChartSeries(points){
-    // points: [{t, inE, outE, pct}]
-    if(!points || !points.length) return {xs:[], in:[], out:[], res:[]};
-
-    const max = 180; // keep readable
-    const arr = points.slice().sort((a,b)=>a.t-b.t);
-    const step = Math.max(1, Math.ceil(arr.length / max));
-    const sampled = [];
-    for(let i=0;i<arr.length;i+=step) sampled.push(arr[i]);
-    if(sampled[sampled.length-1] !== arr[arr.length-1]) sampled.push(arr[arr.length-1]);
-
-    const xs=[], ins=[], outs=[], ress=[];
-    for(const p of sampled){
-      xs.push(p.t);
-      ins.push(p.inE);
-      outs.push(p.outE);
-      const pct = p.pct ?? 0.65;
-      ress.push((p.inE*pct) - p.outE);
-    }
-    return {xs, in:ins, out:outs, res:ress};
+    return String(s||"").replace(/[&<>"']/g, (c)=>({
+      "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+    }[c]));
   }
 
-  function drawSimpleLineChart(ctx, series){
-    const W = ctx.canvas.width = ctx.canvas.clientWidth * devicePixelRatio;
-    const H = ctx.canvas.height = ctx.canvas.clientHeight * devicePixelRatio;
-    ctx.clearRect(0,0,W,H);
-
-    const pad = 16 * devicePixelRatio;
-    const plotX0 = pad, plotY0 = pad, plotX1 = W-pad, plotY1 = H-pad;
-
-    // Axis and ticks
-    ctx.lineWidth = 1 * devicePixelRatio;
-    ctx.strokeStyle = "rgba(17,24,39,.12)";
-    ctx.fillStyle = "rgba(107,114,128,.9)";
-    ctx.font = `${12*devicePixelRatio}px ${getComputedStyle(document.body).fontFamily}`;
-
-    // If no points
-    if(!series.xs.length){
-      ctx.fillText("Nessun dato storico disponibile", plotX0, plotY0 + 18*devicePixelRatio);
-      return;
-    }
-
-    const allY = [...series.in, ...series.out];
-    const yMin = Math.min(...allY);
-    const yMax = Math.max(...allY);
-    const span = (yMax - yMin) || 1;
-    const minY = yMin - span*0.05;
-    const maxY = yMax + span*0.05;
-
-    const xMin = Math.min(...series.xs);
-    const xMax = Math.max(...series.xs);
-    const xSpan = (xMax-xMin)||1;
-
-    const X = (t) => plotX0 + ( (t-xMin)/xSpan ) * (plotX1-plotX0);
-    const Y = (v) => plotY1 - ( (v-minY)/(maxY-minY) ) * (plotY1-plotY0);
-
-    // grid
-    const gridN = 4;
-    for(let i=0;i<=gridN;i++){
-      const y = plotY0 + i*(plotY1-plotY0)/gridN;
-      ctx.beginPath();
-      ctx.moveTo(plotX0, y);
-      ctx.lineTo(plotX1, y);
-      ctx.stroke();
-    }
-
-    // labels (min/max)
-    ctx.fillText(`IN/OUT (EUR)`, plotX0, plotY0 - 2*devicePixelRatio);
-    ctx.fillText(`${fmtInt(minY/devicePixelRatio)}`, plotX0, plotY1 + 14*devicePixelRatio);
-
-    // IN line (brand)
-    drawLine(ctx, series.xs, series.in, X, Y, `rgba(37,99,235,.95)`, 2.2*devicePixelRatio);
-    // OUT line (teal/gray)
-    drawLine(ctx, series.xs, series.out, X, Y, `rgba(15,118,110,.92)`, 2.2*devicePixelRatio);
-
-    // Legend
-    drawLegend(ctx, plotX0, plotY0, [
-      ["IN", "rgba(37,99,235,.95)"],
-      ["OUT", "rgba(15,118,110,.92)"],
-    ]);
-  }
-
-  function drawLine(ctx, xs, ys, X, Y, stroke, width){
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = width;
-    ctx.beginPath();
-    for(let i=0;i<xs.length;i++){
-      const x = X(xs[i]);
-      const y = Y(ys[i]);
-      if(i===0) ctx.moveTo(x,y);
-      else ctx.lineTo(x,y);
-    }
-    ctx.stroke();
-  }
-
-  function drawLegend(ctx, x, y, items){
-    const dy = 14*devicePixelRatio;
-    let yy = y + 18*devicePixelRatio;
-    for(const [label, color] of items){
-      ctx.fillStyle = "rgba(107,114,128,.95)";
-      ctx.fillText(label, x + 20*devicePixelRatio, yy);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 3*devicePixelRatio;
-      ctx.beginPath();
-      ctx.moveTo(x, yy - 4*devicePixelRatio);
-      ctx.lineTo(x + 14*devicePixelRatio, yy - 4*devicePixelRatio);
-      ctx.stroke();
-      yy += dy;
-    }
-  }
-
-  /* =========================
-     KPI panel
-  ========================= */
-
-  function renderKPI(){
-    const period = periodSel.value;
-    const {start, end} = getRange(period);
-
-    // total played (sum of all machines where possible)
-    let total = 0, valid=0;
-    for(const codeId of state.machines.keys()){
-      const r = computePlayedForMachineInRange(codeId, start, end);
-      if(r.played !== null){
-        total += r.played;
-        valid++;
-      }
-    }
-
-    // top locale by played
-    rebuildLocales();
-    let best = null;
-    for(const [k] of state.locales.entries()){
-      const agg = computePlayedForLocale(k, period);
-      if(agg?.total !== null){
-        if(!best || agg.total > best.total) best = {k, total: agg.total};
-      }
-    }
-
-    // count high-score machines
-    let payCount = 0;
-    for(const [,m] of state.machines.entries()){
-      if(computePaymentScore(m) >= 60) payCount++;
-    }
-
-    kpiBox.innerHTML = `
-      <div class="row" style="cursor:default">
-        <div style="min-width:0">
-          <div class="title">Giocato totale (${periodLabel(period)})</div>
-          <div class="meta">${valid ? `<b>${fmtMoney(total)}</b> <span class="muted">su ${valid} macchine con storico valido</span>` : "—"}</div>
-        </div>
-      </div>
-      <div class="row" style="cursor:default">
-        <div style="min-width:0">
-          <div class="title">Macchine in zona pagamento</div>
-          <div class="meta"><b>${payCount}</b> (score ≥ 60)</div>
-        </div>
-      </div>
-      <div class="row" style="cursor:default">
-        <div style="min-width:0">
-          <div class="title">Top locale per giocato (${periodLabel(period)})</div>
-          <div class="meta">${best ? `<b>${escapeHtml(state.locales.get(best.k)?.name||"—")}</b> • ${fmtMoney(best.total)}` : "—"}</div>
-        </div>
-      </div>
-    `;
-  }
-
-  /* =========================
-     AI assistant (offline intelligent router)
-  ========================= */
-
-  function aiSay(text, who="S.I.N.A."){
-    const el = document.createElement("div");
-    el.className = "msg";
-    el.innerHTML = `<div style="min-width:0; max-width:100%">
-      <div class="who">${who}</div>
-      <div class="bubble">${escapeHtml(text)}</div>
-    </div>`;
-    chatLog.appendChild(el);
-    chatLog.scrollTop = chatLog.scrollHeight;
-  }
-
-  function meSay(text){
-    const el = document.createElement("div");
-    el.className = "msg me";
-    el.innerHTML = `<div style="min-width:0; max-width:100%">
-      <div class="who">Tu</div>
-      <div class="bubble">${escapeHtml(text)}</div>
-    </div>`;
-    chatLog.appendChild(el);
-    chatLog.scrollTop = chatLog.scrollHeight;
-  }
-
-  function findMachinesByText(text){
-    const t = safeStr(text).toLowerCase();
-    if(!t) return [];
-    const out = [];
-    for(const [codeId, m] of state.machines.entries()){
-      const blob = [m.codeId, m.modello, m.codiceModello, m.denomSede, m.pda, m.comune, m.provincia].map(x=>safeStr(x).toLowerCase()).join(" | ");
-      if(blob.includes(t)) out.push(codeId);
-    }
-    return out;
-  }
-
-  function findLocaleByText(text){
-    const t = safeStr(text).toLowerCase();
-    if(!t) return null;
-    for(const [k, L] of state.locales.entries()){
-      const blob = [L.name, L.codeSede, L.pdv, L.comune, L.provincia].map(x=>safeStr(x).toLowerCase()).join(" | ");
-      if(blob.includes(t)) return k;
-    }
-    return null;
-  }
-
-  function handleAI(text){
-    const s = safeStr(text);
-    if(!s){ aiSay("Scrivimi una richiesta (es: “quale macchina è in pagamento?”)."); return; }
-
-    const low = s.toLowerCase();
-
-    // Glossary / meanings
-    if(low.includes("cos'è") || low.includes("cos e") || low.includes("cosa significa") || low.startsWith("spiega ")){
-      const term = low.replace("cosa significa","").replace("cos'è","").replace("cos e","").replace("spiega","").trim().toUpperCase();
-      const hit = GLOSSARY.find(([k]) => term.includes(k.toUpperCase()) || k.toUpperCase().includes(term));
-      if(hit){
-        aiSay(`${hit[0]}: ${hit[1]}`);
-      }else{
-        aiSay(`Non trovo "${term}" nel glossario. Prova: CODEID, PDV, PDA, NOE, % OUT, CNTTOTIN...`);
-      }
-      return;
-    }
-
-    // Help
-    if(low.includes("aiuto") || low.includes("come funziona") || low.includes("spiega il programma")){
-      aiSay(
-`Sono S.I.N.A. (Sinottico Intelligent Navigation Assistant).
-
-Cosa posso fare:
-• “quale macchina è in pagamento?” → elenco top score
-• “quando paga <modello/locale/codeid>?” → stima euristica
-• “apri locale Fortini” → apro la scheda locale
-• “filtra pda <mac>” oppure “mostra macchine a Sanremo” → filtro lista
-
-Il calcolo:
-• Storico per macchina basato su DATA ULTIMA LETTURA VAL.
-• Se lo stesso timestamp ricompare su sinottici diversi, NON duplico la lettura.
-• Score pagamento combina residuo, avanzamento ciclo e trend recente.
-
-Dimmi cosa vuoi vedere e te lo apro.`);
-      return;
-    }
-
-    // “quale macchina è in pagamento”
-    if(low.includes("quale") && (low.includes("pagamento") || low.includes("in pagamento") || low.includes("paga")) && !low.includes("quando")){
-      const arr = [];
-      for(const [codeId, m] of state.machines.entries()){
-        const score = computePaymentScore(m);
-        arr.push({codeId, m, score});
-      }
-      arr.sort((a,b)=>b.score-a.score);
-      const top = arr.filter(x=>x.score>=60).slice(0, 12);
-      if(!top.length){
-        aiSay("Non vedo macchine sopra soglia (score ≥ 60). Prova ad abbassare la soglia analizzando più storico o verifica che i contatori siano letti correttamente.");
-        return;
-      }
-      aiSay("Top macchine in zona pagamento:\n" + top.map((x,i)=>{
-        return `${i+1}) ${x.m.modello||"—"} • ${x.m.denomSede||"—"} • score ${x.score} • CODEID ${x.codeId}`;
-      }).join("\n"));
-      return;
-    }
-
-    // “quando paga ...”
-    if(low.includes("quando") && (low.includes("paga") || low.includes("pagherà") || low.includes("paghera") || low.includes("pagamento"))){
-      // try match a machine by text
-      const candidates = findMachinesByText(s);
-      if(candidates.length === 1){
-        const codeId = candidates[0];
-        const est = estimateWhenPay(codeId);
-        const m = state.machines.get(codeId);
-        aiSay(`${m?.modello||"Macchina"} • ${m?.denomSede||"—"}\n${est?.msg||"—"}${est?.eta?.when ? `\nData stimata: ${fmtDate(est.eta.when)}` : ""}`);
-        return;
-      }
-      if(candidates.length > 1){
-        aiSay(`Ho trovato ${candidates.length} macchine che matchano. Specifica meglio (es: aggiungi il locale o il CODEID).`);
-        return;
-      }
-      aiSay("Non capisco a quale macchina ti riferisci. Scrivi modello + locale oppure incolla il CODEID.");
-      return;
-    }
-
-    // Open locale
-    if(low.startsWith("apri locale") || low.includes("scheda locale")){
-      rebuildLocales();
-      const key = findLocaleByText(s);
-      if(key){
-        openLocaleDetail(key);
-        aiSay(`Apro la scheda del locale: ${state.locales.get(key)?.name||"—"}.`);
-      }else{
-        aiSay("Non trovo quel locale. Prova con il nome esatto DENOMIN. SEDE o CODICE SEDE.");
-      }
-      return;
-    }
-
-    // Filter requests
-    if(low.includes("mostra") || low.includes("filtra") || low.includes("lista")){
-      // simple heuristics: provincia/comune/pda/pdv
-      const mPDA = s.match(/pda\s+([0-9a-f:]{8,})/i);
-      if(mPDA){
-        openFilteredList("pda", mPDA[1]);
-        return;
-      }
-      const mProv = s.match(/provincia\s+([a-z]{2})/i);
-      if(mProv){
-        openFilteredList("provincia", mProv[1].toUpperCase());
-        return;
-      }
-      const mComune = s.match(/comune\s+(.+)$/i);
-      if(mComune){
-        openFilteredList("comune", mComune[1].trim());
-        return;
-      }
-      const mPDV = s.match(/pdv\s+([0-9]+)/i);
-      if(mPDV){
-        openFilteredList("pdv", mPDV[1]);
-        return;
-      }
-      // fallback: just put in search box
-      q.value = s.replace(/mostra|filtra|lista/gi,"").trim();
-      showView(viewMachines);
-      renderMachines();
-      aiSay(`Ok, ho filtrato la lista macchine con: "${q.value}".`);
-      return;
-    }
-
-    // General but not program-related: give guided response (as requested)
-    aiSay(
-`Posso aiutarti volentieri, ma questo assistente è ottimizzato per i dati del sinottico e del gestionale.
-Prova così:
-• “quale macchina è in pagamento?”
-• “quando paga <modello> al <locale>?”
-• “apri locale <nome>”
-• “cos’è PDV / NOE / CNTTOTIN”
-
-Se mi dici cosa vuoi ottenere nel gestionale, ti guido passo-passo.`
-    );
-  }
-
-  /* =========================
-     App flow
-  ========================= */
-
-  async function fullLoad(){
-    setSub("Caricamento configurazioni…");
-    setLeft("Caricamento…");
-
-    // users already loaded earlier for login; keep fresh
-    await loadUsers();
-
-    if(!state.session){
-      showLogin("");
-      setSub("Effettua l'accesso per caricare i dati.");
-      return;
-    }
-
-    setLeft(`Utente: ${state.session.user} • ${state.session.level}${state.session.expires ? ` • scadenza ${state.session.expires}` : ""}`);
-    hideLogin();
-
-    setSub("Carico manifest e cicli…");
-    await loadManifest();
-    await loadCiclo();
-
-    setSub(`Manifest: ${state.manifest.length} sinottici. Pronto per “Analizza”.`);
-  }
-
-  async function analyzeAll(){
-    if(!state.session){
-      showLogin("Effettua l'accesso.");
-      return;
-    }
-
-    setSub("Analisi in corso…");
-    machinesList.innerHTML = `<div class="muted">Analisi in corso…</div>`;
-    localesList.innerHTML = `<div class="muted">Analisi in corso…</div>`;
-
-    state.history.clear();
-    state.machines.clear();
-    state.locales.clear();
-
-    // Load each XLSX, map rows, build history with dedupe rule per machine timestamp
-    let ok=0, fail=0, rowsTotal=0;
-    const errs = [];
-
-    for(const file of state.manifest){
-      const path = `/${DATA_DIR}/${file}`;
-      try{
-        const buf = await fetchArrayBuffer(path);
-        const rows = parseWorkbookRows(buf);
-        rowsTotal += rows.length;
-
-        for(const row of rows){
-          const p = mapRowToPoint(row, file);
-          if(!p) continue;
-          // Must have at least codeId and counters to be useful; still keep metadata points
-          addPointToHistory(p);
-        }
-
-        ok++;
-      }catch(e){
-        fail++;
-        errs.push(`NO ${path}: ${e.message}`);
-      }
-
-      // keep UI responsive
-      if((ok+fail) % 6 === 0){
-        setSub(`Analisi… ${ok+fail}/${state.manifest.length} files`);
-        await new Promise(r=>setTimeout(r, 10));
-      }
-    }
-
-    finalizeHistories();
-    rebuildLatestMachinesFromHistory();
-    rebuildLocales();
-
-    state.lastAnalysisAt = Date.now();
-
-    setSub(`Analisi completata: ${ok} OK, ${fail} errori • righe lette ~${rowsTotal.toLocaleString("it-IT")}`);
-    if(errs.length){
-      console.warn(errs.join("\n"));
-    }
-
-    renderMachines();
-    renderLocales();
-    renderKPI();
-
-    // initial chat hello once
-    if(!chatLog.dataset.inited){
-      chatLog.dataset.inited = "1";
-      aiSay(`Ciao ${state.session.user}. Dati caricati.\nPuoi chiedermi: “quale macchina è in pagamento?” oppure “apri locale Fortini”.`);
-    }
-  }
-
-  /* =========================
-     Events
-  ========================= */
-
-  themeSel.addEventListener("change", () => {
-    app.setAttribute("data-theme", themeSel.value);
-    localStorage.setItem(LS_THEME, themeSel.value);
-  });
-
-  btnReload.addEventListener("click", async () => {
-    try{
-      await fullLoad();
-      aiSay("Config ricaricata. Premi “Analizza” per ricalcolare tutto.");
-    }catch(e){
-      console.error(e);
-      aiSay(`Errore ricarica: ${e.message}`);
-      setSub(`Errore: ${e.message}`);
-    }
-  });
-
-  btnAnalyze.addEventListener("click", async () => {
-    try{
-      await analyzeAll();
-    }catch(e){
-      console.error(e);
-      aiSay(`Errore analisi: ${e.message}`);
-      setSub(`Errore: ${e.message}`);
-    }
-  });
-
-  btnLogout.addEventListener("click", () => logout());
-
-  navMachines.addEventListener("click", () => { showView(viewMachines); renderMachines(); });
-  navLocales.addEventListener("click", () => { showView(viewLocales); renderLocales(); });
-  navChat.addEventListener("click", () => { showView(viewChat); });
-  navGloss.addEventListener("click", () => { showView(viewGloss); renderGlossary(); });
-
-  q.addEventListener("input", () => {
-    const active = document.querySelector(".view.active");
-    if(active === viewLocales) renderLocales();
-    else if(active === viewMachines) renderMachines();
-  });
-  filterType.addEventListener("change", renderMachines);
-  sortBy.addEventListener("change", renderMachines);
-
-  chipAll.addEventListener("click", () => { filterType.value="all"; renderMachines(); });
-  chipPay.addEventListener("click", () => { filterType.value="pay"; renderMachines(); });
-  chipWarn.addEventListener("click", () => { filterType.value="warn"; renderMachines(); });
-
-  btnBackFromMachine.addEventListener("click", () => { showView(viewMachines); renderMachines(); });
-  btnBackFromLocale.addEventListener("click", () => { showView(viewLocales); renderLocales(); });
-
-  btnRebuildLocales.addEventListener("click", () => { renderLocales(); aiSay("Locali ricostruiti dai dati correnti."); });
-
-  btnComputeKPIs.addEventListener("click", () => { renderKPI(); aiSay("KPI aggiornati."); });
-
-  btnLogin.addEventListener("click", async () => {
-    try{
-      await loadUsers();
-      const u = loginUser.value;
-      const p = loginPin.value;
-      await doLogin(u,p);
-      hideLogin();
-      await fullLoad();
-      aiSay(`Accesso effettuato come ${state.session.user}.`);
-    }catch(e){
-      loginMsg.textContent = e.message;
-    }
-  });
-
-  loginPin.addEventListener("keydown", (e)=>{
-    if(e.key === "Enter") btnLogin.click();
-  });
-  loginUser.addEventListener("keydown", (e)=>{
-    if(e.key === "Enter") btnLogin.click();
-  });
-
-  chatSend.addEventListener("click", () => {
-    const t = chatInput.value;
-    chatInput.value = "";
-    meSay(t);
-    handleAI(t);
-  });
-  chatInput.addEventListener("keydown", (e)=>{
-    if(e.key === "Enter") chatSend.click();
-  });
-
-  btnChatHelp.addEventListener("click", () => {
-    handleAI("aiuto");
-  });
-
-  /* =========================
-     Boot
-  ========================= */
-
-  (function boot(){
-    // theme
-    const th = localStorage.getItem(LS_THEME) || "Light";
-    themeSel.value = th;
-    app.setAttribute("data-theme", th);
-
-    renderGlossary();
-
-    // restore session
-    const s = restoreSession();
-    if(s) state.session = s;
-
-    // initial load
-    fullLoad().catch(err => {
-      console.error(err);
-      showLogin("Impossibile caricare /Dati/users.json. Controlla percorso e maiuscole (Dati).");
-      setSub("Errore caricamento iniziale.");
-    });
-
-    // if session exists, show some UI hint
-    if(state.session){
-      setLeft(`Utente: ${state.session.user} • ${state.session.level}`);
-    }else{
-      showLogin("");
-    }
-  })();
+  // ---------- Boot ----------
+  showLogin();
+  boot();
 
 })();
 </script>
