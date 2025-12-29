@@ -2,1700 +2,1519 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Calcolatore AWP analisi pagamento</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>Calcolatore AWP Analisi Pagamento</title>
 
-  <!-- Libs CDN (GitHub Pages OK) -->
+  <!-- SheetJS (XLSX parser) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
+  <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
     :root{
-      --bg: #0b0f14;
-      --panel: rgba(255,255,255,.06);
-      --panel2: rgba(255,255,255,.09);
-      --text: rgba(255,255,255,.92);
-      --muted: rgba(255,255,255,.62);
-      --border: rgba(255,255,255,.14);
-      --accent: #7dd3fc;
-      --good: #34d399;
-      --warn: #fbbf24;
-      --bad: #fb7185;
-      --chip: rgba(255,255,255,.08);
-      --shadow: 0 14px 40px rgba(0,0,0,.35);
-      --radius: 18px;
-      --radius2: 14px;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      --bg:#0b0f14;
+      --panel:#0f1621;
+      --panel2:#0c121b;
+      --text:#e8eef7;
+      --muted:#9fb0c7;
+      --border:rgba(255,255,255,.08);
+      --accent:#7dd3fc;
+      --accent2:#a78bfa;
+      --good:#34d399;
+      --warn:#fbbf24;
+      --bad:#fb7185;
+      --shadow: 0 12px 36px rgba(0,0,0,.35);
+      --radius:16px;
+      --radius2:12px;
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New";
     }
-
-    /* Themes */
     [data-theme="light"]{
-      --bg: #f5f7fb;
-      --panel: rgba(0,0,0,.05);
-      --panel2: rgba(0,0,0,.07);
-      --text: rgba(0,0,0,.88);
-      --muted: rgba(0,0,0,.60);
-      --border: rgba(0,0,0,.12);
-      --accent: #2563eb;
-      --chip: rgba(0,0,0,.06);
-      --shadow: 0 14px 40px rgba(25,35,60,.16);
+      --bg:#f6f7fb;
+      --panel:#ffffff;
+      --panel2:#ffffff;
+      --text:#0b1220;
+      --muted:#55657c;
+      --border:rgba(10,20,40,.10);
+      --accent:#2563eb;
+      --accent2:#7c3aed;
+      --shadow: 0 10px 28px rgba(12,18,28,.12);
     }
-    [data-theme="amber"]{ --accent:#f59e0b; }
-    [data-theme="lime"]{ --accent:#84cc16; }
-    [data-theme="ocean"]{ --accent:#22c55e; }
-    [data-theme="dark"]{ --accent:#7dd3fc; }
+    [data-theme="amber"]{
+      --accent:#f59e0b;
+      --accent2:#fb7185;
+    }
+    [data-theme="lime"]{
+      --accent:#84cc16;
+      --accent2:#22c55e;
+    }
 
-    *{ box-sizing:border-box; }
+    *{box-sizing:border-box}
     body{
       margin:0;
-      font-family:var(--sans);
-      background: radial-gradient(1200px 800px at 15% 10%, rgba(125,211,252,.10), transparent 55%),
-                  radial-gradient(900px 700px at 85% 20%, rgba(132,204,22,.08), transparent 55%),
-                  radial-gradient(900px 700px at 50% 100%, rgba(245,158,11,.08), transparent 55%),
+      font-family:var(--font);
+      background: radial-gradient(1200px 600px at 20% -10%, rgba(125,211,252,.10), transparent 60%),
+                  radial-gradient(1000px 500px at 110% 10%, rgba(167,139,250,.10), transparent 55%),
                   var(--bg);
       color:var(--text);
     }
-    a{ color:var(--accent); text-decoration:none; }
-
-    .app{
-      min-height:100vh;
-      display:flex;
-      flex-direction:column;
-    }
-
+    a{color:inherit}
+    .wrap{max-width:1300px;margin:0 auto;padding:18px}
     .topbar{
-      position:sticky;
-      top:0;
-      z-index:50;
+      display:flex;gap:12px;align-items:center;justify-content:space-between;
+      padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      box-shadow:var(--shadow);
+      position:sticky;top:10px;z-index:20;
       backdrop-filter: blur(10px);
-      background: linear-gradient(to bottom, rgba(0,0,0,.25), rgba(0,0,0,0));
-      border-bottom:1px solid var(--border);
-    }
-    [data-theme="light"] .topbar{
-      background: linear-gradient(to bottom, rgba(255,255,255,.75), rgba(255,255,255,0));
-    }
-    .topbar-inner{
-      max-width:1300px;
-      margin:0 auto;
-      padding:14px 16px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
     }
     .brand{
-      display:flex;
-      align-items:center;
-      gap:10px;
+      display:flex;gap:12px;align-items:center;min-width:240px;
     }
     .logo{
-      width:38px;height:38px;
-      border-radius:14px;
-      background: linear-gradient(135deg, var(--accent), rgba(255,255,255,.08));
-      box-shadow: var(--shadow);
-      display:grid;
-      place-items:center;
-      font-weight:800;
-      letter-spacing:.5px;
-      color:#001018;
+      width:40px;height:40px;border-radius:14px;
+      background: conic-gradient(from 90deg, var(--accent), var(--accent2), var(--accent));
+      box-shadow:0 10px 24px rgba(0,0,0,.25);
     }
-    [data-theme="light"] .logo{ color:#fff; }
-    .title{
-      display:flex;
-      flex-direction:column;
-      line-height:1.05;
+    .brand h1{font-size:15px;margin:0;line-height:1.1}
+    .brand small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
+    .top-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
+    .pill{
+      border:1px solid var(--border); background:rgba(255,255,255,.03);
+      padding:8px 10px;border-radius:999px; font-size:12px;color:var(--muted)
     }
-    .title b{ font-size:14px; letter-spacing:.2px; }
-    .title span{ font-size:12px; color:var(--muted); }
-
-    .pillrow{
-      display:flex;
-      align-items:center;
-      gap:8px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
-    }
-    .chip{
-      padding:8px 10px;
-      border:1px solid var(--border);
-      border-radius:999px;
-      background: var(--chip);
-      font-size:12px;
-      color:var(--muted);
-      display:flex;
-      align-items:center;
-      gap:8px;
-    }
-    .chip b{ color:var(--text); font-weight:650; }
-
     .btn{
       border:1px solid var(--border);
-      background: rgba(255,255,255,.06);
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
       color:var(--text);
-      padding:10px 12px;
-      border-radius:12px;
-      cursor:pointer;
-      font-weight:650;
-      font-size:13px;
-      transition: transform .06s ease, background .2s ease, border .2s ease;
-      user-select:none;
+      padding:10px 12px;border-radius:12px;
+      cursor:pointer; user-select:none;
+      transition:.15s transform,.15s border-color,.15s background;
+      font-weight:600; font-size:13px;
+      display:inline-flex; align-items:center; gap:8px;
     }
-    .btn:hover{ background: rgba(255,255,255,.10); }
-    .btn:active{ transform: translateY(1px); }
+    .btn:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.18)}
+    .btn:active{transform:translateY(0px)}
     .btn.primary{
-      background: linear-gradient(135deg, var(--accent), rgba(255,255,255,.10));
-      border-color: rgba(255,255,255,.18);
-      color:#081019;
+      border-color:rgba(125,211,252,.30);
+      background:linear-gradient(180deg, rgba(125,211,252,.20), rgba(125,211,252,.08));
     }
-    [data-theme="light"] .btn.primary{ color:#fff; }
-    .btn.small{ padding:8px 10px; border-radius:11px; font-size:12px; }
-    .btn.ghost{ background: transparent; }
-    .btn.danger{ border-color: rgba(251,113,133,.35); }
-
-    .container{
-      width:100%;
-      max-width:1300px;
-      margin: 0 auto;
-      padding: 16px;
+    .btn.danger{
+      border-color:rgba(251,113,133,.35);
+      background:linear-gradient(180deg, rgba(251,113,133,.18), rgba(251,113,133,.08));
+    }
+    .select{
+      border:1px solid var(--border); background:rgba(255,255,255,.03);
+      padding:10px 12px;border-radius:12px;color:var(--text);
+      font-weight:600;font-size:13px;
+      outline:none;
+    }
+    .grid{
       display:grid;
+      grid-template-columns: 1.1fr .9fr;
       gap:14px;
-      grid-template-columns: 420px 1fr;
+      margin-top:14px;
     }
-    @media (max-width: 1100px){
-      .container{ grid-template-columns: 1fr; }
+    @media (max-width: 980px){
+      .grid{grid-template-columns:1fr}
+      .brand{min-width:auto}
     }
-
     .card{
       border:1px solid var(--border);
-      background: linear-gradient(to bottom, var(--panel), transparent 130%);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
       overflow:hidden;
     }
-    .card-head{
-      padding:14px 14px 10px;
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:10px;
-      border-bottom:1px solid var(--border);
-      background: rgba(255,255,255,.03);
+    .card-h{
+      padding:14px 16px;border-bottom:1px solid var(--border);
+      display:flex;align-items:center;justify-content:space-between;gap:12px;
     }
-    .card-title{
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-    }
-    .card-title b{ font-size:13px; letter-spacing:.2px; }
-    .card-title span{ font-size:12px; color:var(--muted); }
-    .card-body{ padding:14px; }
-
-    .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
-    .grid3{ display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; }
-    @media (max-width: 620px){
-      .grid2, .grid3{ grid-template-columns: 1fr; }
-    }
-
-    input, select, textarea{
-      width:100%;
-      padding:11px 12px;
-      border-radius: 12px;
+    .card-h h2{margin:0;font-size:14px}
+    .card-h .hint{color:var(--muted);font-size:12px}
+    .card-b{padding:14px 16px}
+    .row{display:flex;gap:10px;flex-wrap:wrap}
+    .input{
+      flex:1;min-width:220px;
       border:1px solid var(--border);
-      background: rgba(0,0,0,.18);
-      color: var(--text);
+      background:rgba(255,255,255,.03);
+      padding:10px 12px;border-radius:12px;
+      color:var(--text);font-weight:600;
       outline:none;
-      font-size:13px;
     }
-    [data-theme="light"] input,
-    [data-theme="light"] select,
-    [data-theme="light"] textarea{
-      background: rgba(255,255,255,.85);
-      color:#111827;
+    .toggle{
+      display:flex;gap:8px;align-items:center;
+      border:1px solid var(--border); background:rgba(255,255,255,.03);
+      padding:10px 12px;border-radius:12px;
+      color:var(--text); font-weight:700;font-size:13px;
+      cursor:pointer; user-select:none;
     }
-    textarea{ min-height: 90px; resize: vertical; }
+    .toggle input{accent-color:var(--accent)}
+    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
+    @media (max-width: 980px){ .kpis{grid-template-columns:repeat(2,1fr)} }
+    .kpi{
+      border:1px solid var(--border);border-radius:14px;padding:10px 12px;
+      background:rgba(255,255,255,.03);
+    }
+    .kpi .lab{font-size:11px;color:var(--muted)}
+    .kpi .val{font-size:16px;font-weight:800;margin-top:6px}
+    .kpi .sub{font-size:11px;color:var(--muted);margin-top:3px}
 
-    .mono{ font-family: var(--mono); }
-
-    .status{
-      display:flex;
-      flex-direction:column;
-      gap:8px;
-      font-size:12px;
-      color:var(--muted);
-    }
-    .bar{
-      height:10px;
-      width:100%;
-      border:1px solid var(--border);
-      border-radius:999px;
-      overflow:hidden;
-      background: rgba(255,255,255,.05);
-    }
-    .bar > i{
-      display:block;
-      height:100%;
-      width:0%;
-      background: linear-gradient(90deg, var(--accent), rgba(255,255,255,.16));
-      border-radius:999px;
-      transition: width .2s ease;
-    }
-
-    .table{
-      width:100%;
-      border-collapse: collapse;
-      font-size:12px;
-    }
-    .table th, .table td{
-      padding:10px 10px;
-      border-bottom:1px solid var(--border);
-      vertical-align:top;
-    }
-    .table th{
-      text-align:left;
-      color:var(--muted);
-      font-weight:700;
-      background: rgba(255,255,255,.03);
-      position:sticky;
-      top:0;
-      z-index:1;
-    }
-    .scroll{
-      max-height: 56vh;
-      overflow:auto;
-      border:1px solid var(--border);
-      border-radius: 14px;
-    }
-
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:10px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+    th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;text-align:left}
+    td{font-size:13px}
     .badge{
-      font-size:11px;
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid var(--border);
-      background: rgba(255,255,255,.05);
-      display:inline-flex;
-      align-items:center;
-      gap:6px;
-      color:var(--muted);
+      display:inline-flex;align-items:center;gap:7px;
+      border:1px solid var(--border);border-radius:999px;
+      padding:5px 9px;font-size:12px;font-weight:800;
+      background:rgba(255,255,255,.03);
       white-space:nowrap;
     }
-    .badge.good{ border-color: rgba(52,211,153,.35); color: rgba(52,211,153,.95); }
-    .badge.warn{ border-color: rgba(251,191,36,.40); color: rgba(251,191,36,.95); }
-    .badge.bad{ border-color: rgba(251,113,133,.42); color: rgba(251,113,133,.95); }
+    .dot{width:8px;height:8px;border-radius:50%}
+    .dot.good{background:var(--good)}
+    .dot.warn{background:var(--warn)}
+    .dot.bad{background:var(--bad)}
+    .mono{font-family:var(--mono)}
+    .small{font-size:12px;color:var(--muted)}
+    .muted{color:var(--muted)}
+    .click{cursor:pointer}
+    .click:hover{text-decoration:underline}
 
-    .row-actions{
-      display:flex;
-      gap:8px;
-      flex-wrap:wrap;
-      justify-content:flex-end;
+    .split{
+      display:grid;grid-template-columns: 1fr 1fr;gap:10px;
+    }
+    @media (max-width: 980px){ .split{grid-template-columns:1fr} }
+
+    /* Modal */
+    .modal{
+      position:fixed;inset:0;background:rgba(0,0,0,.55);
+      display:none;align-items:center;justify-content:center;
+      padding:16px;z-index:50;
+    }
+    .modal.on{display:flex}
+    .modal .box{
+      width:min(1100px,100%);
+      max-height:90vh;overflow:auto;
+      border:1px solid var(--border);
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border-radius:18px;
+      box-shadow:0 24px 70px rgba(0,0,0,.5);
+    }
+    .modal .box .mh{
+      padding:14px 16px;border-bottom:1px solid var(--border);
+      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+    }
+    .modal .box .mh h3{margin:0;font-size:14px}
+    .modal .box .mb{padding:14px 16px}
+    .x{
+      width:40px;height:40px;border-radius:14px;border:1px solid var(--border);
+      background:rgba(255,255,255,.03);cursor:pointer;
+      display:grid;place-items:center;font-weight:900;
     }
 
-    /* Login overlay */
-    .overlay{
-      position:fixed;
-      inset:0;
-      background: radial-gradient(1000px 600px at 20% 10%, rgba(125,211,252,.18), transparent 55%),
-                  radial-gradient(800px 600px at 80% 20%, rgba(132,204,22,.14), transparent 55%),
-                  rgba(0,0,0,.65);
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:16px;
-      z-index:999;
+    /* Login screen */
+    .gate{
+      min-height:100vh;display:grid;place-items:center;padding:18px;
     }
     .login{
-      width:min(520px, 100%);
+      width:min(520px,100%);
       border:1px solid var(--border);
-      border-radius: 22px;
-      background: linear-gradient(to bottom, var(--panel), rgba(0,0,0,.35));
-      box-shadow: var(--shadow);
+      border-radius:18px;
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      box-shadow:var(--shadow);
       overflow:hidden;
     }
-    .login-head{
-      padding:18px 18px 12px;
-      border-bottom:1px solid var(--border);
-      display:flex;
-      align-items:flex-start;
-      justify-content:space-between;
-      gap:10px;
+    .login-h{
+      padding:16px 16px;border-bottom:1px solid var(--border);
+      display:flex;gap:12px;align-items:center;
     }
-    .login-head b{ font-size:14px; }
-    .login-head span{ font-size:12px; color:var(--muted); }
-    .login-body{ padding:18px; display:flex; flex-direction:column; gap:10px; }
-    .hint{ font-size:12px; color:var(--muted); }
-    .error{ color: rgba(251,113,133,.95); font-size:12px; min-height:16px; }
+    .login-h .logo{width:44px;height:44px;border-radius:16px}
+    .login-h h2{margin:0;font-size:16px}
+    .login-h p{margin:4px 0 0;color:var(--muted);font-size:12px}
+    .login-b{padding:16px}
+    .login-b .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    @media (max-width: 520px){ .login-b .grid2{grid-template-columns:1fr} }
+    .err{
+      margin-top:10px;
+      border:1px solid rgba(251,113,133,.35);
+      background:rgba(251,113,133,.10);
+      padding:10px 12px;border-radius:14px;
+      color:var(--text);font-size:13px;font-weight:700;
+      display:none;
+    }
+    .err.on{display:block}
 
-    /* Chat */
-    .chatbox{
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-      height: 56vh;
+    /* Chat NOVA */
+    .chat{
+      display:flex;flex-direction:column;gap:10px;
+      height:520px;
     }
     .chatlog{
-      flex:1;
-      overflow:auto;
+      flex:1;overflow:auto;
       border:1px solid var(--border);
-      border-radius: 14px;
-      padding:12px;
-      background: rgba(255,255,255,.03);
+      background:rgba(255,255,255,.02);
+      border-radius:16px;
+      padding:10px;
     }
     .msg{
-      display:flex;
-      gap:10px;
-      margin-bottom:10px;
-      align-items:flex-start;
-    }
-    .avatar{
-      width:34px;height:34px;border-radius:14px;
-      background: linear-gradient(135deg, var(--accent), rgba(255,255,255,.10));
-      display:grid;place-items:center;
-      color:#061018;
-      font-weight:900;
-      flex:0 0 auto;
-    }
-    .bubble{
+      padding:10px 12px;border-radius:14px;
+      margin:8px 0;max-width:88%;
       border:1px solid var(--border);
-      border-radius: 16px;
-      padding:10px 12px;
-      background: rgba(255,255,255,.05);
-      width:100%;
+      background:rgba(255,255,255,.03);
+      white-space:pre-wrap;
     }
-    .bubble b{ display:block; font-size:12px; margin-bottom:4px; color:var(--muted); }
-    .bubble p{ margin:0; font-size:13px; white-space:pre-wrap; }
-    .chatrow{ display:flex; gap:8px; }
-    .chatrow textarea{ min-height:44px; max-height:120px; }
-    .kpi{
-      display:flex;
-      gap:10px;
-      flex-wrap:wrap;
+    .msg.me{margin-left:auto;border-color:rgba(125,211,252,.30);background:rgba(125,211,252,.10)}
+    .msg.ai{border-color:rgba(167,139,250,.28);background:rgba(167,139,250,.08)}
+    .chatbar{display:flex;gap:10px}
+    .chatbar input{flex:1}
+    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .chip{
+      border:1px solid var(--border);
+      background:rgba(255,255,255,.03);
+      padding:8px 10px;border-radius:999px;
+      font-size:12px;font-weight:800;color:var(--muted);
+      cursor:pointer;user-select:none;
     }
-    .kpi .badge{ background: rgba(255,255,255,.04); }
-    .muted{ color:var(--muted); }
+    .chip:hover{border-color:rgba(255,255,255,.18);color:var(--text)}
+    .footnote{color:var(--muted);font-size:11px;margin-top:10px}
   </style>
 </head>
 
 <body>
-<div class="app" id="app" data-theme="dark">
-
-  <!-- TOP BAR -->
-  <div class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <div class="logo">AWP</div>
-        <div class="title">
-          <b>Calcolatore AWP analisi pagamento</b>
-          <span id="subTitle">Pronto a caricare sinottici…</span>
-        </div>
-      </div>
-
-      <div class="pillrow">
-        <div class="chip"><span>Utente</span> <b id="chipUser">-</b></div>
-        <div class="chip"><span>Livello</span> <b id="chipLevel">-</b></div>
-        <div class="chip"><span>Sinottici</span> <b id="chipFiles">0</b></div>
-        <div class="chip"><span>Macchine</span> <b id="chipMachines">0</b></div>
-        <select id="themeSelect" title="Tema" style="width:auto; min-width:140px;">
-          <option value="dark">Scuro</option>
-          <option value="light">Chiaro</option>
-          <option value="amber">Amber</option>
-          <option value="lime">Lime</option>
-          <option value="ocean">Ocean</option>
-        </select>
-        <button class="btn small ghost" id="btnLogout">Logout</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MAIN -->
-  <div class="container">
-
-    <!-- LEFT: controls + list -->
-    <div class="card">
-      <div class="card-head">
-        <div class="card-title">
-          <b>Analisi sinottici</b>
-          <span>Carica da <span class="mono">manifest.json</span> e legge gli <span class="mono">xlsx</span> in <span class="mono">/Dati</span>.</span>
-        </div>
-        <div class="row-actions">
-          <button class="btn small" id="btnLoad">Analizza tutti</button>
-          <button class="btn small" id="btnOnlyLatest">Solo ultimo</button>
-        </div>
-      </div>
-
-      <div class="card-body">
-        <div class="status">
-          <div class="bar"><i id="barFill"></i></div>
-          <div id="statusLine">In attesa…</div>
-        </div>
-
-        <div style="height:12px"></div>
-
-        <div class="grid2">
-          <div>
-            <label class="muted" style="font-size:12px">Filtro (id macchina / pdv / esercente / comune)</label>
-            <input id="filterText" placeholder="Es: 12345, PDV 4012, BAR FORTINI…" />
-          </div>
-          <div>
-            <label class="muted" style="font-size:12px">Mostra</label>
-            <select id="filterMode">
-              <option value="all">Tutte</option>
-              <option value="paysoon">In pagamento / vicine</option>
-              <option value="bad">Critiche</option>
-              <option value="top">Top rendimento</option>
-            </select>
-          </div>
-        </div>
-
-        <div style="height:12px"></div>
-
-        <div class="kpi">
-          <span class="badge good" id="kpiPay">Pagamento: 0</span>
-          <span class="badge warn" id="kpiNear">Vicino: 0</span>
-          <span class="badge bad" id="kpiBad">Critiche: 0</span>
-        </div>
-
-        <div style="height:12px"></div>
-
-        <div class="scroll" id="machineScroll">
-          <table class="table" id="machineTable">
-            <thead>
-              <tr>
-                <th style="width:110px">CODEID</th>
-                <th>PDV / Esercente</th>
-                <th style="width:150px">Stima</th>
-                <th style="width:86px"></th>
-              </tr>
-            </thead>
-            <tbody id="machineTbody">
-              <tr><td colspan="4" class="muted">Nessun dato ancora. Premi “Analizza tutti”.</td></tr>
-            </tbody>
-          </table>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- RIGHT: details + chart + chat -->
-    <div style="display:grid; gap:14px;">
-
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">
-            <b>Dettaglio macchina</b>
-            <span id="detailSubtitle">Seleziona una macchina dalla lista.</span>
-          </div>
-          <div class="row-actions">
-            <select id="rangeSelect" style="width:auto; min-width:170px;">
-              <option value="30">Grafico: ultimi 30 punti</option>
-              <option value="60">Grafico: ultimi 60 punti</option>
-              <option value="120" selected>Grafico: ultimi 120 punti</option>
-              <option value="all">Grafico: tutto (ridotto)</option>
-            </select>
-            <button class="btn small" id="btnExportMachine">Esporta JSON</button>
-          </div>
-        </div>
-        <div class="card-body">
-          <div class="grid3">
-            <div class="card" style="box-shadow:none; border-radius:14px">
-              <div class="card-body" style="padding:12px">
-                <div class="muted" style="font-size:12px">CODEID</div>
-                <div class="mono" style="font-size:15px; font-weight:800" id="d_codeid">-</div>
-              </div>
-            </div>
-            <div class="card" style="box-shadow:none; border-radius:14px">
-              <div class="card-body" style="padding:12px">
-                <div class="muted" style="font-size:12px">PDV / PDA</div>
-                <div class="mono" style="font-size:13px; font-weight:800" id="d_pdv">-</div>
-              </div>
-            </div>
-            <div class="card" style="box-shadow:none; border-radius:14px">
-              <div class="card-body" style="padding:12px">
-                <div class="muted" style="font-size:12px">Ciclo stimato</div>
-                <div class="mono" style="font-size:13px; font-weight:800" id="d_cycle">-</div>
-              </div>
-            </div>
-          </div>
-
-          <div style="height:12px"></div>
-
-          <div class="grid2">
-            <div>
-              <div class="muted" style="font-size:12px; margin-bottom:6px">Indicatori</div>
-              <div class="kpi">
-                <span class="badge" id="d_net">NET: -</span>
-                <span class="badge" id="d_res">Residuo: -</span>
-                <span class="badge" id="d_when">Quando paga: -</span>
-              </div>
-              <div style="height:10px"></div>
-              <div class="muted" style="font-size:12px">Note</div>
-              <div id="d_note" style="font-size:13px; line-height:1.35; color:var(--muted)">
-                -
-              </div>
-            </div>
-
-            <div>
-              <div class="muted" style="font-size:12px; margin-bottom:6px">Ultime letture (top)</div>
-              <div class="scroll" style="max-height:180px">
-                <table class="table">
-                  <thead>
-                    <tr>
-                      <th>Data</th>
-                      <th>IN</th>
-                      <th>OUT</th>
-                      <th>NET</th>
-                    </tr>
-                  </thead>
-                  <tbody id="d_lastRows">
-                    <tr><td colspan="4" class="muted">-</td></tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <div style="height:12px"></div>
-
-          <div class="card" style="box-shadow:none; border-radius:14px">
-            <div class="card-body" style="padding:12px">
-              <canvas id="machineChart" height="120"></canvas>
-              <div class="muted" style="font-size:12px; margin-top:8px">
-                Suggerimento: “tutto” mostra comunque un grafico ridotto per restare leggibile.
-              </div>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-head">
-          <div class="card-title">
-            <b>Chat IA: N.E.U.R.A.</b>
-            <span>Neural Extractor for Unified Revenue Analysis (solo dati del programma)</span>
-          </div>
-          <div class="row-actions">
-            <button class="btn small" id="btnChatExamples">Esempi</button>
-            <button class="btn small ghost" id="btnChatClear">Pulisci</button>
-          </div>
-        </div>
-
-        <div class="card-body">
-          <div class="chatbox">
-            <div class="chatlog" id="chatLog"></div>
-            <div class="chatrow">
-              <textarea id="chatInput" placeholder="Es: quali macchine sono in pagamento? / quando paga 12345 / cerca pdv 4012"></textarea>
-              <button class="btn primary" id="btnChatSend">Invia</button>
-            </div>
-            <div class="hint">N.E.U.R.A. risponde solo su AWP/sinottici. Se chiedi altro, ti riporta “dentro il programma”. 🧭</div>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- LOGIN OVERLAY -->
-  <div class="overlay" id="loginOverlay">
-    <div class="login">
-      <div class="login-head">
-        <div style="display:flex; flex-direction:column; gap:4px">
-          <b>Accesso</b>
-          <span class="muted">Inserisci le credenziali per continuare.</span>
-        </div>
-        <select id="loginTheme" style="width:auto; min-width:150px;">
-          <option value="dark">Tema: Scuro</option>
-          <option value="light">Tema: Chiaro</option>
-          <option value="amber">Tema: Amber</option>
-          <option value="lime">Tema: Lime</option>
-          <option value="ocean">Tema: Ocean</option>
-        </select>
-      </div>
-      <div class="login-body">
-        <div class="grid2">
-          <div>
-            <label class="muted" style="font-size:12px">User</label>
-            <input id="loginUser" placeholder="user" value="user"/>
-          </div>
-          <div>
-            <label class="muted" style="font-size:12px">PIN</label>
-            <input id="loginPin" placeholder="0000" value="0000" />
-          </div>
-        </div>
-
-        <div class="error" id="loginError"></div>
-
-        <button class="btn primary" id="btnLogin">Entra</button>
-
-        <div class="hint">
-          Suggerimento: dopo l’accesso premi <b>Analizza tutti</b> per vedere le macchine.
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div>
+<div id="app"></div>
 
 <script>
-/* =========================================================
-   SINOTTICO LAB - Single file app
-   ========================================================= */
+/* ==============================
+   Utils
+================================ */
+const $ = (q, el=document) => el.querySelector(q);
+const $$ = (q, el=document) => [...el.querySelectorAll(q)];
 
-const App = (() => {
+function safeNum(v){
+  if(v===null || v===undefined || v==="") return null;
+  const n = Number(String(v).replace(",", "."));
+  return Number.isFinite(n) ? n : null;
+}
+function fmt(n){
+  if(n===null || n===undefined) return "—";
+  const x = Number(n);
+  if(!Number.isFinite(x)) return "—";
+  return x.toLocaleString("it-IT");
+}
+function fmtPct(x){
+  if(x===null || x===undefined) return "—";
+  if(!Number.isFinite(x)) return "—";
+  return (x*100).toFixed(1) + "%";
+}
+function clamp(x,a,b){ return Math.max(a, Math.min(b, x)); }
+function median(arr){
+  const a = arr.filter(x=>Number.isFinite(x)).slice().sort((x,y)=>x-y);
+  if(!a.length) return null;
+  const m = Math.floor(a.length/2);
+  return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
+}
+function mad(arr){
+  const m = median(arr);
+  if(m===null) return null;
+  const dev = arr.map(x=>Math.abs(x-m));
+  return median(dev);
+}
+function robustZ(x, m, madVal){
+  if(m===null || madVal===null || madVal===0) return 0;
+  // 0.6745 makes MAD comparable to std dev on normal dist
+  return 0.6745 * (x - m) / madVal;
+}
+function sigmoid(x){ return 1/(1+Math.exp(-x)); }
 
-  // --- State in RAM ---
-  const state = {
-    user: null,
-    users: [],
-    level: null,
-    expires: null,
+function parseDateFromFilename(name){
+  // Accept: Sinottico-2025-12-27-0845.xlsx
+  //         Sinottico-2025-12-11-0940.xlsx
+  //         Sinottico-2025-12-23-0900.xlsx
+  const m = String(name).match(/(\d{4})-(\d{2})-(\d{2})-(\d{2})(\d{2})/);
+  if(!m) return null;
+  const [_,Y,Mo,D,H,Mi]=m;
+  const dt = new Date(Number(Y), Number(Mo)-1, Number(D), Number(H), Number(Mi), 0, 0);
+  return Number.isNaN(dt.getTime()) ? null : dt;
+}
+function isoShort(dt){
+  if(!dt) return "—";
+  const dd = String(dt.getDate()).padStart(2,"0");
+  const mm = String(dt.getMonth()+1).padStart(2,"0");
+  const yy = dt.getFullYear();
+  const hh = String(dt.getHours()).padStart(2,"0");
+  const mi = String(dt.getMinutes()).padStart(2,"0");
+  return `${dd}/${mm}/${yy} ${hh}:${mi}`;
+}
 
-    manifest: null,
-    sinottici: [], // filenames from manifest
+async function fetchJson(path){
+  const r = await fetch(path, {cache:"no-store"});
+  if(!r.ok) throw new Error(`HTTP ${r.status} su ${path}`);
+  return await r.json();
+}
+async function fetchArrayBuffer(path){
+  const r = await fetch(path, {cache:"no-store"});
+  if(!r.ok) throw new Error(`HTTP ${r.status} su ${path}`);
+  return await r.arrayBuffer();
+}
 
-    cicloslot: [], // from cicloslot.json
-
-    // historyByMachine: CODEID -> array of points {ts, dateStr, in, out, net, pdv, pda, esercente, comune, ...raw}
-    historyByMachine: new Map(),
-
-    // latest snapshot summary for list
-    summary: [],
-
-    selectedCodeId: null,
-
-    // chart
-    chart: null,
-  };
-
-  // --- DOM ---
-  const $ = (id) => document.getElementById(id);
-
-  const el = {
-    app: $("app"),
-    subTitle: $("subTitle"),
-    chipUser: $("chipUser"),
-    chipLevel: $("chipLevel"),
-    chipFiles: $("chipFiles"),
-    chipMachines: $("chipMachines"),
-
-    themeSelect: $("themeSelect"),
-    btnLogout: $("btnLogout"),
-
-    btnLoad: $("btnLoad"),
-    btnOnlyLatest: $("btnOnlyLatest"),
-    statusLine: $("statusLine"),
-    barFill: $("barFill"),
-
-    filterText: $("filterText"),
-    filterMode: $("filterMode"),
-    machineTbody: $("machineTbody"),
-
-    kpiPay: $("kpiPay"),
-    kpiNear: $("kpiNear"),
-    kpiBad: $("kpiBad"),
-
-    // details
-    detailSubtitle: $("detailSubtitle"),
-    rangeSelect: $("rangeSelect"),
-    btnExportMachine: $("btnExportMachine"),
-
-    d_codeid: $("d_codeid"),
-    d_pdv: $("d_pdv"),
-    d_cycle: $("d_cycle"),
-    d_net: $("d_net"),
-    d_res: $("d_res"),
-    d_when: $("d_when"),
-    d_note: $("d_note"),
-    d_lastRows: $("d_lastRows"),
-    chartCanvas: $("machineChart"),
-
-    // chat
-    chatLog: $("chatLog"),
-    chatInput: $("chatInput"),
-    btnChatSend: $("btnChatSend"),
-    btnChatClear: $("btnChatClear"),
-    btnChatExamples: $("btnChatExamples"),
-
-    // login
-    loginOverlay: $("loginOverlay"),
-    loginUser: $("loginUser"),
-    loginPin: $("loginPin"),
-    btnLogin: $("btnLogin"),
-    loginError: $("loginError"),
-    loginTheme: $("loginTheme"),
-  };
-
-  // --- Utils ---
-  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-
-  function setTheme(theme){
-    el.app.setAttribute("data-theme", theme);
-    el.themeSelect.value = theme;
-    el.loginTheme.value = theme;
-    localStorage.setItem("awp_theme", theme);
+/* ==============================
+   State
+================================ */
+const STATE = {
+  session: null, // {user, level, expires}
+  users: [],
+  manifest: null,
+  ciclos: [], // [{codiceModello,nomeModello,ciclo}]
+  cicloByModel: new Map(),
+  snapshots: [], // [{file, dt, rows}]
+  machines: new Map(), // key: idAWP -> machine object
+  modelBaselines: new Map(), // model -> {medianRtp, madRtp}
+  ui: {
+    theme: localStorage.getItem("sinotticolab_theme") || "dark",
+    search: "",
+    onlyLikely: false,
+    rangeDays: 90,
+    showDeltas: true
   }
+};
 
-  function fmtEuroFromCents(v){
-    if (v == null || isNaN(v)) return "-";
-    const eur = Number(v) / 100;
-    return eur.toLocaleString("it-IT", { style:"currency", currency:"EUR" });
-  }
+function setTheme(t){
+  STATE.ui.theme = t;
+  localStorage.setItem("sinotticolab_theme", t);
+  document.documentElement.setAttribute("data-theme", t);
+}
 
-  function safeUpper(s){
-    return (s ?? "").toString().trim().toUpperCase();
-  }
+/* ==============================
+   Login
+================================ */
+function isExpired(expires){
+  if(expires===null || expires===undefined || expires==="") return false;
+  const dt = new Date(expires + "T00:00:00");
+  if(Number.isNaN(dt.getTime())) return false;
+  const now = new Date();
+  // expires at end of day
+  dt.setHours(23,59,59,999);
+  return now.getTime() > dt.getTime();
+}
 
-  function parseDateFromFilename(fn){
-    // examples:
-    // Sinottico-2025-12-23-0900.xlsx
-    // Sinottico-2025-10-10-14:30.xlsx
-    // Sinottico-2025-10-07.xlsx
-    const m = fn.match(/(\d{4})-(\d{2})-(\d{2})(?:-(\d{2})(?::?(\d{2}))?)?/);
-    if (!m) return null;
-    const y=+m[1], mo=+m[2], d=+m[3];
-    const hh = m[4] ? +m[4] : 0;
-    const mm = m[5] ? +m[5] : 0;
-    const dt = new Date(Date.UTC(y, mo-1, d, hh, mm, 0));
-    return dt;
-  }
+async function loadUsers(){
+  const users = await fetchJson("users.json");
+  if(!Array.isArray(users)) throw new Error("users.json non è un array");
+  STATE.users = users;
+}
 
-  function dateStr(ts){
-    const d = new Date(ts);
-    return d.toLocaleString("it-IT", { year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit" });
-  }
+function renderLogin(){
+  setTheme(STATE.ui.theme);
 
-  function setProgress(pct, label){
-    el.barFill.style.width = Math.max(0, Math.min(100, pct)) + "%";
-    el.statusLine.textContent = label;
-  }
+  const root = $("#app");
+  root.innerHTML = `
+    <div class="gate">
+      <div class="login">
+        <div class="login-h">
+          <div class="logo"></div>
+          <div>
+            <h2>Calcolatore AWP Analisi Pagamento</h2>
+            <p>Accedi per analizzare sinottici e storico macchine.</p>
+          </div>
+        </div>
+        <div class="login-b">
+          <div class="grid2">
+            <div>
+              <div class="small muted" style="margin-bottom:6px">Utente</div>
+              <input id="lu" class="input" placeholder="es. user" value="user" autocomplete="username" />
+            </div>
+            <div>
+              <div class="small muted" style="margin-bottom:6px">PIN</div>
+              <input id="lp" class="input" placeholder="es. 0000" value="0000" autocomplete="current-password" inputmode="numeric" />
+            </div>
+          </div>
 
-  function normNumber(v){
-    if (v === null || v === undefined) return null;
-    if (typeof v === "number") return v;
-    const s = (""+v).replace(/\./g,"").replace(",",".").trim();
-    const n = Number(s);
-    return Number.isFinite(n) ? n : null;
-  }
+          <div class="row" style="margin-top:12px">
+            <button id="blogin" class="btn primary">🔐 Entra</button>
+            <select id="theme" class="select" title="Tema">
+              <option value="dark">Scuro</option>
+              <option value="light">Chiaro</option>
+              <option value="amber">Amber</option>
+              <option value="lime">Lime</option>
+            </select>
+          </div>
 
-  function normalizeHeader(h){
-    return safeUpper(h).replace(/\s+/g," ").trim();
-  }
+          <div id="lerr" class="err"></div>
 
-  function findCycleForModel(model){
-    if (!model) return null;
-    const m = safeUpper(model);
-    // cicloslot.json uses keys: MODELLO, CICLO, ...
-    const row = state.cicloslot.find(r => safeUpper(r.MODELLO) === m);
-    return row ? normNumber(row.CICLO) : null;
-  }
+          <div class="footnote">
+            Suggerimento: prova <span class="mono">user</span> + <span class="mono">0000</span> (se presente nel tuo users.json).
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
 
-  function computePredictionForMachine(codeid){
-    const hist = state.historyByMachine.get(codeid) || [];
-    if (hist.length < 2){
-      return { label:"Dati insufficienti", cls:"warn", score:0.45, cycle:null, resid:null, eta:null, note:"Servono più sinottici per una stima affidabile." };
-    }
+  $("#theme").value = STATE.ui.theme;
+  $("#theme").addEventListener("change", e=> setTheme(e.target.value));
 
-    // sort by time
-    const arr = hist.slice().sort((a,b)=>a.ts-b.ts);
+  const doLogin = ()=>{
+    const u = ($("#lu").value || "").trim();
+    const p = ($("#lp").value || "").trim();
+    const err = $("#lerr");
 
-    const last = arr[arr.length-1];
-    const model = last.MODELLO || last.MODELLO_APP || last.MODEL || null;
-    const cycle = findCycleForModel(model);
-
-    // NET is IN-OUT in cents
-    const nets = arr.map(p => p.net);
-    const deltas = [];
-    for (let i=1;i<arr.length;i++){
-      deltas.push(arr[i].net - arr[i-1].net);
-    }
-
-    // Detect payout-like reset: big negative delta compared to typical
-    const absD = deltas.map(x=>Math.abs(x)).sort((a,b)=>a-b);
-    const medAbs = absD[Math.floor(absD.length*0.5)] || 0;
-    const thr = Math.max( (medAbs*8), 200000 ); // at least 2000€ in cents threshold for a reset
-    let lastResetIdx = -1;
-    for (let i=deltas.length-1;i>=0;i--){
-      if (deltas[i] < -thr){
-        lastResetIdx = i+1;
-        break;
-      }
-    }
-
-    const sinceReset = (lastResetIdx >= 0) ? arr.slice(lastResetIdx) : arr.slice(-Math.min(20,arr.length));
-    const netStart = sinceReset[0].net;
-    const netNow = last.net;
-    const netSince = netNow - netStart;
-
-    // Trend (cents per day) using last N points
-    const tail = arr.slice(-Math.min(12,arr.length));
-    const t0 = tail[0].ts, t1 = tail[tail.length-1].ts;
-    const days = Math.max( (t1 - t0) / (1000*60*60*24), 0.2);
-    const netGrowth = (tail[tail.length-1].net - tail[0].net) / days; // cents/day
-
-    // Residual logic
-    let resid = null;
-    let etaDays = null;
-    let score = 0.5;
-    let note = "";
-
-    if (cycle && cycle > 0){
-      // Interpret cycle in cents if it looks like euro? In your data CICLO seems like euros, we convert to cents if small.
-      // Heuristic: if cycle < 1e7 treat as euro and convert to cents. (1e7 cents=100k€)
-      let cycleCents = cycle;
-      if (cycle < 1000000) cycleCents = Math.round(cycle * 100); // euro -> cents
-
-      // We use modulo cycle: where within the cycle we are.
-      const within = ((netNow % cycleCents) + cycleCents) % cycleCents;
-      resid = cycleCents - within;
-
-      // Also use since last reset estimate; choose the "more consistent" one:
-      let resid2 = cycleCents - (((netSince % cycleCents) + cycleCents) % cycleCents);
-      // pick the smaller one (closer)
-      resid = Math.min(resid, resid2);
-
-      if (netGrowth > 1){
-        etaDays = resid / netGrowth;
-      }
-
-      // Score and label:
-      // If residual < 8% cycle -> near
-      const nearPct = resid / cycleCents;
-      if (nearPct < 0.04){
-        score = 0.90;
-        note = "Molto vicino alla soglia stimata del ciclo.";
-      } else if (nearPct < 0.10){
-        score = 0.74;
-        note = "Vicino alla soglia stimata del ciclo.";
-      } else {
-        score = 0.52;
-        note = "Non sembra vicino al ciclo (stima), ma dipende dall’andamento reale.";
-      }
-
-      // If reset recently, boost confidence
-      if (lastResetIdx >= 0) score = Math.min(0.97, score + 0.06);
-
-    } else {
-      // No cycle info: rely on reset detection and slope
-      if (lastResetIdx >= 0){
-        score = 0.62;
-        note = "Ciclo non trovato: uso gli ‘reset’ nello storico per stimare i pagamenti.";
-      } else {
-        score = 0.50;
-        note = "Ciclo non trovato e nessun reset evidente: stima debole.";
-      }
-    }
-
-    // Convert to label classes
-    let cls = "warn";
-    let label = "Da monitorare";
-    if (score >= 0.84){ cls="good"; label="In pagamento / molto vicina"; }
-    else if (score >= 0.70){ cls="warn"; label="Vicina al pagamento"; }
-    else if (score < 0.50){ cls="bad"; label="Critica / incerta"; }
-
-    // If growth is negative or zero, warn
-    if (netGrowth <= 0){
-      cls = "bad";
-      label = "Trend anomalo";
-      note = "Il NET non sta crescendo (o sta scendendo). Potrebbe esserci stato un pagamento o letture irregolari.";
-    }
-
-    return {
-      label, cls, score,
-      cycle: cycle,
-      resid: resid,
-      etaDays: etaDays,
-      note: note,
-      lastReset: lastResetIdx >= 0 ? arr[lastResetIdx].ts : null
-    };
-  }
-
-  function renderSummaryTable(){
-    const q = el.filterText.value.trim().toUpperCase();
-    const mode = el.filterMode.value;
-
-    let rows = state.summary.slice();
-
-    // filter mode
-    if (mode === "paysoon"){
-      rows = rows.filter(r => r.pred && r.pred.score >= 0.70);
-    } else if (mode === "bad"){
-      rows = rows.filter(r => r.pred && r.pred.score < 0.50);
-    } else if (mode === "top"){
-      // top by last net growth (approx) or net
-      rows.sort((a,b)=> (b.lastNet ?? 0) - (a.lastNet ?? 0));
-      rows = rows.slice(0, 120);
-    }
-
-    // text filter
-    if (q){
-      rows = rows.filter(r => {
-        const hay = [
-          r.codeid, r.pdv, r.pda, r.esercente, r.comune, r.provincia, r.modello
-        ].map(x => (x ?? "").toString().toUpperCase()).join(" | ");
-        return hay.includes(q);
-      });
-    }
-
-    // KPIs
-    let pay=0, near=0, bad=0;
-    for (const r of state.summary){
-      const s = r.pred?.score ?? 0;
-      if (s >= 0.84) pay++;
-      else if (s >= 0.70) near++;
-      else if (s < 0.50) bad++;
-    }
-    el.kpiPay.textContent = "Pagamento: " + pay;
-    el.kpiNear.textContent = "Vicino: " + near;
-    el.kpiBad.textContent = "Critiche: " + bad;
-
-    // render
-    el.machineTbody.innerHTML = "";
-    if (!rows.length){
-      el.machineTbody.innerHTML = `<tr><td colspan="4" class="muted">Nessun risultato con questi filtri.</td></tr>`;
+    const found = STATE.users.find(x => String(x.user).toLowerCase()===u.toLowerCase() && String(x.pin)===p);
+    if(!found){
+      err.textContent = "Utente non trovato o PIN errato.";
+      err.classList.add("on");
       return;
     }
+    if(isExpired(found.expires)){
+      err.textContent = `Accesso scaduto (${found.expires}).`;
+      err.classList.add("on");
+      return;
+    }
+    err.classList.remove("on");
+    STATE.session = {
+      user: found.user,
+      level: found.level || "Base",
+      expires: found.expires
+    };
+    localStorage.setItem("sinotticolab_session", JSON.stringify(STATE.session));
+    renderAppShell();
+    bootLoad();
+  };
 
-    for (const r of rows){
-      const pred = r.pred || {label:"-", cls:"warn"};
-      const badge = `<span class="badge ${pred.cls}">${pred.label}</span>`;
+  $("#blogin").addEventListener("click", doLogin);
+  $("#lp").addEventListener("keydown", e=> { if(e.key==="Enter") doLogin(); });
+  $("#lu").addEventListener("keydown", e=> { if(e.key==="Enter") doLogin(); });
+}
 
-      const pdv = r.pdv ? `PDV ${r.pdv}` : "-";
-      const pda = r.pda ? `PDA ${r.pda}` : "";
-      const es = r.esercente ? r.esercente : "-";
-      const loc = [r.comune, r.provincia].filter(Boolean).join(" ");
-      const line2 = [es, loc].filter(Boolean).join(" · ");
+function tryRestoreSession(){
+  const s = localStorage.getItem("sinotticolab_session");
+  if(!s) return false;
+  try{
+    const obj = JSON.parse(s);
+    if(!obj?.user) return false;
+    // validate against users list once loaded
+    const found = STATE.users.find(x => x.user===obj.user);
+    if(!found) return false;
+    if(isExpired(found.expires)) return false;
+    STATE.session = {user: found.user, level: found.level || "Base", expires: found.expires};
+    return true;
+  }catch{ return false; }
+}
 
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td class="mono" style="font-weight:800">${r.codeid}</td>
-        <td>
-          <div class="mono" style="font-weight:800">${pdv}${pda?(" · "+pda):""}</div>
-          <div class="muted" style="margin-top:4px">${line2}</div>
-          <div class="muted" style="margin-top:4px; font-size:11px">${r.modello ? ("Modello: "+r.modello) : ""}</div>
-        </td>
-        <td>${badge}<div class="muted" style="margin-top:6px; font-size:11px">NET: ${fmtEuroFromCents(r.lastNet)}</div></td>
-        <td style="text-align:right">
-          <button class="btn small" data-open="${r.codeid}">Apri</button>
-        </td>
-      `;
-      el.machineTbody.appendChild(tr);
+/* ==============================
+   XLSX parsing
+================================ */
+function normalizeRowKeys(row){
+  // Keep as-is; but map known names to stable internal keys
+  const get = (k)=> row[k];
+
+  return {
+    concess: get("codice concessionario") ?? null,
+    eserc: get("esercente") ?? null,
+    pda: get("PDA") ?? null,
+    pdv: get("PDV") ?? null,
+    idAwp: get("id awp") ?? null,
+    matricola: get("matricola") ?? null,
+    codModel: get("codice modello") ?? null,
+    nomeModel: get("modello") ?? null,
+    sw: get("software") ?? null,
+    totIn: safeNum(get("tot in")),
+    totOut: safeNum(get("tot out")),
+    totBet: safeNum(get("tot bet")),   // if exists
+    totWin: safeNum(get("tot win")),   // if exists
+    // Some files may include more columns, we keep raw too:
+    raw: row
+  };
+}
+
+function sheetToJson(workbook){
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  // defval: keep empty cells as ""
+  const json = XLSX.utils.sheet_to_json(sheet, {defval:""});
+  return json;
+}
+
+async function loadOneSinottico(file, baseFolder){
+  const path = `${baseFolder}/${file}`;
+  const buf = await fetchArrayBuffer(path);
+  const wb = XLSX.read(buf, {type:"array"});
+  const rows0 = sheetToJson(wb);
+
+  // Ensure header columns are recognized; if not, try to guess by lowercasing keys
+  const rows = rows0.map(r=>{
+    const rr = {};
+    for(const k of Object.keys(r)){
+      rr[String(k).trim().toLowerCase()] = r[k];
+    }
+    return normalizeRowKeys(rr);
+  }).filter(r => r.idAwp || r.matricola); // keep only meaningful rows
+
+  const dt = parseDateFromFilename(file) || new Date(0);
+  return {file, dt, rows};
+}
+
+/* ==============================
+   Analysis pipeline
+================================ */
+function upsertMachineFromRow(row){
+  const id = String(row.idAwp || "").trim();
+  if(!id) return null;
+
+  const existing = STATE.machines.get(id) || {
+    idAwp: id,
+    concess: row.concess,
+    eserc: row.eserc,
+    pda: row.pda,
+    pdv: row.pdv,
+    matricola: row.matricola,
+    codModel: row.codModel,
+    nomeModel: row.nomeModel,
+    sw: row.sw,
+    ciclo: null,
+    history: [], // {dt,file,totIn,totOut,raw}
+    deltas: [],  // {dtFrom,dtTo,fileTo, dIn, dOut, rtp}
+    stats: null
+  };
+
+  // keep best-known metadata
+  existing.concess = existing.concess || row.concess;
+  existing.eserc = existing.eserc || row.eserc;
+  existing.pda = existing.pda || row.pda;
+  existing.pdv = existing.pdv || row.pdv;
+  existing.matricola = existing.matricola || row.matricola;
+  existing.codModel = existing.codModel || row.codModel;
+  existing.nomeModel = existing.nomeModel || row.nomeModel;
+  existing.sw = existing.sw || row.sw;
+
+  // ciclo
+  const cm = String(existing.codModel || "").trim();
+  if(cm && STATE.cicloByModel.has(cm)) existing.ciclo = STATE.cicloByModel.get(cm);
+
+  STATE.machines.set(id, existing);
+  return existing;
+}
+
+function buildHistoryFromSnapshots(){
+  STATE.machines.clear();
+
+  for(const snap of STATE.snapshots){
+    for(const r of snap.rows){
+      const m = upsertMachineFromRow(r);
+      if(!m) continue;
+      m.history.push({
+        dt: snap.dt,
+        file: snap.file,
+        totIn: r.totIn,
+        totOut: r.totOut,
+        raw: r.raw,
+        concess: r.concess,
+        eserc: r.eserc,
+        pda: r.pda,
+        pdv: r.pdv,
+        codModel: r.codModel,
+        nomeModel: r.nomeModel
+      });
+    }
+  }
+
+  // sort and compute deltas
+  for(const m of STATE.machines.values()){
+    m.history.sort((a,b)=>a.dt-b.dt);
+    m.deltas = [];
+
+    for(let i=1;i<m.history.length;i++){
+      const prev = m.history[i-1];
+      const cur  = m.history[i];
+      const dIn  = (cur.totIn!==null && prev.totIn!==null) ? (cur.totIn - prev.totIn) : null;
+      const dOut = (cur.totOut!==null && prev.totOut!==null) ? (cur.totOut - prev.totOut) : null;
+
+      // handle resets/rollovers: ignore negative deltas
+      const dIn2  = (dIn!==null && dIn>=0) ? dIn : null;
+      const dOut2 = (dOut!==null && dOut>=0) ? dOut : null;
+      const rtp   = (dIn2!==null && dOut2!==null && dIn2>0) ? (dOut2/dIn2) : null;
+
+      m.deltas.push({
+        dtFrom: prev.dt, dtTo: cur.dt, fileTo: cur.file,
+        dIn: dIn2, dOut: dOut2, rtp
+      });
+    }
+  }
+}
+
+function computeModelBaselines(){
+  STATE.modelBaselines.clear();
+
+  // collect rtp per model across all machines and all deltas (filter garbage)
+  const map = new Map(); // model -> [rtp]
+  for(const m of STATE.machines.values()){
+    const model = String(m.codModel || "").trim();
+    if(!model) continue;
+    for(const d of m.deltas){
+      if(d.rtp===null) continue;
+      if(d.dIn<200) continue;      // ignore tiny intervals
+      if(d.rtp<0 || d.rtp>3) continue; // sanity
+      if(!map.has(model)) map.set(model, []);
+      map.get(model).push(d.rtp);
+    }
+  }
+  for(const [model, arr] of map.entries()){
+    const med = median(arr);
+    const md  = mad(arr);
+    STATE.modelBaselines.set(model, {medianRtp: med, madRtp: md});
+  }
+}
+
+function computeMachineStats(){
+  for(const m of STATE.machines.values()){
+    const model = String(m.codModel || "").trim();
+    const base = STATE.modelBaselines.get(model) || {medianRtp:null, madRtp:null};
+
+    const deltas = m.deltas.filter(x=>x.rtp!==null && x.dIn!==null && x.dIn>0);
+    const last = deltas.length ? deltas[deltas.length-1] : null;
+
+    // recent window
+    const lastN = deltas.slice(-6);
+    const rtpRecent = lastN.length ? (lastN.reduce((s,x)=>s+x.rtp,0)/lastN.length) : null;
+
+    // robust z-score vs model baseline
+    const z = (rtpRecent!==null) ? robustZ(rtpRecent, base.medianRtp, base.madRtp) : 0;
+
+    // payout-ish heuristics:
+    // - high recent RTP compared to baseline
+    // - big out spike on last interval
+    // - consistency: 2-3 consecutive high RTPs
+    let spike = 0;
+    if(last && base.medianRtp!==null && last.dIn && last.dIn>0 && last.rtp!==null){
+      const zLast = robustZ(last.rtp, base.medianRtp, base.madRtp);
+      spike = clamp(sigmoid(zLast) , 0, 1);
     }
 
-    // bind open
-    el.machineTbody.querySelectorAll("[data-open]").forEach(btn=>{
-      btn.addEventListener("click", () => openMachine(btn.getAttribute("data-open")));
+    const highCount = lastN.filter(x=>{
+      if(base.medianRtp===null || base.madRtp===null || x.rtp===null) return false;
+      return robustZ(x.rtp, base.medianRtp, base.madRtp) > 1.2;
+    }).length;
+
+    const consistency = clamp(highCount/6, 0, 1);
+
+    // cycle progress (informativo, non “magico”)
+    let cycleProgress = null;
+    if(m.ciclo && m.history.length){
+      const h = m.history[m.history.length-1];
+      if(Number.isFinite(h.totIn)){
+        cycleProgress = (h.totIn % m.ciclo) / m.ciclo;
+      }
+    }
+
+    // PayScore 0..100
+    // z -> 0..1, spike -> 0..1, consistency -> 0..1
+    const z01 = clamp(sigmoid(z), 0, 1);
+    const score = Math.round(100 * clamp(0.55*z01 + 0.30*spike + 0.15*consistency, 0, 1));
+
+    let label = "Neutra";
+    let sev = "warn";
+    if(score>=75){ label="Probabile pagamento"; sev="good"; }
+    else if(score<=35){ label="Poco probabile"; sev="bad"; }
+
+    m.stats = {
+      baseMedian: base.medianRtp,
+      rtpRecent,
+      last,
+      score,
+      label,
+      sev,
+      cycleProgress
+    };
+  }
+}
+
+function rebuildAll(){
+  buildHistoryFromSnapshots();
+  computeModelBaselines();
+  computeMachineStats();
+}
+
+/* ==============================
+   App UI
+================================ */
+function renderAppShell(){
+  setTheme(STATE.ui.theme);
+
+  const root = $("#app");
+  root.innerHTML = `
+    <div class="wrap">
+      <div class="topbar">
+        <div class="brand">
+          <div class="logo"></div>
+          <div>
+            <h1>SinotticoLab <span class="muted">|</span> Analisi AWP</h1>
+            <small id="sessionInfo"></small>
+          </div>
+        </div>
+
+        <div class="top-actions">
+          <span class="pill" id="loadPill">Pronto</span>
+
+          <select id="theme" class="select" title="Tema">
+            <option value="dark">Scuro</option>
+            <option value="light">Chiaro</option>
+            <option value="amber">Amber</option>
+            <option value="lime">Lime</option>
+          </select>
+
+          <button class="btn primary" id="btnAnalyze">🧠 Analizza sinottici</button>
+          <button class="btn" id="btnChat">💬 NOVA</button>
+          <button class="btn danger" id="btnLogout">🚪 Esci</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="card-h">
+            <div>
+              <h2>Macchine</h2>
+              <div class="hint">Ricerca, filtri e stato “pagamento” con PayScore.</div>
+            </div>
+            <div class="row">
+              <label class="toggle"><input type="checkbox" id="onlyLikely"> Solo probabile pagamento</label>
+            </div>
+          </div>
+          <div class="card-b">
+            <div class="row">
+              <input class="input" id="search" placeholder="Cerca per esercente, PDV, PDA, ID AWP, modello..." />
+              <select class="select" id="range">
+                <option value="30">Ultimi 30 giorni</option>
+                <option value="90">Ultimi 90 giorni</option>
+                <option value="365">Ultimi 365 giorni</option>
+                <option value="99999">Tutto</option>
+              </select>
+            </div>
+
+            <div class="kpis">
+              <div class="kpi"><div class="lab">Sinottici caricati</div><div class="val" id="kSin">—</div><div class="sub" id="kSinSub">—</div></div>
+              <div class="kpi"><div class="lab">Macchine uniche</div><div class="val" id="kMac">—</div><div class="sub">ID AWP distinti</div></div>
+              <div class="kpi"><div class="lab">Probabile pagamento</div><div class="val" id="kPay">—</div><div class="sub">PayScore ≥ 75</div></div>
+              <div class="kpi"><div class="lab">Modelli</div><div class="val" id="kMod">—</div><div class="sub">Codici modello distinti</div></div>
+            </div>
+
+            <div style="margin-top:12px;overflow:auto;border-radius:14px;border:1px solid var(--border)">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Stato</th>
+                    <th>Esercente / PDV</th>
+                    <th>ID AWP</th>
+                    <th>Modello</th>
+                    <th>Ultimo Δ</th>
+                    <th>RTP recente</th>
+                    <th>Ciclo</th>
+                    <th>PayScore</th>
+                  </tr>
+                </thead>
+                <tbody id="tbl"></tbody>
+              </table>
+            </div>
+
+            <div class="small muted" style="margin-top:10px">
+              Nota: il PayScore è una stima basata sui tuoi storici (deltas IN/OUT) e baseline per modello, non una “certezza matematica”.
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-h">
+            <div>
+              <h2>Diagnostica caricamento</h2>
+              <div class="hint">Se non vedi macchine, qui trovi l’errore vero.</div>
+            </div>
+          </div>
+          <div class="card-b">
+            <div class="split">
+              <div>
+                <div class="small muted">Manifest</div>
+                <pre id="dbgManifest" class="mono" style="white-space:pre-wrap;margin:8px 0 0;padding:10px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.02);min-height:120px"></pre>
+              </div>
+              <div>
+                <div class="small muted">Log</div>
+                <pre id="dbgLog" class="mono" style="white-space:pre-wrap;margin:8px 0 0;padding:10px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.02);min-height:120px"></pre>
+              </div>
+            </div>
+
+            <div style="margin-top:12px" class="row">
+              <button class="btn" id="btnQuickSelfTest">🧪 Self-test (fetch xlsx + parse)</button>
+            </div>
+
+            <div class="footnote">
+              Se GitHub ha rinominato la cartella (Dati/dati) o c’è un 404, lo vedi qui subito.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Machine modal -->
+      <div class="modal" id="mModal">
+        <div class="box">
+          <div class="mh">
+            <div>
+              <h3 id="mTitle">Macchina</h3>
+              <div class="small muted" id="mSub">—</div>
+            </div>
+            <div class="x" id="mClose">✕</div>
+          </div>
+          <div class="mb">
+            <div class="row" style="justify-content:space-between;align-items:center">
+              <div class="row">
+                <label class="toggle"><input type="checkbox" id="showDeltas" checked> Mostra deltas (Δ)</label>
+              </div>
+              <div class="row">
+                <button class="btn" data-range="30">30g</button>
+                <button class="btn" data-range="90">90g</button>
+                <button class="btn" data-range="99999">Tutto</button>
+              </div>
+            </div>
+
+            <div style="margin-top:12px">
+              <canvas id="mChart" height="120"></canvas>
+            </div>
+
+            <div style="margin-top:12px;overflow:auto;border-radius:14px;border:1px solid var(--border)">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>File</th>
+                    <th>Tot IN</th>
+                    <th>Tot OUT</th>
+                    <th>Δ IN</th>
+                    <th>Δ OUT</th>
+                    <th>RTP Δ</th>
+                    <th>PDA</th>
+                    <th>PDV</th>
+                  </tr>
+                </thead>
+                <tbody id="mTable"></tbody>
+              </table>
+            </div>
+
+            <div class="small muted" style="margin-top:10px">
+              Suggerimento: usa “Mostra deltas” per capire gli stacchi reali tra un sinottico e l’altro.
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat modal -->
+      <div class="modal" id="cModal">
+        <div class="box">
+          <div class="mh">
+            <div>
+              <h3>N.O.V.A. (Neural Operational Virtual Analyst)</h3>
+              <div class="small muted">Chat interna: risponde usando SOLO i dati del programma.</div>
+            </div>
+            <div class="x" id="cClose">✕</div>
+          </div>
+          <div class="mb">
+            <div class="chat">
+              <div class="chatlog" id="chatlog"></div>
+              <div class="chatbar">
+                <input id="chatin" class="input" placeholder="Esempi: 'quale macchina è in pagamento?' / 'quando paga 12345?' / 'mostrami marim'">
+                <button class="btn primary" id="chatsend">Invia</button>
+              </div>
+              <div class="chips">
+                <div class="chip" data-q="Quale macchina è in pagamento?">Quale è in pagamento?</div>
+                <div class="chip" data-q="Mostrami le top 10 per PayScore">Top 10 PayScore</div>
+                <div class="chip" data-q="Cerca modello MARIM">Cerca modello</div>
+                <div class="chip" data-q="Spiegami PayScore e come lo calcoli">Cos’è PayScore?</div>
+              </div>
+              <div class="footnote">
+                NOVA: se chiedi cose fuori contesto (meteo, politica, ecc) ti riporta su domande AWP/sinottici.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  `;
+
+  $("#sessionInfo").textContent = `Utente: ${STATE.session.user} • Livello: ${STATE.session.level}${STATE.session.expires ? " • Scadenza: "+STATE.session.expires : ""}`;
+
+  $("#theme").value = STATE.ui.theme;
+  $("#theme").addEventListener("change", e=> setTheme(e.target.value));
+
+  $("#btnLogout").addEventListener("click", ()=>{
+    localStorage.removeItem("sinotticolab_session");
+    STATE.session = null;
+    renderLogin();
+  });
+
+  $("#btnAnalyze").addEventListener("click", bootLoad);
+
+  $("#search").value = STATE.ui.search;
+  $("#search").addEventListener("input", e=>{
+    STATE.ui.search = e.target.value;
+    renderTable();
+  });
+
+  $("#onlyLikely").checked = STATE.ui.onlyLikely;
+  $("#onlyLikely").addEventListener("change", e=>{
+    STATE.ui.onlyLikely = e.target.checked;
+    renderTable();
+  });
+
+  $("#range").value = String(STATE.ui.rangeDays);
+  $("#range").addEventListener("change", e=>{
+    STATE.ui.rangeDays = Number(e.target.value);
+    renderTable();
+  });
+
+  // Modals
+  $("#mClose").addEventListener("click", ()=> $("#mModal").classList.remove("on"));
+  $("#mModal").addEventListener("click", e=> { if(e.target.id==="mModal") $("#mModal").classList.remove("on"); });
+
+  $("#btnChat").addEventListener("click", ()=>{
+    $("#cModal").classList.add("on");
+    novaHello();
+  });
+  $("#cClose").addEventListener("click", ()=> $("#cModal").classList.remove("on"));
+  $("#cModal").addEventListener("click", e=> { if(e.target.id==="cModal") $("#cModal").classList.remove("on"); });
+
+  $("#chatsend").addEventListener("click", novaSend);
+  $("#chatin").addEventListener("keydown", e=> { if(e.key==="Enter") novaSend(); });
+  $$(".chip").forEach(ch=>{
+    ch.addEventListener("click", ()=>{
+      $("#chatin").value = ch.dataset.q;
+      novaSend();
     });
-  }
+  });
 
-  function downsample(points, maxPoints){
-    if (points.length <= maxPoints) return points;
-    const step = points.length / maxPoints;
-    const out = [];
-    for (let i=0;i<maxPoints;i++){
-      out.push(points[Math.floor(i*step)]);
-    }
-    // ensure last is included
-    out[out.length-1] = points[points.length-1];
-    return out;
-  }
+  $("#btnQuickSelfTest").addEventListener("click", quickSelfTest);
 
-  function openMachine(codeid){
-    state.selectedCodeId = codeid;
-    const hist = (state.historyByMachine.get(codeid) || []).slice().sort((a,b)=>a.ts-b.ts);
-    if (!hist.length) return;
+  renderKPIs();
+  renderTable();
+}
 
-    const last = hist[hist.length-1];
-    const pred = computePredictionForMachine(codeid);
+function logLine(s){
+  const el = $("#dbgLog");
+  if(!el) return;
+  el.textContent += (el.textContent ? "\n" : "") + s;
+}
+function setPill(t, mood=""){
+  const p = $("#loadPill");
+  if(!p) return;
+  p.textContent = t;
+  p.style.borderColor = mood==="good" ? "rgba(52,211,153,.35)" : mood==="bad" ? "rgba(251,113,133,.35)" : "var(--border)";
+  p.style.background = mood==="good" ? "rgba(52,211,153,.10)" : mood==="bad" ? "rgba(251,113,133,.10)" : "rgba(255,255,255,.03)";
+  p.style.color = mood==="good" ? "var(--text)" : mood==="bad" ? "var(--text)" : "var(--muted)";
+}
 
-    el.detailSubtitle.textContent = `Storico: ${hist.length} letture`;
+function renderKPIs(){
+  const sinCount = STATE.snapshots.length;
+  const machines = [...STATE.machines.values()];
+  const macCount = machines.length;
+  const payCount = machines.filter(m=>m.stats && m.stats.score>=75).length;
+  const modCount = new Set(machines.map(m=>String(m.codModel||"").trim()).filter(Boolean)).size;
 
-    el.d_codeid.textContent = codeid;
-    const pdv = last.PDV ?? last.PDV_TOT ?? last.PDV_CODE ?? last.PDV_NUM ?? last["PDV"] ?? null;
-    const pda = last.PDA ?? last["PDA"] ?? null;
-    el.d_pdv.textContent = `${pdv ? ("PDV "+pdv) : "-"}${pda ? (" / PDA "+pda) : ""}`;
+  $("#kSin").textContent = fmt(sinCount);
+  const dates = STATE.snapshots.map(s=>s.dt).filter(d=>d && d.getTime()>0).sort((a,b)=>a-b);
+  $("#kSinSub").textContent = dates.length ? `Da ${isoShort(dates[0])} a ${isoShort(dates[dates.length-1])}` : "—";
+  $("#kMac").textContent = fmt(macCount);
+  $("#kPay").textContent = fmt(payCount);
+  $("#kMod").textContent = fmt(modCount);
+}
 
-    // cycle display
-    el.d_cycle.textContent = pred.cycle ? (pred.cycle.toString()) : "N/D";
+function machineMatches(m, q){
+  if(!q) return true;
+  q = q.toLowerCase();
+  const fields = [
+    m.eserc, m.pda, m.pdv, m.idAwp, m.matricola, m.codModel, m.nomeModel, m.concess
+  ].map(x=>String(x||"").toLowerCase());
+  return fields.some(x=>x.includes(q));
+}
 
-    el.d_net.textContent = `NET: ${fmtEuroFromCents(last.net)}`;
-    el.d_res.textContent = `Residuo: ${pred.resid != null ? fmtEuroFromCents(pred.resid) : "N/D"}`;
+function sevDot(sev){
+  if(sev==="good") return `<span class="badge"><span class="dot good"></span>Pagamento</span>`;
+  if(sev==="bad") return `<span class="badge"><span class="dot bad"></span>Poco</span>`;
+  return `<span class="badge"><span class="dot warn"></span>Neutra</span>`;
+}
 
-    let whenTxt = "N/D";
-    if (pred.etaDays != null && isFinite(pred.etaDays)){
-      if (pred.etaDays < 0.6) whenTxt = "molto presto";
-      else if (pred.etaDays < 2) whenTxt = "1-2 giorni";
-      else whenTxt = `${Math.round(pred.etaDays)} giorni (stima)`;
-    }
-    el.d_when.textContent = `Quando paga: ${whenTxt}`;
+function renderTable(){
+  const tb = $("#tbl");
+  if(!tb) return;
 
-    const noteParts = [];
-    noteParts.push(pred.note || "");
-    if (pred.lastReset){
-      noteParts.push(`Ultimo “reset” rilevato: ${dateStr(pred.lastReset)}.`);
-    }
-    el.d_note.textContent = noteParts.filter(Boolean).join(" ");
+  const q = STATE.ui.search.trim().toLowerCase();
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - (STATE.ui.rangeDays*24*3600*1000));
 
-    // last rows table
-    const tail = hist.slice(-10).reverse();
-    el.d_lastRows.innerHTML = tail.map(p => `
+  let list = [...STATE.machines.values()].filter(m=>{
+    // must have at least one history record in range
+    const inRange = m.history.some(h=>h.dt >= cutoff);
+    if(!inRange) return false;
+    if(!machineMatches(m, q)) return false;
+    if(STATE.ui.onlyLikely && (!m.stats || m.stats.score<75)) return false;
+    return true;
+  });
+
+  // sort by PayScore desc then recent activity
+  list.sort((a,b)=>{
+    const sa = a.stats?.score ?? -1;
+    const sb = b.stats?.score ?? -1;
+    if(sb!==sa) return sb-sa;
+    const da = a.stats?.last?.dtTo?.getTime?.() ?? 0;
+    const db = b.stats?.last?.dtTo?.getTime?.() ?? 0;
+    return db-da;
+  });
+
+  const rows = list.map(m=>{
+    const st = m.stats || {score:null, sev:"warn", rtpRecent:null, last:null, cycleProgress:null};
+    const last = st.last;
+    const lastStr = last ? `ΔIN ${fmt(last.dIn)}\nΔOUT ${fmt(last.dOut)}` : "—";
+    const rtp = st.rtpRecent;
+    const cyc = m.ciclo ? `${fmt(m.ciclo)}${st.cycleProgress!==null ? ` (${Math.round(st.cycleProgress*100)}%)` : ""}` : "—";
+
+    return `
       <tr>
-        <td class="mono">${dateStr(p.ts)}</td>
-        <td class="mono">${fmtEuroFromCents(p.in)}</td>
-        <td class="mono">${fmtEuroFromCents(p.out)}</td>
-        <td class="mono" style="font-weight:800">${fmtEuroFromCents(p.net)}</td>
+        <td>${sevDot(st.sev)}<div class="small muted" style="margin-top:6px">${st.label || "—"}</div></td>
+        <td>
+          <div style="font-weight:900">${m.eserc || "—"}</div>
+          <div class="small muted">PDV: <span class="mono">${m.pdv || "—"}</span> • PDA: <span class="mono">${m.pda || "—"}</span></div>
+        </td>
+        <td class="mono click" data-open="${m.idAwp}">${m.idAwp}</td>
+        <td>
+          <div style="font-weight:900">${m.nomeModel || "—"}</div>
+          <div class="small muted">Mod: <span class="mono">${m.codModel || "—"}</span></div>
+        </td>
+        <td class="mono">${lastStr.replaceAll("\n","<br>")}</td>
+        <td><span class="badge">${fmtPct(rtp)}</span><div class="small muted" style="margin-top:6px">baseline: ${fmtPct(st.baseMedian)}</div></td>
+        <td class="mono">${cyc}</td>
+        <td><span class="badge">${st.score!==null ? st.score : "—"}</span></td>
       </tr>
-    `).join("");
+    `;
+  }).join("");
 
-    // chart points
-    const range = el.rangeSelect.value;
-    let pts = hist;
-    if (range !== "all"){
-      const n = parseInt(range,10);
-      pts = hist.slice(-n);
-    } else {
-      pts = downsample(hist, 220);
-    }
+  tb.innerHTML = rows || `<tr><td colspan="8" class="muted">Nessuna macchina trovata con i filtri attuali.</td></tr>`;
 
-    renderChart(pts);
-  }
+  // open handlers
+  $$('[data-open]').forEach(el=>{
+    el.addEventListener("click", ()=> openMachine(el.dataset.open));
+  });
 
-  function renderChart(points){
-    const labels = points.map(p => {
-      const d = new Date(p.ts);
-      return d.toLocaleDateString("it-IT", {month:"2-digit", day:"2-digit"}) + " " +
-             d.toLocaleTimeString("it-IT", {hour:"2-digit", minute:"2-digit"});
-    });
+  renderKPIs();
+}
 
-    const netData = points.map(p => Math.round((p.net ?? 0) / 100)); // in €
-    const inData = points.map(p => Math.round((p.in ?? 0) / 100));
-    const outData = points.map(p => Math.round((p.out ?? 0) / 100));
+/* ==============================
+   Machine modal + chart
+================================ */
+let machineChart = null;
+function openMachine(id){
+  const m = STATE.machines.get(String(id));
+  if(!m) return;
 
-    if (state.chart){
-      state.chart.destroy();
-      state.chart = null;
-    }
+  $("#mModal").classList.add("on");
+  $("#mTitle").textContent = `ID AWP ${m.idAwp} • ${m.eserc || "—"}`;
+  $("#mSub").textContent = `PDV ${m.pdv || "—"} • PDA ${m.pda || "—"} • Modello ${m.nomeModel || "—"} (${m.codModel || "—"}) • PayScore ${m.stats?.score ?? "—"}`;
 
-    state.chart = new Chart(el.chartCanvas, {
-      type: "line",
-      data: {
-        labels,
-        datasets: [
-          { label: "NET (€)", data: netData, borderWidth: 2, tension: .22, pointRadius: 0 },
-          { label: "IN (€)", data: inData, borderWidth: 1, tension: .22, pointRadius: 0 },
-          { label: "OUT (€)", data: outData, borderWidth: 1, tension: .22, pointRadius: 0 },
-        ]
+  // default from global
+  $("#showDeltas").checked = STATE.ui.showDeltas;
+
+  const rangeBtns = $$('#mModal [data-range]');
+  rangeBtns.forEach(b=>{
+    b.onclick = ()=> renderMachineDetails(m, Number(b.dataset.range), $("#showDeltas").checked);
+  });
+  $("#showDeltas").onchange = ()=>{
+    STATE.ui.showDeltas = $("#showDeltas").checked;
+    renderMachineDetails(m, 99999, $("#showDeltas").checked);
+  };
+
+  renderMachineDetails(m, 99999, $("#showDeltas").checked);
+}
+
+function renderMachineDetails(m, rangeDays, showDeltas){
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - (rangeDays*24*3600*1000));
+
+  const hist = m.history.filter(h=>h.dt>=cutoff);
+  const deltas = m.deltas.filter(d=>d.dtTo>=cutoff);
+
+  // Table
+  const mapDeltaByTo = new Map(deltas.map(d=>[d.fileTo, d]));
+  $("#mTable").innerHTML = hist.map(h=>{
+    const d = mapDeltaByTo.get(h.file) || null;
+    return `
+      <tr>
+        <td>${isoShort(h.dt)}</td>
+        <td class="mono">${h.file}</td>
+        <td class="mono">${fmt(h.totIn)}</td>
+        <td class="mono">${fmt(h.totOut)}</td>
+        <td class="mono">${d ? fmt(d.dIn) : "—"}</td>
+        <td class="mono">${d ? fmt(d.dOut) : "—"}</td>
+        <td>${d && d.rtp!==null ? `<span class="badge">${fmtPct(d.rtp)}</span>` : "—"}</td>
+        <td class="mono">${h.pda || m.pda || "—"}</td>
+        <td class="mono">${h.pdv || m.pdv || "—"}</td>
+      </tr>
+    `;
+  }).join("");
+
+  // Chart
+  const labels = hist.map(h=> isoShort(h.dt));
+  const totIn = hist.map(h=> h.totIn ?? null);
+  const totOut = hist.map(h=> h.totOut ?? null);
+
+  const dIn = hist.map(h=>{
+    const d = mapDeltaByTo.get(h.file);
+    return d ? d.dIn : null;
+  });
+  const dOut = hist.map(h=>{
+    const d = mapDeltaByTo.get(h.file);
+    return d ? d.dOut : null;
+  });
+
+  const ctx = $("#mChart").getContext("2d");
+  if(machineChart) machineChart.destroy();
+
+  const datasets = showDeltas ? [
+    {label:"Δ IN", data:dIn, borderWidth:2, tension:.25},
+    {label:"Δ OUT", data:dOut, borderWidth:2, tension:.25},
+  ] : [
+    {label:"Tot IN", data:totIn, borderWidth:2, tension:.25},
+    {label:"Tot OUT", data:totOut, borderWidth:2, tension:.25},
+  ];
+
+  machineChart = new Chart(ctx, {
+    type:"line",
+    data:{labels, datasets},
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      interaction:{mode:"index", intersect:false},
+      plugins:{
+        legend:{labels:{color:getComputedStyle(document.documentElement).getPropertyValue("--text")}},
+        tooltip:{callbacks:{
+          label:(ctx)=>{
+            const v = ctx.parsed.y;
+            if(v===null || v===undefined) return `${ctx.dataset.label}: —`;
+            return `${ctx.dataset.label}: ${fmt(v)}`;
+          }
+        }}
       },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { labels: { color: getComputedStyle(document.documentElement).getPropertyValue('--text') } },
-          tooltip: { mode: "index", intersect: false }
-        },
-        scales: {
-          x: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--muted'), maxTicksLimit: 10 } },
-          y: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--muted') } },
-        },
-        interaction: { mode:"index", intersect:false },
+      scales:{
+        x:{ticks:{color:getComputedStyle(document.documentElement).getPropertyValue("--muted"), maxRotation:0, autoSkip:true}},
+        y:{ticks:{color:getComputedStyle(document.documentElement).getPropertyValue("--muted")}}
       }
-    });
+    }
+  });
+}
+
+/* ==============================
+   NOVA chat (rule-based + data retrieval)
+================================ */
+function chatAdd(text, who="ai"){
+  const log = $("#chatlog");
+  const div = document.createElement("div");
+  div.className = "msg " + (who==="me" ? "me":"ai");
+  div.textContent = text;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function novaHello(){
+  const log = $("#chatlog");
+  if(log.dataset.helloDone==="1") return;
+  log.dataset.helloDone="1";
+  chatAdd("Ciao, sono NOVA.\nPosso rispondere usando i sinottici caricati.\nEsempi:\n- 'quale macchina è in pagamento?'\n- 'quando paga 12345?'\n- 'mostrami marim'\n- 'top 10 payscore'\n\nDimmi cosa ti serve.", "ai");
+}
+
+function topMachines(n=10){
+  const list = [...STATE.machines.values()].filter(m=>m.stats && m.stats.score!==null);
+  list.sort((a,b)=> (b.stats.score - a.stats.score));
+  return list.slice(0,n);
+}
+
+function findMachineByIdOrFuzzy(q){
+  q = q.trim();
+  if(!q) return null;
+  if(STATE.machines.has(q)) return STATE.machines.get(q);
+  // try contains
+  const list = [...STATE.machines.values()].filter(m=>{
+    return String(m.idAwp).includes(q) || String(m.matricola||"").includes(q);
+  });
+  if(list.length===1) return list[0];
+  return null;
+}
+
+function novaAnswer(queryRaw){
+  const q = (queryRaw||"").trim();
+  const low = q.toLowerCase();
+
+  // out-of-scope guardrails
+  const scopeHints = ["awp","macchina","sinottico","payscore","pagamento","rtp","modello","pdv","pda","id"];
+  const looksInScope = scopeHints.some(w=>low.includes(w)) || /\d{3,}/.test(low);
+  if(!looksInScope){
+    return "Io posso aiutarti solo con richieste legate ai sinottici AWP.\nProva con: 'quale macchina è in pagamento?', 'quando paga 12345?', 'mostrami marim', 'top 10 payscore'.";
   }
 
-  // --- XLSX parsing (robust header search) ---
-  function sheetToJsonWithHeaderSearch(workbook){
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
+  // "quale è in pagamento"
+  if(low.includes("quale") && low.includes("pag") || low.includes("in pagamento")){
+    const best = topMachines(10).filter(m=>m.stats.score>=75);
+    if(!best.length){
+      const top = topMachines(10);
+      if(!top.length) return "Non ho ancora dati analizzati. Premi 'Analizza sinottici' prima.";
+      return "Nessuna macchina supera la soglia 'Probabile pagamento' (PayScore ≥ 75).\nTop attuali:\n" +
+        top.map((m,i)=>`${i+1}) ${m.idAwp} • ${m.eserc||"—"} • ${m.nomeModel||"—"} • PayScore ${m.stats.score}`).join("\n");
+    }
+    return "Le più probabili (PayScore ≥ 75):\n" +
+      best.map((m,i)=>`${i+1}) ${m.idAwp} • ${m.eserc||"—"} • ${m.nomeModel||"—"} • PayScore ${m.stats.score}`).join("\n") +
+      "\n\nVuoi che apro una macchina? Scrivi: 'apri 12345'.";
+  }
 
-    // Convert to 2D array
-    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: true, defval: null });
+  // top 10
+  if(low.includes("top") && (low.includes("10") || low.includes("payscore"))){
+    const top = topMachines(10);
+    if(!top.length) return "Non ho dati analizzati. Premi 'Analizza sinottici'.";
+    return "Top 10 PayScore:\n" + top.map((m,i)=>`${i+1}) ${m.idAwp} • ${m.eserc||"—"} • ${m.nomeModel||"—"} • ${m.stats.score}`).join("\n");
+  }
 
-    // Find header row index: look for CODEID and at least a couple of known columns
-    const known = ["CODEID", "CNTTOTIN", "CNTTOTOUT", "CODICEID", "TOTIN", "TOTOUT"];
-    let headerRowIdx = -1;
+  // open machine
+  if(low.startsWith("apri ")){
+    const id = q.slice(5).trim();
+    const m = findMachineByIdOrFuzzy(id);
+    if(!m) return "Non trovo quella macchina. Prova con un ID AWP esatto.";
+    // side effect: open modal
+    openMachine(m.idAwp);
+    return `Ok, apro la macchina ${m.idAwp}.`;
+  }
 
-    for (let i=0;i<Math.min(rows.length, 30);i++){
-      const row = rows[i].map(x => normalizeHeader(x));
-      const hasCode = row.includes("CODEID") || row.includes("CODICEID");
-      const hits = known.filter(k => row.includes(k)).length;
-      if (hasCode && hits >= 2){
-        headerRowIdx = i;
+  // "quando paga X"
+  if(low.includes("quando") && low.includes("pag")){
+    const id = (q.match(/(\d{3,})/)||[])[1];
+    if(!id) return "Dimmi l'ID AWP. Esempio: 'quando paga 12345'.";
+    const m = findMachineByIdOrFuzzy(id);
+    if(!m) return "Non trovo quell'ID AWP nei dati analizzati.";
+    const st = m.stats;
+    if(!st) return "Ho la macchina ma non ho statistiche: premi 'Analizza sinottici'.";
+    let extra = "";
+    if(m.ciclo && st.cycleProgress!==null){
+      extra = `\nCiclo: ${fmt(m.ciclo)} • avanzamento IN (informativo): ${Math.round(st.cycleProgress*100)}%`;
+    }
+    const last = st.last ? `\nUltimo Δ: IN ${fmt(st.last.dIn)} • OUT ${fmt(st.last.dOut)} • RTP ${fmtPct(st.last.rtp)}` : "";
+    return `Macchina ${m.idAwp} (${m.nomeModel||"—"})\nPayScore: ${st.score} (${st.label})\nRTP recente: ${fmtPct(st.rtpRecent)} • baseline modello: ${fmtPct(st.baseMedian)}${last}${extra}\n\nVuoi che la apro? Scrivi: 'apri ${m.idAwp}'.`;
+  }
+
+  // model search
+  if(low.includes("mostra") || low.includes("cerca") || low.includes("modello")){
+    const term = low.replace("mostrami","").replace("mostra","").replace("cerca","").replace("modello","").trim();
+    if(!term) return "Dimmi cosa cercare. Esempio: 'mostrami marim'.";
+    const list = [...STATE.machines.values()].filter(m=>String(m.nomeModel||"").toLowerCase().includes(term) || String(m.codModel||"").includes(term));
+    if(!list.length) return "Nessun risultato per: " + term;
+    list.sort((a,b)=>(b.stats?.score??-1)-(a.stats?.score??-1));
+    return `Trovate ${list.length} macchine per '${term}'. Prime 10:\n` +
+      list.slice(0,10).map((m,i)=>`${i+1}) ${m.idAwp} • ${m.eserc||"—"} • PayScore ${m.stats?.score ?? "—"}`).join("\n");
+  }
+
+  // explain PayScore
+  if(low.includes("payscore") && (low.includes("spiega") || low.includes("cos") || low.includes("calcoli"))){
+    return "PayScore (0..100) usa solo i tuoi storici:\n- calcola i Δ IN/OUT tra sinottici\n- stima RTP per intervallo (ΔOUT/ΔIN)\n- crea una baseline per ogni modello (mediana + MAD)\n- confronta l'RTP recente della macchina con la baseline (robust z-score)\n- aggiunge 'spike' sull'ultimo intervallo e un po' di consistenza\n\nSoglia: ≥75 = 'Probabile pagamento'.";
+  }
+
+  return "Ho capito il tema (AWP/sinottici) ma non la richiesta precisa.\nProva con: 'quale macchina è in pagamento?', 'quando paga 12345?', 'mostrami marim', 'top 10 payscore'.";
+}
+
+function novaSend(){
+  const input = $("#chatin");
+  const q = (input.value || "").trim();
+  if(!q) return;
+  input.value = "";
+  chatAdd(q, "me");
+  const ans = novaAnswer(q);
+  chatAdd(ans, "ai");
+}
+
+/* ==============================
+   Loader
+================================ */
+async function loadManifestAndCicli(){
+  // manifest
+  const man = await fetchJson("manifest.json");
+  STATE.manifest = man;
+  $("#dbgManifest").textContent = JSON.stringify(man, null, 2);
+
+  // cicloslot
+  const ciclos = await fetchJson("cicloslot.json");
+  STATE.ciclos = Array.isArray(ciclos) ? ciclos : [];
+  STATE.cicloByModel = new Map();
+  for(const c of STATE.ciclos){
+    const key = String(c.codiceModello||"").trim();
+    const ciclo = safeNum(c.ciclo);
+    if(key && ciclo) STATE.cicloByModel.set(key, ciclo);
+  }
+}
+
+async function bootLoad(){
+  try{
+    $("#dbgLog").textContent = "";
+    setPill("Carico manifest...", "");
+
+    await loadManifestAndCicli();
+    logLine("OK: manifest.json e cicloslot.json caricati.");
+
+    const files = Array.isArray(STATE.manifest?.sinottici) ? STATE.manifest.sinottici : [];
+    if(!files.length){
+      setPill("Manifest vuoto", "bad");
+      logLine("ERRORE: manifest.json non contiene 'sinottici' (array) o è vuoto.");
+      STATE.snapshots = [];
+      STATE.machines.clear();
+      renderKPIs(); renderTable();
+      return;
+    }
+
+    // Sort by date from filename when possible
+    const sorted = files.slice().sort((a,b)=>{
+      const da = parseDateFromFilename(a)?.getTime?.() ?? 0;
+      const db = parseDateFromFilename(b)?.getTime?.() ?? 0;
+      return da-db;
+    });
+
+    // try base folders
+    const foldersToTry = ["Dati", "dati", "DATI"];
+    let chosenFolder = null;
+    let testErr = null;
+
+    for(const f of foldersToTry){
+      try{
+        setPill(`Test path ${f}/...`, "");
+        // test first file
+        await fetchArrayBuffer(`${f}/${sorted[0]}`);
+        chosenFolder = f;
         break;
+      }catch(e){
+        testErr = e;
+        logLine(`Path ${f}/ non ok: ${String(e.message||e)}`);
       }
     }
 
-    if (headerRowIdx === -1){
-      // fallback: assume first row
-      headerRowIdx = 0;
-    }
-
-    const header = rows[headerRowIdx].map(h => normalizeHeader(h));
-    const dataRows = rows.slice(headerRowIdx + 1);
-
-    // Map rows to objects
-    const out = [];
-    for (const r of dataRows){
-      if (!r || r.every(x => x === null || x === "")) continue;
-      const obj = {};
-      for (let c=0;c<header.length;c++){
-        const key = header[c] || ("COL_"+c);
-        obj[key] = r[c];
-      }
-      out.push(obj);
-    }
-    return out;
-  }
-
-  function extractMachineRow(raw){
-    // Normalize keys we care about
-    const codeid = raw.CODEID ?? raw.CODICEID ?? raw["CODEID"] ?? raw["CODICEID"];
-    if (!codeid) return null;
-
-    const inC = normNumber(raw.CNTTOTIN ?? raw.TOTIN ?? raw["CNTTOTIN"] ?? raw["TOTIN"]);
-    const outC = normNumber(raw.CNTTOTOUT ?? raw.TOTOUT ?? raw["CNTTOTOUT"] ?? raw["TOTOUT"]);
-
-    // Most sinottici use cents in these totals; keep as number in cents
-    // If sometimes they're in euro, we can detect: if < 500000 and looks like euro, convert to cents
-    const inCents = (inC != null && inC < 500000 && Number.isInteger(inC) === false) ? Math.round(inC*100) : (inC != null ? Math.round(inC) : null);
-    const outCents = (outC != null && outC < 500000 && Number.isInteger(outC) === false) ? Math.round(outC*100) : (outC != null ? Math.round(outC) : null);
-
-    const net = (inCents != null && outCents != null) ? (inCents - outCents) : null;
-
-    // Optional fields
-    const pdv = raw.PDV ?? raw["PDV"];
-    const pda = raw.PDA ?? raw["PDA"];
-    const esercente = raw.ESERCENTE ?? raw["ESERCENTE"];
-    const comune = raw.COMUNE ?? raw["COMUNE"];
-    const provincia = raw.PROVINCIA ?? raw["PROVINCIA"];
-    const modello = raw.MODELLO ?? raw["MODELLO"];
-
-    // keep raw for extra details
-    return {
-      codeid: (""+codeid).trim(),
-      in: inCents,
-      out: outCents,
-      net,
-      PDV: pdv,
-      PDA: pda,
-      ESERCENTE: esercente,
-      COMUNE: comune,
-      PROVINCIA: provincia,
-      MODELLO: modello,
-      _raw: raw
-    };
-  }
-
-  async function fetchJson(path){
-    const res = await fetch(path, { cache:"no-store" });
-    if (!res.ok) throw new Error(`Impossibile leggere ${path} (${res.status})`);
-    return await res.json();
-  }
-
-  async function fetchArrayBuffer(path){
-    const res = await fetch(path, { cache:"no-store" });
-    if (!res.ok) throw new Error(`Impossibile scaricare ${path} (${res.status})`);
-    return await res.arrayBuffer();
-  }
-
-  // --- Loading pipeline ---
-  async function loadConfig(){
-    // Load cicloslot + manifest + users
-    // (paths are relative to index.html)
-    const [users, manifest, ciclos] = await Promise.all([
-      fetchJson("./users.json"),
-      fetchJson("./manifest.json"),
-      fetchJson("./cicloslot.json").catch(() => [])
-    ]);
-
-    state.users = Array.isArray(users) ? users : [];
-    state.manifest = manifest || {};
-    state.cicloslot = Array.isArray(ciclos) ? ciclos : [];
-
-    const list = state.manifest.sinottici || state.manifest.files || [];
-    state.sinottici = Array.isArray(list) ? list : [];
-
-    el.chipFiles.textContent = state.sinottici.length.toString();
-  }
-
-  function todayISO(){
-    // use local time
-    const d = new Date();
-    const y = d.getFullYear();
-    const m = String(d.getMonth()+1).padStart(2,"0");
-    const da = String(d.getDate()).padStart(2,"0");
-    return `${y}-${m}-${da}`;
-  }
-
-  function validateLogin(user, pin){
-    const u = state.users.find(x => (x.user ?? "").toLowerCase() === (user ?? "").toLowerCase());
-    if (!u) return { ok:false, msg:"Utente non trovato." };
-    if ((u.pin ?? "") !== (pin ?? "")) return { ok:false, msg:"PIN errato." };
-
-    if (u.expires){
-      // expires in YYYY-MM-DD
-      const exp = new Date(u.expires + "T23:59:59");
-      if (isNaN(exp.getTime())) return { ok:false, msg:"Scadenza utente non valida nel file users.json." };
-      if (Date.now() > exp.getTime()){
-        return { ok:false, msg:`Utente scaduto (${u.expires}).` };
-      }
-    }
-
-    return { ok:true, user:u.user, level:u.level ?? "Base", expires:u.expires ?? null };
-  }
-
-  function showLogin(show){
-    el.loginOverlay.style.display = show ? "flex" : "none";
-  }
-
-  function setUserChip(){
-    el.chipUser.textContent = state.user || "-";
-    el.chipLevel.textContent = state.level || "-";
-  }
-
-  function clearData(){
-    state.historyByMachine.clear();
-    state.summary = [];
-    state.selectedCodeId = null;
-    el.chipMachines.textContent = "0";
-    el.machineTbody.innerHTML = `<tr><td colspan="4" class="muted">Nessun dato ancora. Premi “Analizza tutti”.</td></tr>`;
-    el.detailSubtitle.textContent = "Seleziona una macchina dalla lista.";
-    el.d_codeid.textContent = "-";
-    el.d_pdv.textContent = "-";
-    el.d_cycle.textContent = "-";
-    el.d_net.textContent = "NET: -";
-    el.d_res.textContent = "Residuo: -";
-    el.d_when.textContent = "Quando paga: -";
-    el.d_note.textContent = "-";
-    el.d_lastRows.innerHTML = `<tr><td colspan="4" class="muted">-</td></tr>`;
-    if (state.chart){ state.chart.destroy(); state.chart = null; }
-  }
-
-  async function analyzeSinottici({onlyLatest=false}={}){
-    clearData();
-
-    if (!state.sinottici.length){
-      setProgress(0, "manifest.json non contiene sinottici.");
+    if(!chosenFolder){
+      setPill("404 sinottici", "bad");
+      logLine("ERRORE: Non riesco a leggere i file .xlsx. Controlla che la cartella sia 'Dati/' e i nomi corrispondano al manifest.");
+      if(testErr) logLine("Ultimo errore: " + String(testErr.message||testErr));
       return;
     }
 
-    // choose list
-    let files = state.sinottici.slice();
-    files = files.filter(f => (f || "").toLowerCase().endsWith(".xlsx"));
-    files.sort((a,b)=>{
-      const da = parseDateFromFilename(a)?.getTime() ?? 0;
-      const db = parseDateFromFilename(b)?.getTime() ?? 0;
-      return da - db;
-    });
+    logLine(`Cartella sinottici: ${chosenFolder}/`);
+    setPill("Carico sinottici...", "");
 
-    if (onlyLatest){
-      files = [files[files.length-1]];
-    }
-
-    el.subTitle.textContent = onlyLatest ? "Analisi ultimo sinottico…" : "Analisi completa in corso…";
-    setProgress(2, "Scarico e analizzo i sinottici…");
-
-    const total = files.length;
-    let done = 0;
-
-    for (const fn of files){
-      done++;
-      const ts = parseDateFromFilename(fn)?.getTime() ?? Date.now();
-      const path = "./Dati/" + fn;
-
-      setProgress(Math.round((done-1)/total*100), `Carico ${fn} (${done}/${total})`);
-
-      let buf;
+    // Load all snapshots (in RAM)
+    const snaps = [];
+    for(let i=0;i<sorted.length;i++){
+      const file = sorted[i];
+      setPill(`Carico ${i+1}/${sorted.length}`, "");
       try{
-        buf = await fetchArrayBuffer(path);
-      }catch(err){
-        // skip but log
-        console.warn("Skip file", fn, err);
-        continue;
+        const snap = await loadOneSinottico(file, chosenFolder);
+        snaps.push(snap);
+        logLine(`OK: ${file} (${snap.rows.length} righe)`);
+      }catch(e){
+        logLine(`ERRORE su ${file}: ${String(e.message||e)}`);
       }
+    }
 
-      let wb;
+    STATE.snapshots = snaps;
+    if(!STATE.snapshots.length){
+      setPill("Nessun sinottico valido", "bad");
+      logLine("ERRORE: nessun file è stato parsato correttamente.");
+      STATE.machines.clear();
+      renderKPIs(); renderTable();
+      return;
+    }
+
+    setPill("Analizzo...", "");
+    rebuildAll();
+
+    const macCount = STATE.machines.size;
+    if(macCount===0){
+      setPill("0 macchine", "bad");
+      logLine("ERRORE: snapshots parsati ma nessuna macchina trovata. Probabile mismatch colonne / header.");
+      logLine("Controllo: nei tuoi XLSX le colonne devono includere 'id awp' e 'tot in/out'.");
+    }else{
+      setPill("OK", "good");
+      logLine(`Analisi completata. Macchine: ${macCount}`);
+    }
+
+    renderKPIs();
+    renderTable();
+
+  }catch(e){
+    setPill("Errore", "bad");
+    logLine("ERRORE FATALE: " + String(e.message||e));
+    console.error(e);
+  }
+}
+
+async function quickSelfTest(){
+  $("#dbgLog").textContent = "";
+  try{
+    setPill("Self-test...", "");
+    await loadManifestAndCicli();
+    const files = Array.isArray(STATE.manifest?.sinottici) ? STATE.manifest.sinottici : [];
+    if(!files.length) throw new Error("manifest.json non contiene sinottici.");
+
+    const file = files[0];
+    logLine("Primo file da manifest: " + file);
+
+    const foldersToTry = ["Dati","dati","DATI"];
+    let okFolder=null;
+    for(const f of foldersToTry){
       try{
-        wb = XLSX.read(buf, { type:"array" });
-      }catch(err){
-        console.warn("XLSX read failed", fn, err);
-        continue;
+        const snap = await loadOneSinottico(file, f);
+        okFolder=f;
+        logLine(`OK fetch+parse da ${f}/${file} righe=${snap.rows.length}`);
+        logLine("Esempio riga (keys normalizzate): " + JSON.stringify(snap.rows[0], null, 2));
+        break;
+      }catch(e){
+        logLine(`NO ${f}/${file}: ${String(e.message||e)}`);
       }
-
-      let jsonRows;
-      try{
-        jsonRows = sheetToJsonWithHeaderSearch(wb);
-      }catch(err){
-        console.warn("sheet parse failed", fn, err);
-        continue;
-      }
-
-      // Extract each machine
-      for (const raw of jsonRows){
-        const m = extractMachineRow(raw);
-        if (!m) continue;
-
-        const point = {
-          ts,
-          dateStr: dateStr(ts),
-          in: m.in,
-          out: m.out,
-          net: m.net,
-          PDV: m.PDV,
-          PDA: m.PDA,
-          ESERCENTE: m.ESERCENTE,
-          COMUNE: m.COMUNE,
-          PROVINCIA: m.PROVINCIA,
-          MODELLO: m.MODELLO,
-          ...m._raw // keep everything for later queries
-        };
-
-        const codeid = m.codeid;
-        if (!state.historyByMachine.has(codeid)){
-          state.historyByMachine.set(codeid, []);
-        }
-        state.historyByMachine.get(codeid).push(point);
-      }
-
-      // avoid freezing UI
-      if (done % 2 === 0) await sleep(10);
     }
-
-    // Build summary from latest point per machine
-    setProgress(96, "Creo la lista macchine e calcolo le stime…");
-
-    const summary = [];
-    for (const [codeid, hist] of state.historyByMachine.entries()){
-      const arr = hist.slice().sort((a,b)=>a.ts-b.ts);
-      const last = arr[arr.length-1];
-      const pred = computePredictionForMachine(codeid);
-
-      summary.push({
-        codeid,
-        pdv: last.PDV ?? last["PDV"] ?? null,
-        pda: last.PDA ?? last["PDA"] ?? null,
-        esercente: last.ESERCENTE ?? last["ESERCENTE"] ?? null,
-        comune: last.COMUNE ?? last["COMUNE"] ?? null,
-        provincia: last.PROVINCIA ?? last["PROVINCIA"] ?? null,
-        modello: last.MODELLO ?? last["MODELLO"] ?? null,
-        lastNet: last.net ?? 0,
-        pred
-      });
-    }
-
-    // Sort by "closest to payment" first
-    summary.sort((a,b)=> (b.pred?.score ?? 0) - (a.pred?.score ?? 0));
-
-    state.summary = summary;
-
-    el.chipMachines.textContent = summary.length.toString();
-    el.subTitle.textContent = `Caricati ${summary.length} CODEID da ${total} sinottici`;
-
-    setProgress(100, `Fatto. Trovate ${summary.length} macchine.`);
-    renderSummaryTable();
-
-    // auto open first if any
-    if (summary.length){
-      openMachine(summary[0].codeid);
-    } else {
-      // if no machines -> likely parsing mismatch
-      chatSay("N.E.U.R.A.", "Non vedo macchine estratte. Di solito significa: header non trovato oppure colonne diverse.\n\nDimmi se nei tuoi sinottici le colonne si chiamano ancora CODEID/CNTTOTIN/CNTTOTOUT. Se vuoi, incollami qui la prima riga (header) del file e lo adatto al 100%.");
-    }
+    if(!okFolder) throw new Error("Nessun folder valido (Dati/dati).");
+    setPill("Self-test OK", "good");
+  }catch(e){
+    setPill("Self-test KO", "bad");
+    logLine("Self-test errore: " + String(e.message||e));
   }
+}
 
-  // --- Chat IA (NEURA) ---
-  function chatAppend(who, text){
-    const wrap = document.createElement("div");
-    wrap.className = "msg";
+/* ==============================
+   Boot
+================================ */
+(async function(){
+  document.documentElement.setAttribute("data-theme", STATE.ui.theme);
 
-    const av = document.createElement("div");
-    av.className = "avatar";
-    av.textContent = who === "TU" ? "TU" : "N";
-
-    const bub = document.createElement("div");
-    bub.className = "bubble";
-    bub.innerHTML = `<b>${who}</b><p>${escapeHtml(text)}</p>`;
-
-    wrap.appendChild(av);
-    wrap.appendChild(bub);
-
-    el.chatLog.appendChild(wrap);
-    el.chatLog.scrollTop = el.chatLog.scrollHeight;
+  try{
+    await loadUsers();
+    if(tryRestoreSession()){
+      renderAppShell();
+      bootLoad();
+    }else{
+      renderLogin();
+    }
+  }catch(e){
+    // If users.json fails, show a friendly login error screen with debug
+    const root = $("#app");
+    root.innerHTML = `
+      <div class="gate">
+        <div class="login">
+          <div class="login-h">
+            <div class="logo"></div>
+            <div>
+              <h2>Errore caricamento</h2>
+              <p>Non riesco a leggere <span class="mono">users.json</span>.</p>
+            </div>
+          </div>
+          <div class="login-b">
+            <div class="err on">Dettaglio: ${String(e.message||e)}</div>
+            <div class="footnote">Controlla che users.json sia nella stessa cartella di index.html e pubblico su GitHub Pages.</div>
+          </div>
+        </div>
+      </div>
+    `;
   }
-
-  function escapeHtml(s){
-    return (s ?? "").toString()
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;");
-  }
-
-  function chatSay(who, text){ chatAppend(who, text); }
-
-  function neuraHelp(){
-    return [
-      "Puoi chiedermi cose tipo:",
-      "• quali macchine sono in pagamento",
-      "• quali sono le più vicine",
-      "• quando paga 12345",
-      "• apri 12345",
-      "• cerca pdv 4012",
-      "• cerca esercente fortini",
-      "• top 10 vicine",
-    ].join("\n");
-  }
-
-  function parseCodeIdFromText(t){
-    const m = t.match(/\b(\d{4,10})\b/);
-    return m ? m[1] : null;
-  }
-
-  function listByScore(minScore, maxItems=20){
-    const rows = state.summary.filter(r => (r.pred?.score ?? 0) >= minScore);
-    const top = rows.slice(0, maxItems);
-    if (!top.length) return "Nessuna trovata con questi criteri.";
-    return top.map((r,i)=>{
-      const s = r.pred?.score ?? 0;
-      const pdv = r.pdv ? `PDV ${r.pdv}` : "-";
-      return `${i+1}) ${r.codeid} · ${pdv} · ${r.pred.label} (score ${s.toFixed(2)})`;
-    }).join("\n");
-  }
-
-  function searchSummary(query){
-    const q = query.toUpperCase();
-    const rows = state.summary.filter(r=>{
-      const hay = [
-        r.codeid, r.pdv, r.pda, r.esercente, r.comune, r.provincia, r.modello
-      ].map(x => (x ?? "").toString().toUpperCase()).join(" | ");
-      return hay.includes(q);
-    });
-    return rows.slice(0, 25);
-  }
-
-  function neuraRespond(text){
-    const t = (text ?? "").trim();
-    if (!t) return;
-
-    // Guard rails: if no data loaded
-    if (!state.summary.length){
-      chatSay("N.E.U.R.A.", "Prima devo analizzare i sinottici. Premi “Analizza tutti”.");
-      return;
-    }
-
-    const low = t.toLowerCase();
-
-    // commands
-    if (low.includes("esempi") || low.includes("aiuto") || low === "?"){
-      chatSay("N.E.U.R.A.", neuraHelp());
-      return;
-    }
-
-    if (low.includes("in pagamento") || low.includes("pagamento")){
-      // "quali macchine sono in pagamento"
-      chatSay("N.E.U.R.A.", "Ecco le più probabili ‘in pagamento / molto vicine’:\n\n" + listByScore(0.84, 20));
-      return;
-    }
-
-    if (low.includes("più vicine") || low.includes("vicine") || low.includes("top")){
-      // top N
-      const nMatch = low.match(/\btop\s+(\d{1,2})\b/);
-      const n = nMatch ? Math.min(30, parseInt(nMatch[1],10)) : 15;
-      chatSay("N.E.U.R.A.", `Top ${n} più vicine:\n\n` + listByScore(0.70, n));
-      return;
-    }
-
-    if (low.includes("cerca")){
-      const q = t.replace(/cerca/i,"").trim();
-      if (!q){
-        chatSay("N.E.U.R.A.", "Dimmi cosa cercare (CODEID, PDV, esercente, comune…).");
-        return;
-      }
-      const found = searchSummary(q);
-      if (!found.length){
-        chatSay("N.E.U.R.A.", `Nessun risultato per “${q}”.`);
-        return;
-      }
-      chatSay("N.E.U.R.A.", `Trovate ${found.length} (mostro max 25):\n\n` + found.map((r,i)=>`${i+1}) ${r.codeid} · ${r.pdv?("PDV "+r.pdv):"-"} · ${r.esercente??"-"}`).join("\n"));
-      return;
-    }
-
-    if (low.includes("apri")){
-      const code = parseCodeIdFromText(t);
-      if (!code){
-        chatSay("N.E.U.R.A.", "Scrivi: apri 12345 (con un CODEID).");
-        return;
-      }
-      if (!state.historyByMachine.has(code)){
-        chatSay("N.E.U.R.A.", `Non trovo il CODEID ${code}.`);
-        return;
-      }
-      openMachine(code);
-      chatSay("N.E.U.R.A.", `Aperta macchina ${code}.`);
-      return;
-    }
-
-    if (low.includes("quando paga") || low.includes("quando") && low.includes("paga")){
-      const code = parseCodeIdFromText(t) || state.selectedCodeId;
-      if (!code){
-        chatSay("N.E.U.R.A.", "Dimmi il CODEID. Esempio: quando paga 12345");
-        return;
-      }
-      if (!state.historyByMachine.has(code)){
-        chatSay("N.E.U.R.A.", `Non trovo il CODEID ${code}.`);
-        return;
-      }
-      const pred = computePredictionForMachine(code);
-      const resid = pred.resid != null ? fmtEuroFromCents(pred.resid) : "N/D";
-      let whenTxt = "N/D";
-      if (pred.etaDays != null && isFinite(pred.etaDays)){
-        whenTxt = pred.etaDays < 0.6 ? "molto presto" : `${Math.round(pred.etaDays)} giorni (stima)`;
-      }
-      chatSay("N.E.U.R.A.", `Macchina ${code}\n• Stato: ${pred.label}\n• Residuo stimato: ${resid}\n• Quando paga: ${whenTxt}\n\nNota: ${pred.note || "—"}`);
-      openMachine(code);
-      return;
-    }
-
-    // If user just writes a number -> open machine
-    const codeGuess = parseCodeIdFromText(t);
-    if (codeGuess && state.historyByMachine.has(codeGuess)){
-      openMachine(codeGuess);
-      chatSay("N.E.U.R.A.", `Apro ${codeGuess}. Se vuoi: “quando paga ${codeGuess}”.`);
-      return;
-    }
-
-    // Otherwise: out-of-scope fallback
-    chatSay("N.E.U.R.A.", "Io lavoro solo sui dati AWP del programma.\n\nProva così:\n• “quali macchine sono in pagamento”\n• “quando paga 12345”\n• “cerca pdv 4012”\n• “apri 12345”");
-  }
-
-  // --- Export ---
-  function exportSelectedMachine(){
-    const code = state.selectedCodeId;
-    if (!code){
-      alert("Seleziona una macchina prima.");
-      return;
-    }
-    const hist = (state.historyByMachine.get(code) || []).slice().sort((a,b)=>a.ts-b.ts);
-    const blob = new Blob([JSON.stringify({codeid:code, history:hist}, null, 2)], {type:"application/json"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `machine-${code}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
-  // --- Events ---
-  function bindEvents(){
-    el.themeSelect.addEventListener("change", () => setTheme(el.themeSelect.value));
-    el.loginTheme.addEventListener("change", () => setTheme(el.loginTheme.value));
-
-    el.btnLogout.addEventListener("click", () => {
-      localStorage.removeItem("awp_session");
-      state.user = null; state.level = null; state.expires = null;
-      setUserChip();
-      showLogin(true);
-      clearData();
-      el.subTitle.textContent = "Disconnesso.";
-    });
-
-    el.btnLogin.addEventListener("click", () => {
-      el.loginError.textContent = "";
-      const user = el.loginUser.value.trim();
-      const pin = el.loginPin.value.trim();
-      const r = validateLogin(user, pin);
-      if (!r.ok){
-        el.loginError.textContent = r.msg;
-        return;
-      }
-      state.user = r.user;
-      state.level = r.level;
-      state.expires = r.expires;
-
-      localStorage.setItem("awp_session", JSON.stringify({user:state.user, level:state.level, expires:state.expires}));
-      setUserChip();
-      showLogin(false);
-      el.subTitle.textContent = "Accesso OK. Premi “Analizza tutti”.";
-      chatSay("N.E.U.R.A.", `Ciao ${state.user}! 👋\nPremi “Analizza tutti” e poi chiedimi: “quali macchine sono in pagamento”.`);
-    });
-
-    el.btnLoad.addEventListener("click", () => analyzeSinottici({onlyLatest:false}));
-    el.btnOnlyLatest.addEventListener("click", () => analyzeSinottici({onlyLatest:true}));
-
-    el.filterText.addEventListener("input", () => renderSummaryTable());
-    el.filterMode.addEventListener("change", () => renderSummaryTable());
-
-    el.rangeSelect.addEventListener("change", () => {
-      if (state.selectedCodeId) openMachine(state.selectedCodeId);
-    });
-
-    el.btnExportMachine.addEventListener("click", exportSelectedMachine);
-
-    el.btnChatSend.addEventListener("click", () => {
-      const t = el.chatInput.value.trim();
-      if (!t) return;
-      el.chatInput.value = "";
-      chatAppend("TU", t);
-      neuraRespond(t);
-    });
-
-    el.chatInput.addEventListener("keydown", (e) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === "Enter"){
-        el.btnChatSend.click();
-      }
-    });
-
-    el.btnChatClear.addEventListener("click", () => {
-      el.chatLog.innerHTML = "";
-      chatSay("N.E.U.R.A.", "Pulito. Se vuoi esempi digita “aiuto”.");
-    });
-
-    el.btnChatExamples.addEventListener("click", () => {
-      chatSay("N.E.U.R.A.", neuraHelp());
-    });
-  }
-
-  // --- Init ---
-  async function init(){
-    // theme
-    const savedTheme = localStorage.getItem("awp_theme") || "dark";
-    setTheme(savedTheme);
-
-    // load config
-    try{
-      await loadConfig();
-      el.subTitle.textContent = `Config OK. Sinottici trovati in manifest: ${state.sinottici.length}.`;
-    }catch(err){
-      console.error(err);
-      el.subTitle.textContent = "Errore caricamento config (users/manifest/cicloslot).";
-      setProgress(0, "Errore: controlla che users.json, manifest.json, cicloslot.json siano nella root.");
-      chatSay("N.E.U.R.A.", "Errore: non riesco a leggere users.json / manifest.json / cicloslot.json.\nControlla che siano nella root del repo (stessa cartella di index.html).");
-      return;
-    }
-
-    // session restore
-    const sessRaw = localStorage.getItem("awp_session");
-    if (sessRaw){
-      try{
-        const s = JSON.parse(sessRaw);
-        const r = validateLogin(s.user, (state.users.find(u => u.user===s.user)?.pin ?? "")); // soft
-        // Better: require manual login if we can't validate pin. We'll just accept username+level for session.
-        state.user = s.user;
-        state.level = s.level;
-        state.expires = s.expires;
-        setUserChip();
-        showLogin(false);
-        el.subTitle.textContent = "Sessione ripristinata. Premi “Analizza tutti”.";
-      }catch{
-        showLogin(true);
-      }
-    } else {
-      showLogin(true);
-    }
-
-    bindEvents();
-  }
-
-  return { init };
 })();
-
-window.addEventListener("load", App.init);
 </script>
 </body>
 </html>
