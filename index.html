@@ -1,283 +1,173 @@
 <!doctype html>
 <html lang="it">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
-  <title>Calcolatore AWP Analisi Pagamento</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Calcolatore AWP analisi pagamento</title>
 
-  <!-- SheetJS (XLSX parser) -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
+  <!-- SheetJS (XLSX) -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <style>
     :root{
-      --bg:#0b0f14;
-      --panel:#0f1621;
-      --panel2:#0c121b;
-      --text:#e8eef7;
-      --muted:#9fb0c7;
-      --border:rgba(255,255,255,.08);
-      --accent:#7dd3fc;
-      --accent2:#a78bfa;
-      --good:#34d399;
-      --warn:#fbbf24;
-      --bad:#fb7185;
-      --shadow: 0 12px 36px rgba(0,0,0,.35);
+      --bg:#0b1020; --panel:#111a33; --panel2:#0e1630;
+      --text:#eaf0ff; --muted:#a9b6df; --line:rgba(255,255,255,.12);
+      --accent:#7aa7ff; --good:#4ade80; --warn:#fbbf24; --bad:#fb7185;
+      --chip:#1b2a57;
+      --shadow: 0 16px 50px rgba(0,0,0,.35);
       --radius:16px;
-      --radius2:12px;
-      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New";
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
     }
     [data-theme="light"]{
-      --bg:#f6f7fb;
-      --panel:#ffffff;
-      --panel2:#ffffff;
-      --text:#0b1220;
-      --muted:#55657c;
-      --border:rgba(10,20,40,.10);
-      --accent:#2563eb;
-      --accent2:#7c3aed;
-      --shadow: 0 10px 28px rgba(12,18,28,.12);
+      --bg:#f6f8ff; --panel:#ffffff; --panel2:#f1f4ff;
+      --text:#121a33; --muted:#4c5a82; --line:rgba(10,20,60,.12);
+      --accent:#2b5bff; --chip:#e9eeff;
+      --shadow: 0 16px 50px rgba(20,40,120,.10);
     }
     [data-theme="amber"]{
-      --accent:#f59e0b;
-      --accent2:#fb7185;
+      --bg:#0d0a05; --panel:#17110a; --panel2:#140f08;
+      --text:#fff3da; --muted:#d7c3a1; --line:rgba(255,214,153,.16);
+      --accent:#ffb000; --chip:#24190d;
     }
     [data-theme="lime"]{
-      --accent:#84cc16;
-      --accent2:#22c55e;
+      --bg:#071008; --panel:#0d1c10; --panel2:#0a160c;
+      --text:#eaffea; --muted:#b6d8b9; --line:rgba(200,255,210,.14);
+      --accent:#77ff77; --chip:#102616;
     }
 
     *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family:var(--font);
-      background: radial-gradient(1200px 600px at 20% -10%, rgba(125,211,252,.10), transparent 60%),
-                  radial-gradient(1000px 500px at 110% 10%, rgba(167,139,250,.10), transparent 55%),
-                  var(--bg);
-      color:var(--text);
-    }
+    body{margin:0;font-family:var(--font);background:radial-gradient(1200px 600px at 10% -10%, rgba(122,167,255,.22), transparent 55%),
+      radial-gradient(900px 500px at 95% 0%, rgba(251,191,36,.12), transparent 55%),
+      var(--bg); color:var(--text);}
     a{color:inherit}
-    .wrap{max-width:1300px;margin:0 auto;padding:18px}
+    .wrap{max-width:1250px;margin:0 auto;padding:18px}
     .topbar{
       display:flex;gap:12px;align-items:center;justify-content:space-between;
-      padding:14px 16px;border:1px solid var(--border);border-radius:var(--radius);
-      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
-      box-shadow:var(--shadow);
-      position:sticky;top:10px;z-index:20;
-      backdrop-filter: blur(10px);
+      padding:14px 16px;background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);
+      position:sticky;top:12px;z-index:10;backdrop-filter: blur(10px);
     }
-    .brand{
-      display:flex;gap:12px;align-items:center;min-width:240px;
-    }
+    .brand{display:flex;align-items:center;gap:10px}
     .logo{
-      width:40px;height:40px;border-radius:14px;
-      background: conic-gradient(from 90deg, var(--accent), var(--accent2), var(--accent));
-      box-shadow:0 10px 24px rgba(0,0,0,.25);
+      width:40px;height:40px;border-radius:12px;
+      background:conic-gradient(from 210deg, var(--accent), rgba(255,255,255,.10), var(--accent));
+      box-shadow:0 10px 25px rgba(0,0,0,.25);
+      display:grid;place-items:center;
+      border:1px solid var(--line);
     }
-    .brand h1{font-size:15px;margin:0;line-height:1.1}
-    .brand small{display:block;color:var(--muted);font-size:12px;margin-top:3px}
-    .top-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
-    .pill{
-      border:1px solid var(--border); background:rgba(255,255,255,.03);
-      padding:8px 10px;border-radius:999px; font-size:12px;color:var(--muted)
-    }
-    .btn{
-      border:1px solid var(--border);
-      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    .logo b{font-size:14px;letter-spacing:.6px}
+    .brand h1{font-size:14px;margin:0;line-height:1.15}
+    .brand .sub{font-size:12px;color:var(--muted)}
+    .actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .btn, button{
+      border:1px solid var(--line);
+      background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.03));
       color:var(--text);
-      padding:10px 12px;border-radius:12px;
-      cursor:pointer; user-select:none;
-      transition:.15s transform,.15s border-color,.15s background;
-      font-weight:600; font-size:13px;
-      display:inline-flex; align-items:center; gap:8px;
+      border-radius:12px;padding:10px 12px;
+      cursor:pointer;
+      transition:transform .06s ease, border-color .2s ease, background .2s ease;
+      font-weight:650;
     }
-    .btn:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.18)}
-    .btn:active{transform:translateY(0px)}
-    .btn.primary{
-      border-color:rgba(125,211,252,.30);
-      background:linear-gradient(180deg, rgba(125,211,252,.20), rgba(125,211,252,.08));
-    }
-    .btn.danger{
-      border-color:rgba(251,113,133,.35);
-      background:linear-gradient(180deg, rgba(251,113,133,.18), rgba(251,113,133,.08));
-    }
-    .select{
-      border:1px solid var(--border); background:rgba(255,255,255,.03);
-      padding:10px 12px;border-radius:12px;color:var(--text);
-      font-weight:600;font-size:13px;
+    .btn:hover, button:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.22)}
+    .btn:active, button:active{transform:translateY(0px)}
+    select,input{
+      border:1px solid var(--line);
+      background:rgba(255,255,255,.04);
+      color:var(--text);
+      border-radius:12px;padding:10px 12px;
       outline:none;
     }
-    .grid{
-      display:grid;
-      grid-template-columns: 1.1fr .9fr;
-      gap:14px;
-      margin-top:14px;
-    }
-    @media (max-width: 980px){
-      .grid{grid-template-columns:1fr}
-      .brand{min-width:auto}
-    }
+    input::placeholder{color:rgba(170,190,230,.65)}
+    .grid{display:grid;grid-template-columns: 420px 1fr; gap:14px; margin-top:14px}
+    @media (max-width:1100px){.grid{grid-template-columns:1fr}}
     .card{
-      border:1px solid var(--border);
-      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      border:1px solid var(--line);
       border-radius:var(--radius);
       box-shadow:var(--shadow);
       overflow:hidden;
     }
-    .card-h{
-      padding:14px 16px;border-bottom:1px solid var(--border);
-      display:flex;align-items:center;justify-content:space-between;gap:12px;
-    }
-    .card-h h2{margin:0;font-size:14px}
-    .card-h .hint{color:var(--muted);font-size:12px}
-    .card-b{padding:14px 16px}
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    .input{
-      flex:1;min-width:220px;
-      border:1px solid var(--border);
-      background:rgba(255,255,255,.03);
-      padding:10px 12px;border-radius:12px;
-      color:var(--text);font-weight:600;
-      outline:none;
-    }
-    .toggle{
-      display:flex;gap:8px;align-items:center;
-      border:1px solid var(--border); background:rgba(255,255,255,.03);
-      padding:10px 12px;border-radius:12px;
-      color:var(--text); font-weight:700;font-size:13px;
-      cursor:pointer; user-select:none;
-    }
-    .toggle input{accent-color:var(--accent)}
-    .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:12px}
-    @media (max-width: 980px){ .kpis{grid-template-columns:repeat(2,1fr)} }
-    .kpi{
-      border:1px solid var(--border);border-radius:14px;padding:10px 12px;
+    .card .hd{
+      padding:12px 14px;
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      border-bottom:1px solid var(--line);
       background:rgba(255,255,255,.03);
     }
-    .kpi .lab{font-size:11px;color:var(--muted)}
-    .kpi .val{font-size:16px;font-weight:800;margin-top:6px}
-    .kpi .sub{font-size:11px;color:var(--muted);margin-top:3px}
-
-    table{width:100%;border-collapse:collapse}
-    th,td{padding:10px 10px;border-bottom:1px solid var(--border);vertical-align:top}
-    th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;text-align:left}
-    td{font-size:13px}
-    .badge{
-      display:inline-flex;align-items:center;gap:7px;
-      border:1px solid var(--border);border-radius:999px;
-      padding:5px 9px;font-size:12px;font-weight:800;
-      background:rgba(255,255,255,.03);
-      white-space:nowrap;
-    }
-    .dot{width:8px;height:8px;border-radius:50%}
-    .dot.good{background:var(--good)}
-    .dot.warn{background:var(--warn)}
-    .dot.bad{background:var(--bad)}
-    .mono{font-family:var(--mono)}
-    .small{font-size:12px;color:var(--muted)}
+    .card .hd h2{font-size:13px;margin:0}
+    .card .bd{padding:12px 14px}
     .muted{color:var(--muted)}
-    .click{cursor:pointer}
-    .click:hover{text-decoration:underline}
-
-    .split{
-      display:grid;grid-template-columns: 1fr 1fr;gap:10px;
+    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+    .stack{display:flex;flex-direction:column;gap:10px}
+    .chips{display:flex;gap:8px;flex-wrap:wrap}
+    .chip{
+      padding:6px 10px;border-radius:999px;
+      background:var(--chip);border:1px solid var(--line);
+      font-size:12px;color:var(--muted)
     }
-    @media (max-width: 980px){ .split{grid-template-columns:1fr} }
-
-    /* Modal */
-    .modal{
-      position:fixed;inset:0;background:rgba(0,0,0,.55);
-      display:none;align-items:center;justify-content:center;
-      padding:16px;z-index:50;
+    .pill{
+      padding:7px 10px;border-radius:999px;font-size:12px;
+      border:1px solid var(--line);background:rgba(255,255,255,.04)
     }
-    .modal.on{display:flex}
-    .modal .box{
-      width:min(1100px,100%);
-      max-height:90vh;overflow:auto;
-      border:1px solid var(--border);
-      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-      border-radius:18px;
-      box-shadow:0 24px 70px rgba(0,0,0,.5);
+    .pill.good{color:var(--good);border-color:rgba(74,222,128,.35)}
+    .pill.warn{color:var(--warn);border-color:rgba(251,191,36,.35)}
+    .pill.bad{color:var(--bad);border-color:rgba(251,113,133,.35)}
+    .table{
+      width:100%;border-collapse:separate;border-spacing:0;
+      overflow:hidden;border:1px solid var(--line);border-radius:14px;
     }
-    .modal .box .mh{
-      padding:14px 16px;border-bottom:1px solid var(--border);
-      display:flex;align-items:flex-start;justify-content:space-between;gap:12px;
+    .table th,.table td{padding:10px 10px;border-bottom:1px solid var(--line);font-size:12px;vertical-align:top}
+    .table th{background:rgba(255,255,255,.04);text-align:left;color:var(--muted);font-weight:750}
+    .table tr:hover td{background:rgba(255,255,255,.03)}
+    .table tr:last-child td{border-bottom:none}
+    .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    @media (max-width:900px){.kpi{grid-template-columns:repeat(2,1fr)}}
+    .kpi .box{
+      padding:10px 12px;border-radius:14px;border:1px solid var(--line);
+      background:rgba(255,255,255,.03)
     }
-    .modal .box .mh h3{margin:0;font-size:14px}
-    .modal .box .mb{padding:14px 16px}
-    .x{
-      width:40px;height:40px;border-radius:14px;border:1px solid var(--border);
-      background:rgba(255,255,255,.03);cursor:pointer;
-      display:grid;place-items:center;font-weight:900;
+    .kpi .box .t{font-size:11px;color:var(--muted)}
+    .kpi .box .v{font-size:15px;font-weight:850;margin-top:4px}
+    .log{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size:11px;line-height:1.35;
+      background:rgba(0,0,0,.25);
+      border:1px solid var(--line);
+      padding:10px;border-radius:14px;
+      max-height:180px;overflow:auto;white-space:pre-wrap;
     }
-
-    /* Login screen */
-    .gate{
-      min-height:100vh;display:grid;place-items:center;padding:18px;
-    }
+    .divider{height:1px;background:var(--line);margin:10px 0}
     .login{
-      width:min(520px,100%);
-      border:1px solid var(--border);
-      border-radius:18px;
-      background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+      min-height:100vh;display:grid;place-items:center;padding:20px
+    }
+    .login .panel{
+      width:min(520px, 100%);
+      background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius:22px;
       box-shadow:var(--shadow);
       overflow:hidden;
     }
-    .login-h{
-      padding:16px 16px;border-bottom:1px solid var(--border);
-      display:flex;gap:12px;align-items:center;
+    .login .panel .top{
+      padding:18px 18px 12px 18px;border-bottom:1px solid var(--line);
+      display:flex;align-items:center;gap:12px
     }
-    .login-h .logo{width:44px;height:44px;border-radius:16px}
-    .login-h h2{margin:0;font-size:16px}
-    .login-h p{margin:4px 0 0;color:var(--muted);font-size:12px}
-    .login-b{padding:16px}
-    .login-b .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    @media (max-width: 520px){ .login-b .grid2{grid-template-columns:1fr} }
-    .err{
-      margin-top:10px;
-      border:1px solid rgba(251,113,133,.35);
-      background:rgba(251,113,133,.10);
-      padding:10px 12px;border-radius:14px;
-      color:var(--text);font-size:13px;font-weight:700;
-      display:none;
-    }
-    .err.on{display:block}
-
-    /* Chat NOVA */
-    .chat{
+    .login .panel .top h1{font-size:16px;margin:0}
+    .login .panel .top .muted{font-size:12px}
+    .login .panel .body{padding:18px}
+    .login .hint{font-size:12px;color:var(--muted);margin-top:10px}
+    .chatbox{
       display:flex;flex-direction:column;gap:10px;
-      height:520px;
     }
     .chatlog{
-      flex:1;overflow:auto;
-      border:1px solid var(--border);
-      background:rgba(255,255,255,.02);
-      border-radius:16px;
-      padding:10px;
+      height:220px;overflow:auto;border:1px solid var(--line);
+      border-radius:14px;padding:10px;background:rgba(255,255,255,.03)
     }
-    .msg{
-      padding:10px 12px;border-radius:14px;
-      margin:8px 0;max-width:88%;
-      border:1px solid var(--border);
-      background:rgba(255,255,255,.03);
-      white-space:pre-wrap;
-    }
-    .msg.me{margin-left:auto;border-color:rgba(125,211,252,.30);background:rgba(125,211,252,.10)}
-    .msg.ai{border-color:rgba(167,139,250,.28);background:rgba(167,139,250,.08)}
-    .chatbar{display:flex;gap:10px}
-    .chatbar input{flex:1}
-    .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
-    .chip{
-      border:1px solid var(--border);
-      background:rgba(255,255,255,.03);
-      padding:8px 10px;border-radius:999px;
-      font-size:12px;font-weight:800;color:var(--muted);
-      cursor:pointer;user-select:none;
-    }
-    .chip:hover{border-color:rgba(255,255,255,.18);color:var(--text)}
-    .footnote{color:var(--muted);font-size:11px;margin-top:10px}
+    .msg{display:flex;gap:8px;margin:6px 0}
+    .msg .who{min-width:54px;font-weight:850;font-size:12px;color:var(--muted)}
+    .msg .txt{font-size:12px;white-space:pre-wrap}
   </style>
 </head>
 
@@ -285,1235 +175,1192 @@
 <div id="app"></div>
 
 <script>
-/* ==============================
-   Utils
-================================ */
-const $ = (q, el=document) => el.querySelector(q);
-const $$ = (q, el=document) => [...el.querySelectorAll(q)];
+/* =========================================================
+   SinotticoLab - tutto in RAM, solo cache impostazioni
+   ========================================================= */
 
-function safeNum(v){
-  if(v===null || v===undefined || v==="") return null;
-  const n = Number(String(v).replace(",", "."));
-  return Number.isFinite(n) ? n : null;
-}
-function fmt(n){
-  if(n===null || n===undefined) return "—";
-  const x = Number(n);
-  if(!Number.isFinite(x)) return "—";
-  return x.toLocaleString("it-IT");
-}
-function fmtPct(x){
-  if(x===null || x===undefined) return "—";
-  if(!Number.isFinite(x)) return "—";
-  return (x*100).toFixed(1) + "%";
-}
-function clamp(x,a,b){ return Math.max(a, Math.min(b, x)); }
-function median(arr){
-  const a = arr.filter(x=>Number.isFinite(x)).slice().sort((x,y)=>x-y);
-  if(!a.length) return null;
-  const m = Math.floor(a.length/2);
-  return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
-}
-function mad(arr){
-  const m = median(arr);
-  if(m===null) return null;
-  const dev = arr.map(x=>Math.abs(x-m));
-  return median(dev);
-}
-function robustZ(x, m, madVal){
-  if(m===null || madVal===null || madVal===0) return 0;
-  // 0.6745 makes MAD comparable to std dev on normal dist
-  return 0.6745 * (x - m) / madVal;
-}
-function sigmoid(x){ return 1/(1+Math.exp(-x)); }
+const SETTINGS_KEY = "sinotticolab_settings_v3";
+const state = {
+  settings: {
+    theme: "dark",
+    folderOverride: "",     // se vuoi forzare: "Dati" oppure "dati"
+    maxFilesToLoad: 9999,
+    downsamplePoints: 180,  // grafico leggibile
+  },
+  user: null,
+  users: [],
+  manifest: null,
+  folder: null,        // "Dati" / "dati" / "DATI"
+  sinottici: [],       // [{name,url,dt,rowsRaw,rowsNorm}]
+  machines: new Map(), // key = CODEID -> machine object with timeline
+  cicloByModel: new Map(), // codiceModello -> ciclo
+  selectedCodeid: null,
+  lastLoadedAt: null,
+};
 
-function parseDateFromFilename(name){
-  // Accept: Sinottico-2025-12-27-0845.xlsx
-  //         Sinottico-2025-12-11-0940.xlsx
-  //         Sinottico-2025-12-23-0900.xlsx
-  const m = String(name).match(/(\d{4})-(\d{2})-(\d{2})-(\d{2})(\d{2})/);
-  if(!m) return null;
-  const [_,Y,Mo,D,H,Mi]=m;
-  const dt = new Date(Number(Y), Number(Mo)-1, Number(D), Number(H), Number(Mi), 0, 0);
-  return Number.isNaN(dt.getTime()) ? null : dt;
+function loadSettings(){
+  try{
+    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
+    state.settings = {...state.settings, ...s};
+  }catch(e){}
+  document.documentElement.setAttribute("data-theme", state.settings.theme || "dark");
 }
-function isoShort(dt){
-  if(!dt) return "—";
-  const dd = String(dt.getDate()).padStart(2,"0");
-  const mm = String(dt.getMonth()+1).padStart(2,"0");
-  const yy = dt.getFullYear();
-  const hh = String(dt.getHours()).padStart(2,"0");
-  const mi = String(dt.getMinutes()).padStart(2,"0");
-  return `${dd}/${mm}/${yy} ${hh}:${mi}`;
+function saveSettings(){
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(state.settings));
+}
+function log(msg){
+  const el = document.getElementById("log");
+  const ts = new Date().toLocaleTimeString();
+  const line = `[${ts}] ${msg}\n`;
+  if(el){ el.textContent += line; el.scrollTop = el.scrollHeight; }
+  console.log(msg);
+}
+function money(n){
+  if(n==null || Number.isNaN(n)) return "—";
+  return new Intl.NumberFormat("it-IT",{maximumFractionDigits:0}).format(n);
+}
+function money2(n){
+  if(n==null || Number.isNaN(n)) return "—";
+  return new Intl.NumberFormat("it-IT",{minimumFractionDigits:2, maximumFractionDigits:2}).format(n);
+}
+function pct(n){
+  if(n==null || Number.isNaN(n)) return "—";
+  return (n*100).toFixed(2) + "%";
+}
+function safeUpper(s){ return (s ?? "").toString().trim().toUpperCase(); }
+function normHeader(s){
+  return safeUpper(s)
+    .replaceAll("À","A").replaceAll("È","E").replaceAll("Ì","I").replaceAll("Ò","O").replaceAll("Ù","U")
+    .replace(/[.\-_/()]/g," ")
+    .replace(/\s+/g," ")
+    .trim();
+}
+function parseDateLoose(v){
+  if(v==null || v==="") return null;
+  if(v instanceof Date) return v;
+  if(typeof v === "number"){
+    // Excel serial date
+    // SheetJS often parses date fields as numbers; use SSF?
+    // We'll attempt: Excel epoch 1899-12-30
+    const d = new Date(Math.round((v - 25569) * 86400 * 1000));
+    if(!isNaN(d)) return d;
+  }
+  const s = v.toString().trim();
+  // dd/mm/yyyy hh:mm
+  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if(m){
+    const dd=+m[1], mm=+m[2]-1, yyyy=+(m[3].length===2?("20"+m[3]):m[3]);
+    const hh=+(m[4]||0), mi=+(m[5]||0), ss=+(m[6]||0);
+    const d=new Date(yyyy,mm,dd,hh,mi,ss);
+    return isNaN(d)?null:d;
+  }
+  const d = new Date(s);
+  return isNaN(d)?null:d;
+}
+function toEuroFromCentsish(v){
+  if(v==null || v==="") return null;
+  const n = typeof v==="number" ? v : parseFloat(v.toString().replace(/\./g,"").replace(",","."));
+  if(Number.isNaN(n)) return null;
+  // Nel sinottico gli ultimi 2 zeri sono centesimi: dividiamo per 100
+  return n / 100.0;
+}
+function toNum(v){
+  if(v==null || v==="") return null;
+  const n = typeof v==="number" ? v : parseFloat(v.toString().replace(/\./g,"").replace(",","."));
+  return Number.isNaN(n) ? null : n;
 }
 
-async function fetchJson(path){
-  const r = await fetch(path, {cache:"no-store"});
-  if(!r.ok) throw new Error(`HTTP ${r.status} su ${path}`);
+/* =========================================================
+   Loader file JSON (GitHub Pages)
+   ========================================================= */
+async function fetchJSON(url){
+  const r = await fetch(url, {cache:"no-store"});
+  if(!r.ok) throw new Error(`HTTP ${r.status} su ${url}`);
   return await r.json();
 }
-async function fetchArrayBuffer(path){
-  const r = await fetch(path, {cache:"no-store"});
-  if(!r.ok) throw new Error(`HTTP ${r.status} su ${path}`);
+async function fetchArrayBuffer(url){
+  const r = await fetch(url, {cache:"no-store"});
+  if(!r.ok) throw new Error(`HTTP ${r.status} su ${url}`);
   return await r.arrayBuffer();
 }
 
-/* ==============================
-   State
-================================ */
-const STATE = {
-  session: null, // {user, level, expires}
-  users: [],
-  manifest: null,
-  ciclos: [], // [{codiceModello,nomeModello,ciclo}]
-  cicloByModel: new Map(),
-  snapshots: [], // [{file, dt, rows}]
-  machines: new Map(), // key: idAWP -> machine object
-  modelBaselines: new Map(), // model -> {medianRtp, madRtp}
-  ui: {
-    theme: localStorage.getItem("sinotticolab_theme") || "dark",
-    search: "",
-    onlyLikely: false,
-    rangeDays: 90,
-    showDeltas: true
-  }
-};
-
-function setTheme(t){
-  STATE.ui.theme = t;
-  localStorage.setItem("sinotticolab_theme", t);
-  document.documentElement.setAttribute("data-theme", t);
-}
-
-/* ==============================
-   Login
-================================ */
-function isExpired(expires){
-  if(expires===null || expires===undefined || expires==="") return false;
-  const dt = new Date(expires + "T00:00:00");
-  if(Number.isNaN(dt.getTime())) return false;
-  const now = new Date();
-  // expires at end of day
-  dt.setHours(23,59,59,999);
-  return now.getTime() > dt.getTime();
-}
-
+/* =========================================================
+   Login / Users
+   ========================================================= */
 async function loadUsers(){
-  const users = await fetchJson("users.json");
-  if(!Array.isArray(users)) throw new Error("users.json non è un array");
-  STATE.users = users;
+  // prova users.json nella root
+  const users = await fetchJSON("users.json");
+  state.users = Array.isArray(users) ? users : (users.users || []);
+  log(`Users caricati: ${state.users.length}`);
+}
+function validateLogin(user, pin){
+  const u = state.users.find(x => (x.user||"").toString()===user);
+  if(!u) return {ok:false, msg:"Utente non trovato"};
+  if((u.pin||"").toString() !== pin) return {ok:false, msg:"PIN errato"};
+  if(u.expires){
+    const exp = parseDateLoose(u.expires);
+    if(exp && exp < new Date()) return {ok:false, msg:`Account scaduto (${u.expires})`};
+  }
+  return {ok:true, user:{user:u.user, level:u.level||"Base", expires:u.expires||null}};
 }
 
-function renderLogin(){
-  setTheme(STATE.ui.theme);
+/* =========================================================
+   Manifest + Folder detection
+   ========================================================= */
+function parseManifestList(man){
+  // supporta più formati: array, {files:[]}, {sinottici:[]}
+  if(Array.isArray(man)) return man;
+  if(man?.files && Array.isArray(man.files)) return man.files;
+  if(man?.sinottici && Array.isArray(man.sinottici)) return man.sinottici;
+  if(man?.list && Array.isArray(man.list)) return man.list;
+  // se è oggetto { "Sinottico-...xlsx": "..."} -> keys
+  if(man && typeof man==="object") return Object.keys(man);
+  return [];
+}
+async function detectFolder(list){
+  // se user forza folder, usalo
+  const forced = (state.settings.folderOverride||"").trim();
+  if(forced){
+    log(`Folder override: ${forced}`);
+    return forced;
+  }
 
-  const root = $("#app");
-  root.innerHTML = `
-    <div class="gate">
-      <div class="login">
-        <div class="login-h">
-          <div class="logo"></div>
+  const candidates = ["dati","Dati","DATI"];
+  const probe = list?.[0];
+  if(!probe) return "Dati";
+
+  for(const c of candidates){
+    const url = `${c}/${probe}`;
+    try{
+      const r = await fetch(url, {method:"HEAD", cache:"no-store"});
+      if(r.ok){
+        log(`Folder valido trovato: ${c} (probe: ${url})`);
+        return c;
+      } else {
+        log(`NO ${url}: HTTP ${r.status}`);
+      }
+    }catch(e){
+      log(`NO ${url}: ${e.message}`);
+    }
+  }
+  // fallback: prova a vedere se esiste la cartella (non sempre possibile)
+  log(`Self-test errore: Nessun folder valido (Dati/dati). Userò "Dati" come fallback.`);
+  return "Dati";
+}
+
+/* =========================================================
+   Ciclo Slot
+   ========================================================= */
+async function loadCicloSlot(){
+  const data = await fetchJSON("cicloslot.json");
+  const arr = Array.isArray(data) ? data : (data?.items || []);
+  state.cicloByModel.clear();
+  for(const x of arr){
+    const code = (x.codiceModello ?? x.CODICE_MODELLO ?? "").toString().trim();
+    const ciclo = toNum(x.ciclo ?? x.CICLO);
+    if(code && ciclo) state.cicloByModel.set(code, ciclo);
+  }
+  log(`cicloslot: modelli con ciclo = ${state.cicloByModel.size}`);
+}
+
+/* =========================================================
+   XLSX parsing + mapping colonne
+   ========================================================= */
+function buildColumnMap(headers){
+  // headers: array string originali
+  const normToIdx = new Map();
+  headers.forEach((h,i)=> normToIdx.set(normHeader(h), i));
+
+  const want = {
+    CODEID: ["CODEID"],
+    CODEID_PROVV: ["CODEID PROVV","CODEID PROVVISORIO","CODEID PROVV."],
+    DESCR_STATO: ["DESCR STATO","DESCR. STATO","STATO"],
+    DATA_ATTIVAZIONE: ["DATA ATTIVAZIONE"],
+    DATA_ULTIMO_COLLEGAMENTO: ["DATA ULTIMO COLLEGAMENTO"],
+    GG_MANCATO_COLLEGAMENTO: ["GG MANCATO COLLEGAMENTO"],
+    GG_DECADENZA: ["GG DECADENZA"],
+    DATA_ULTIMA_LETTURA_VAL: ["DATA ULTIMA LETTURA VAL","DATA ULTIMA LETTURA VAL.","DATA ULTIMA LETTURA"],
+    CNTTOTIN: ["CNTTOTIN","CNT TOT IN","CNTTOT IN"],
+    CNTTOTOUT: ["CNTTOTOT","CNTTOTOUT","CNT TOT OUT","CNTTOT OT","CNTTOTOUT EURO"],
+    MS_FERIE: ["M S FERIE","M.S. FERIE","M S / FERIE","M.S. / FERIE"],
+    MAC_PDA: ["MACADDRESS PDA","MAC ADDRESS PDA","MAC PDA"],
+    CODICE_SEDE: ["CODICE SEDE"],
+    CODICE_PDV_AAMS: ["CODICE PDV AAMS","CODICE PDV"],
+    DENOMIN_SEDE: ["DENOMIN SEDE","DENOMIN. SEDE","DENOMINAZIONE SEDE"],
+    INDIRIZZO: ["INDIRIZZO"],
+    PROVINCIA: ["PROVINCIA"],
+    COMUNE: ["COMUNE"],
+    CODICE_IS_ESERCENTE: ["CODICE IS ESERCENTE","CODICE ESERCENTE"],
+    PRATICA_AMMINISTRATIVA: ["PRATICA AMMINISTRATIVA"],
+    STATO_PRATICA: ["STATO PRATICA"],
+    DATA_RILASCIO_NOE: ["DATA RILASCIO N O E","DATA RILASCIO N.O.E.","DATA RILASCIO NOE"],
+    CODICE_MODELLO: ["CODICE MODELLO"],
+    MODELLO: ["MODELLO"],
+    OUT_PCT: ["% OUT","OUT %","PERCENTUALE OUT","PCT OUT"],
+    EM: ["E M","E/M","E M ","ESERCIZIO MAGAZZINO"],
+    NOE: ["NOE"],
+    INCASSO_GIORNALIERO: ["INCASSO GIORNALIERO"],
+    MEDIA_INCASSO: ["MEDIA INCASSO GG ESERCIZIO","MEDIA INCASSO","MEDIA INCASSO GG"],
+    WARNING: ["WARNING"],
+    IR_AWP: ["IR AWP","IRAWP"],
+  };
+
+  const out = {};
+  for(const key of Object.keys(want)){
+    out[key] = null;
+    for(const candidate of want[key]){
+      const idx = normToIdx.get(normHeader(candidate));
+      if(idx!=null){ out[key]=idx; break; }
+    }
+  }
+  return out;
+}
+
+function parseXlsxRows(arrayBuffer){
+  if(typeof XLSX === "undefined") throw new Error("Libreria XLSX non caricata (SheetJS).");
+  const wb = XLSX.read(arrayBuffer, {type:"array"});
+  const sheetName = wb.SheetNames[0];
+  const ws = wb.Sheets[sheetName];
+  // header:1 returns array of arrays
+  const aoa = XLSX.utils.sheet_to_json(ws, {header:1, raw:true, defval:""});
+  if(!aoa || aoa.length<2) return {headers:[], rows:[]};
+  const headers = aoa[0].map(x=> (x??"").toString().trim());
+  const rows = aoa.slice(1);
+  return {headers, rows};
+}
+
+function normalizeRow(row, col){
+  // row = array values
+  const get = (k)=> {
+    const idx = col[k];
+    if(idx==null) return "";
+    return row[idx];
+  };
+
+  const codeid = (get("CODEID") ?? "").toString().trim();
+  if(!codeid) return null;
+
+  const cntIn = toEuroFromCentsish(get("CNTTOTIN"));
+  const cntOut = toEuroFromCentsish(get("CNTTOTOUT"));
+  const outPct = (() => {
+    const v = get("OUT_PCT");
+    if(v==null || v==="") return null;
+    const s = v.toString().replace("%","").trim();
+    const n = parseFloat(s.replace(",","."));
+    if(Number.isNaN(n)) return null;
+    return n/100.0;
+  })();
+
+  const codiceModello = (get("CODICE_MODELLO") ?? "").toString().trim();
+  const ciclo = state.cicloByModel.get(codiceModello) ?? null;
+
+  const dUlt = parseDateLoose(get("DATA_ULTIMA_LETTURA_VAL"));
+  const dColl = parseDateLoose(get("DATA_ULTIMO_COLLEGAMENTO"));
+  const dAtt = parseDateLoose(get("DATA_ATTIVAZIONE"));
+
+  const denom = (get("DENOMIN_SEDE") ?? "").toString().trim();
+  const comune = (get("COMUNE") ?? "").toString().trim();
+  const prov = (get("PROVINCIA") ?? "").toString().trim();
+
+  const ratioOut = (cntIn!=null && cntIn>0 && cntOut!=null) ? (cntOut/cntIn) : null;
+
+  const faseCiclo = (ciclo && cntIn!=null) ? ((cntIn % ciclo)/ciclo) : null;
+
+  const target = outPct ?? 0.65; // default
+  const expectedOut = (cntIn!=null) ? cntIn*target : null;
+  const diffOut = (expectedOut!=null && cntOut!=null) ? (expectedOut - cntOut) : null; // positivo = sotto target
+
+  return {
+    CODEID: codeid,
+    CODEID_PROVV: (get("CODEID_PROVV") ?? "").toString().trim(),
+    DESCR_STATO: (get("DESCR_STATO") ?? "").toString().trim(),
+    DATA_ATTIVAZIONE: dAtt,
+    DATA_ULTIMO_COLLEGAMENTO: dColl,
+    GG_MANCATO_COLLEGAMENTO: toNum(get("GG_MANCATO_COLLEGAMENTO")),
+    GG_DECADENZA: toNum(get("GG_DECADENZA")),
+    DATA_ULTIMA_LETTURA_VAL: dUlt,
+    CNTTOTIN: cntIn,
+    CNTTOTOUT: cntOut,
+    MS_FERIE: (get("MS_FERIE") ?? "").toString().trim(),
+    MAC_PDA: (get("MAC_PDA") ?? "").toString().trim(),
+    CODICE_SEDE: (get("CODICE_SEDE") ?? "").toString().trim(),
+    CODICE_PDV_AAMS: (get("CODICE_PDV_AAMS") ?? "").toString().trim(),
+    DENOMIN_SEDE: denom,
+    INDIRIZZO: (get("INDIRIZZO") ?? "").toString().trim(),
+    PROVINCIA: prov,
+    COMUNE: comune,
+    CODICE_IS_ESERCENTE: (get("CODICE_IS_ESERCENTE") ?? "").toString().trim(),
+    PRATICA_AMMINISTRATIVA: (get("PRATICA_AMMINISTRATIVA") ?? "").toString().trim(),
+    STATO_PRATICA: (get("STATO_PRATICA") ?? "").toString().trim(),
+    DATA_RILASCIO_NOE: parseDateLoose(get("DATA_RILASCIO_NOE")),
+    CODICE_MODELLO: codiceModello,
+    MODELLO: (get("MODELLO") ?? "").toString().trim(),
+    OUT_PCT: outPct,
+    E_M: (get("EM") ?? "").toString().trim(),
+    NOE: (get("NOE") ?? "").toString().trim(),
+    INCASSO_GIORNALIERO: toEuroFromCentsish(get("INCASSO_GIORNALIERO")),
+    MEDIA_INCASSO: toEuroFromCentsish(get("MEDIA_INCASSO")),
+    WARNING: (get("WARNING") ?? "").toString().trim(),
+    IR_AWP: (get("IR_AWP") ?? "").toString().trim(),
+
+    ratioOut,
+    ciclo,
+    faseCiclo,
+    target,
+    expectedOut,
+    diffOut
+  };
+}
+
+/* =========================================================
+   Aggregazione storico + predizione
+   ========================================================= */
+function ensureMachine(codeid){
+  if(!state.machines.has(codeid)){
+    state.machines.set(codeid, {
+      codeid,
+      last: null,
+      timeline: [], // [{t, in, out, ratio, diffOut, ...}]
+      meta: {},
+      score: 0,
+      scoreLabel: "—",
+      scoreClass: "warn"
+    });
+  }
+  return state.machines.get(codeid);
+}
+
+function computeScore(machine){
+  const tl = machine.timeline.slice().filter(p=>p.t && p.in!=null && p.out!=null)
+    .sort((a,b)=>a.t-b.t);
+
+  if(tl.length<2){
+    machine.score = 0.25;
+    machine.scoreLabel = "Pochi dati";
+    machine.scoreClass = "warn";
+    return;
+  }
+
+  const last = tl[tl.length-1];
+  const prev = tl[tl.length-2];
+
+  const dIn = (last.in - prev.in);
+  const dOut = (last.out - prev.out);
+
+  // segnali:
+  // - fase ciclo alta (se c'è ciclo)
+  // - sotto target (diffOut positivo)
+  // - poca uscita recente ma ingresso recente (accumulo)
+  // - storico: media ratio vs target
+  let s = 0.15;
+
+  if(last.faseCiclo!=null){
+    // spinge quando > 0.80
+    s += clamp((last.faseCiclo - 0.75) * 1.3, -0.15, 0.35);
+  }
+
+  if(last.diffOut!=null && last.ciclo){
+    // normalizza su 10% del ciclo
+    const denom = Math.max(1, last.ciclo * 0.10);
+    s += clamp((last.diffOut / denom) * 0.35, -0.25, 0.35);
+  } else if(last.diffOut!=null){
+    s += clamp((last.diffOut / 5000) * 0.15, -0.10, 0.18);
+  }
+
+  if(dIn!=null && dOut!=null){
+    // se entra ma non esce (recentemente), aumenta
+    const imbalance = (dIn - dOut);
+    s += clamp((imbalance / 800) * 0.20, -0.20, 0.25);
+    // se ha appena pagato tanto, abbassa
+    if(dOut > dIn*0.95 && dOut > 200){
+      s -= 0.22;
+    }
+  }
+
+  // stabilizza con ratio globale
+  const ratio = last.ratioOut;
+  if(ratio!=null){
+    const delta = (last.target - ratio); // positivo = sotto
+    s += clamp(delta * 0.40, -0.15, 0.20);
+  }
+
+  // clamp 0..1
+  s = clamp(s, 0.02, 0.98);
+
+  machine.score = s;
+  if(s >= 0.72){ machine.scoreLabel="Alta"; machine.scoreClass="good"; }
+  else if(s >= 0.50){ machine.scoreLabel="Media"; machine.scoreClass="warn"; }
+  else { machine.scoreLabel="Bassa"; machine.scoreClass="bad"; }
+}
+
+function clamp(x,a,b){ return Math.max(a, Math.min(b, x)); }
+
+/* =========================================================
+   Caricamento sinottici da manifest + analisi
+   ========================================================= */
+function parseSinotticoDateFromName(name){
+  // tenta: Sinottico-YYYY-MM-DD-HHMM.xlsx oppure Sinottico-YYYY-MM-DD.xlsx
+  const m = name.match(/(\d{4})-(\d{2})-(\d{2})(?:-(\d{2})(\d{2}))?/);
+  if(!m) return null;
+  const y=+m[1], mo=+m[2]-1, d=+m[3], hh=+(m[4]||0), mm=+(m[5]||0);
+  const dt = new Date(y,mo,d,hh,mm,0);
+  return isNaN(dt)?null:dt;
+}
+
+async function loadManifest(){
+  state.manifest = await fetchJSON("manifest.json");
+  const list = parseManifestList(state.manifest)
+    .filter(x => (x||"").toString().toLowerCase().endsWith(".xlsx"))
+    .map(x => x.toString());
+
+  if(!list.length) throw new Error("manifest.json non contiene file .xlsx (lista vuota).");
+
+  // ordina (più vecchio -> più nuovo) se possibile
+  list.sort((a,b)=>{
+    const da = parseSinotticoDateFromName(a)?.getTime() ?? 0;
+    const db = parseSinotticoDateFromName(b)?.getTime() ?? 0;
+    return da - db;
+  });
+
+  log(`Manifest: sinottici trovati = ${list.length}`);
+  return list;
+}
+
+async function analyzeAll(){
+  state.sinottici = [];
+  state.machines.clear();
+
+  const list = await loadManifest();
+  const folder = await detectFolder(list);
+  state.folder = folder;
+
+  const maxN = Math.min(list.length, state.settings.maxFilesToLoad || 9999);
+
+  for(let i=0;i<maxN;i++){
+    const name = list[i];
+    const url = `${folder}/${name}`;
+    try{
+      log(`Carico XLSX: ${url}`);
+      const buf = await fetchArrayBuffer(url);
+      const {headers, rows} = parseXlsxRows(buf);
+      if(!headers.length){
+        log(`WARN: ${name} -> nessuna header`);
+        continue;
+      }
+      const col = buildColumnMap(headers);
+
+      // sanity check: CODEID e CNTTOTIN/OUT devono esserci
+      if(col.CODEID==null){
+        log(`ERRORE mapping: in ${name} non trovo colonna CODEID. Header[0..6]=${headers.slice(0,7).join(" | ")}`);
+      }
+      if(col.CNTTOTIN==null || col.CNTTOTOUT==null){
+        log(`ERRORE mapping: in ${name} non trovo CNTTOTIN o CNTTOTOUT.`);
+      }
+
+      const dtFile = parseSinotticoDateFromName(name);
+
+      let parsedCount = 0;
+      for(const r of rows){
+        const nr = normalizeRow(r, col);
+        if(!nr) continue;
+
+        // usa data ultima lettura se presente, altrimenti data dal nome file
+        const t = nr.DATA_ULTIMA_LETTURA_VAL || dtFile || null;
+        const m = ensureMachine(nr.CODEID);
+
+        // meta: prendiamo dall'ultima riga utile (sovrascrive con info aggiornate)
+        m.meta = {
+          denom: nr.DENOMIN_SEDE,
+          comune: nr.COMUNE,
+          provincia: nr.PROVINCIA,
+          indirizzo: nr.INDIRIZZO,
+          modello: nr.MODELLO,
+          codiceModello: nr.CODICE_MODELLO,
+          codicePDV: nr.CODICE_PDV_AAMS,
+          codiceSede: nr.CODICE_SEDE,
+          macPDA: nr.MAC_PDA,
+          outPct: nr.OUT_PCT,
+          stato: nr.DESCR_STATO,
+          em: nr.E_M,
+          noe: nr.NOE
+        };
+
+        m.timeline.push({
+          t,
+          in: nr.CNTTOTIN,
+          out: nr.CNTTOTOUT,
+          ratioOut: nr.ratioOut,
+          target: nr.target,
+          diffOut: nr.diffOut,
+          ciclo: nr.ciclo,
+          faseCiclo: nr.faseCiclo,
+          incassoGiornaliero: nr.INCASSO_GIORNALIERO,
+          mediaIncasso: nr.MEDIA_INCASSO
+        });
+
+        parsedCount++;
+      }
+
+      // aggiorna score per tutte
+      for(const m of state.machines.values()) computeScore(m);
+
+      state.sinottici.push({name, url, dt: dtFile, rowsParsed: parsedCount});
+      log(`OK ${name}: righe AWP parse = ${parsedCount}`);
+
+    }catch(e){
+      log(`ERRORE su ${url}: ${e.message}`);
+    }
+  }
+
+  state.lastLoadedAt = new Date();
+  renderMain();
+}
+
+/* =========================================================
+   UI: login + main
+   ========================================================= */
+function renderLogin(){
+  const app = document.getElementById("app");
+  app.innerHTML = `
+    <div class="login">
+      <div class="panel">
+        <div class="top">
+          <div class="logo"><b>AWP</b></div>
           <div>
-            <h2>Calcolatore AWP Analisi Pagamento</h2>
-            <p>Accedi per analizzare sinottici e storico macchine.</p>
+            <h1>Calcolatore AWP analisi pagamento</h1>
+            <div class="muted">Accesso richiesto</div>
           </div>
         </div>
-        <div class="login-b">
-          <div class="grid2">
-            <div>
-              <div class="small muted" style="margin-bottom:6px">Utente</div>
-              <input id="lu" class="input" placeholder="es. user" value="user" autocomplete="username" />
-            </div>
-            <div>
-              <div class="small muted" style="margin-bottom:6px">PIN</div>
-              <input id="lp" class="input" placeholder="es. 0000" value="0000" autocomplete="current-password" inputmode="numeric" />
-            </div>
+        <div class="body stack">
+          <div class="row">
+            <input id="u" placeholder="User (esempio: user)" style="flex:1;min-width:180px" value="user"/>
+            <input id="p" placeholder="PIN (esempio: 0000)" style="width:170px" value="0000"/>
           </div>
+          <div class="row">
+            <button id="btnLogin" style="flex:1">Entra</button>
+          </div>
+          <div id="loginMsg" class="hint"></div>
 
-          <div class="row" style="margin-top:12px">
-            <button id="blogin" class="btn primary">🔐 Entra</button>
-            <select id="theme" class="select" title="Tema">
+          <div class="divider"></div>
+
+          <div class="row" style="justify-content:space-between">
+            <div class="muted">Tema</div>
+            <select id="themeSel">
               <option value="dark">Scuro</option>
               <option value="light">Chiaro</option>
               <option value="amber">Amber</option>
               <option value="lime">Lime</option>
             </select>
           </div>
-
-          <div id="lerr" class="err"></div>
-
-          <div class="footnote">
-            Suggerimento: prova <span class="mono">user</span> + <span class="mono">0000</span> (se presente nel tuo users.json).
-          </div>
         </div>
       </div>
     </div>
   `;
 
-  $("#theme").value = STATE.ui.theme;
-  $("#theme").addEventListener("change", e=> setTheme(e.target.value));
+  const themeSel = document.getElementById("themeSel");
+  themeSel.value = state.settings.theme || "dark";
+  themeSel.onchange = () => {
+    state.settings.theme = themeSel.value;
+    saveSettings();
+    document.documentElement.setAttribute("data-theme", state.settings.theme);
+  };
 
-  const doLogin = ()=>{
-    const u = ($("#lu").value || "").trim();
-    const p = ($("#lp").value || "").trim();
-    const err = $("#lerr");
-
-    const found = STATE.users.find(x => String(x.user).toLowerCase()===u.toLowerCase() && String(x.pin)===p);
-    if(!found){
-      err.textContent = "Utente non trovato o PIN errato.";
-      err.classList.add("on");
+  document.getElementById("btnLogin").onclick = async () => {
+    const user = document.getElementById("u").value.trim();
+    const pin = document.getElementById("p").value.trim();
+    const res = validateLogin(user, pin);
+    const msg = document.getElementById("loginMsg");
+    if(!res.ok){
+      msg.textContent = "❌ " + res.msg;
       return;
     }
-    if(isExpired(found.expires)){
-      err.textContent = `Accesso scaduto (${found.expires}).`;
-      err.classList.add("on");
-      return;
-    }
-    err.classList.remove("on");
-    STATE.session = {
-      user: found.user,
-      level: found.level || "Base",
-      expires: found.expires
-    };
-    localStorage.setItem("sinotticolab_session", JSON.stringify(STATE.session));
-    renderAppShell();
-    bootLoad();
-  };
-
-  $("#blogin").addEventListener("click", doLogin);
-  $("#lp").addEventListener("keydown", e=> { if(e.key==="Enter") doLogin(); });
-  $("#lu").addEventListener("keydown", e=> { if(e.key==="Enter") doLogin(); });
-}
-
-function tryRestoreSession(){
-  const s = localStorage.getItem("sinotticolab_session");
-  if(!s) return false;
-  try{
-    const obj = JSON.parse(s);
-    if(!obj?.user) return false;
-    // validate against users list once loaded
-    const found = STATE.users.find(x => x.user===obj.user);
-    if(!found) return false;
-    if(isExpired(found.expires)) return false;
-    STATE.session = {user: found.user, level: found.level || "Base", expires: found.expires};
-    return true;
-  }catch{ return false; }
-}
-
-/* ==============================
-   XLSX parsing
-================================ */
-function normalizeRowKeys(row){
-  // Keep as-is; but map known names to stable internal keys
-  const get = (k)=> row[k];
-
-  return {
-    concess: get("codice concessionario") ?? null,
-    eserc: get("esercente") ?? null,
-    pda: get("PDA") ?? null,
-    pdv: get("PDV") ?? null,
-    idAwp: get("id awp") ?? null,
-    matricola: get("matricola") ?? null,
-    codModel: get("codice modello") ?? null,
-    nomeModel: get("modello") ?? null,
-    sw: get("software") ?? null,
-    totIn: safeNum(get("tot in")),
-    totOut: safeNum(get("tot out")),
-    totBet: safeNum(get("tot bet")),   // if exists
-    totWin: safeNum(get("tot win")),   // if exists
-    // Some files may include more columns, we keep raw too:
-    raw: row
+    state.user = res.user;
+    msg.textContent = "✅ Accesso OK (" + state.user.level + ")";
+    renderMain();
   };
 }
 
-function sheetToJson(workbook){
-  const sheetName = workbook.SheetNames[0];
-  const sheet = workbook.Sheets[sheetName];
-  // defval: keep empty cells as ""
-  const json = XLSX.utils.sheet_to_json(sheet, {defval:""});
-  return json;
-}
+function renderMain(){
+  const app = document.getElementById("app");
 
-async function loadOneSinottico(file, baseFolder){
-  const path = `${baseFolder}/${file}`;
-  const buf = await fetchArrayBuffer(path);
-  const wb = XLSX.read(buf, {type:"array"});
-  const rows0 = sheetToJson(wb);
+  const userInfo = state.user ? `${state.user.user} · ${state.user.level}${state.user.expires?` · scade ${state.user.expires}`:""}` : "—";
+  const folderInfo = state.folder ? `Cartella: ${state.folder}` : "Cartella: —";
+  const last = state.lastLoadedAt ? state.lastLoadedAt.toLocaleString() : "—";
 
-  // Ensure header columns are recognized; if not, try to guess by lowercasing keys
-  const rows = rows0.map(r=>{
-    const rr = {};
-    for(const k of Object.keys(r)){
-      rr[String(k).trim().toLowerCase()] = r[k];
-    }
-    return normalizeRowKeys(rr);
-  }).filter(r => r.idAwp || r.matricola); // keep only meaningful rows
-
-  const dt = parseDateFromFilename(file) || new Date(0);
-  return {file, dt, rows};
-}
-
-/* ==============================
-   Analysis pipeline
-================================ */
-function upsertMachineFromRow(row){
-  const id = String(row.idAwp || "").trim();
-  if(!id) return null;
-
-  const existing = STATE.machines.get(id) || {
-    idAwp: id,
-    concess: row.concess,
-    eserc: row.eserc,
-    pda: row.pda,
-    pdv: row.pdv,
-    matricola: row.matricola,
-    codModel: row.codModel,
-    nomeModel: row.nomeModel,
-    sw: row.sw,
-    ciclo: null,
-    history: [], // {dt,file,totIn,totOut,raw}
-    deltas: [],  // {dtFrom,dtTo,fileTo, dIn, dOut, rtp}
-    stats: null
-  };
-
-  // keep best-known metadata
-  existing.concess = existing.concess || row.concess;
-  existing.eserc = existing.eserc || row.eserc;
-  existing.pda = existing.pda || row.pda;
-  existing.pdv = existing.pdv || row.pdv;
-  existing.matricola = existing.matricola || row.matricola;
-  existing.codModel = existing.codModel || row.codModel;
-  existing.nomeModel = existing.nomeModel || row.nomeModel;
-  existing.sw = existing.sw || row.sw;
-
-  // ciclo
-  const cm = String(existing.codModel || "").trim();
-  if(cm && STATE.cicloByModel.has(cm)) existing.ciclo = STATE.cicloByModel.get(cm);
-
-  STATE.machines.set(id, existing);
-  return existing;
-}
-
-function buildHistoryFromSnapshots(){
-  STATE.machines.clear();
-
-  for(const snap of STATE.snapshots){
-    for(const r of snap.rows){
-      const m = upsertMachineFromRow(r);
-      if(!m) continue;
-      m.history.push({
-        dt: snap.dt,
-        file: snap.file,
-        totIn: r.totIn,
-        totOut: r.totOut,
-        raw: r.raw,
-        concess: r.concess,
-        eserc: r.eserc,
-        pda: r.pda,
-        pdv: r.pdv,
-        codModel: r.codModel,
-        nomeModel: r.nomeModel
-      });
-    }
-  }
-
-  // sort and compute deltas
-  for(const m of STATE.machines.values()){
-    m.history.sort((a,b)=>a.dt-b.dt);
-    m.deltas = [];
-
-    for(let i=1;i<m.history.length;i++){
-      const prev = m.history[i-1];
-      const cur  = m.history[i];
-      const dIn  = (cur.totIn!==null && prev.totIn!==null) ? (cur.totIn - prev.totIn) : null;
-      const dOut = (cur.totOut!==null && prev.totOut!==null) ? (cur.totOut - prev.totOut) : null;
-
-      // handle resets/rollovers: ignore negative deltas
-      const dIn2  = (dIn!==null && dIn>=0) ? dIn : null;
-      const dOut2 = (dOut!==null && dOut>=0) ? dOut : null;
-      const rtp   = (dIn2!==null && dOut2!==null && dIn2>0) ? (dOut2/dIn2) : null;
-
-      m.deltas.push({
-        dtFrom: prev.dt, dtTo: cur.dt, fileTo: cur.file,
-        dIn: dIn2, dOut: dOut2, rtp
-      });
-    }
-  }
-}
-
-function computeModelBaselines(){
-  STATE.modelBaselines.clear();
-
-  // collect rtp per model across all machines and all deltas (filter garbage)
-  const map = new Map(); // model -> [rtp]
-  for(const m of STATE.machines.values()){
-    const model = String(m.codModel || "").trim();
-    if(!model) continue;
-    for(const d of m.deltas){
-      if(d.rtp===null) continue;
-      if(d.dIn<200) continue;      // ignore tiny intervals
-      if(d.rtp<0 || d.rtp>3) continue; // sanity
-      if(!map.has(model)) map.set(model, []);
-      map.get(model).push(d.rtp);
-    }
-  }
-  for(const [model, arr] of map.entries()){
-    const med = median(arr);
-    const md  = mad(arr);
-    STATE.modelBaselines.set(model, {medianRtp: med, madRtp: md});
-  }
-}
-
-function computeMachineStats(){
-  for(const m of STATE.machines.values()){
-    const model = String(m.codModel || "").trim();
-    const base = STATE.modelBaselines.get(model) || {medianRtp:null, madRtp:null};
-
-    const deltas = m.deltas.filter(x=>x.rtp!==null && x.dIn!==null && x.dIn>0);
-    const last = deltas.length ? deltas[deltas.length-1] : null;
-
-    // recent window
-    const lastN = deltas.slice(-6);
-    const rtpRecent = lastN.length ? (lastN.reduce((s,x)=>s+x.rtp,0)/lastN.length) : null;
-
-    // robust z-score vs model baseline
-    const z = (rtpRecent!==null) ? robustZ(rtpRecent, base.medianRtp, base.madRtp) : 0;
-
-    // payout-ish heuristics:
-    // - high recent RTP compared to baseline
-    // - big out spike on last interval
-    // - consistency: 2-3 consecutive high RTPs
-    let spike = 0;
-    if(last && base.medianRtp!==null && last.dIn && last.dIn>0 && last.rtp!==null){
-      const zLast = robustZ(last.rtp, base.medianRtp, base.madRtp);
-      spike = clamp(sigmoid(zLast) , 0, 1);
-    }
-
-    const highCount = lastN.filter(x=>{
-      if(base.medianRtp===null || base.madRtp===null || x.rtp===null) return false;
-      return robustZ(x.rtp, base.medianRtp, base.madRtp) > 1.2;
-    }).length;
-
-    const consistency = clamp(highCount/6, 0, 1);
-
-    // cycle progress (informativo, non “magico”)
-    let cycleProgress = null;
-    if(m.ciclo && m.history.length){
-      const h = m.history[m.history.length-1];
-      if(Number.isFinite(h.totIn)){
-        cycleProgress = (h.totIn % m.ciclo) / m.ciclo;
-      }
-    }
-
-    // PayScore 0..100
-    // z -> 0..1, spike -> 0..1, consistency -> 0..1
-    const z01 = clamp(sigmoid(z), 0, 1);
-    const score = Math.round(100 * clamp(0.55*z01 + 0.30*spike + 0.15*consistency, 0, 1));
-
-    let label = "Neutra";
-    let sev = "warn";
-    if(score>=75){ label="Probabile pagamento"; sev="good"; }
-    else if(score<=35){ label="Poco probabile"; sev="bad"; }
-
-    m.stats = {
-      baseMedian: base.medianRtp,
-      rtpRecent,
-      last,
-      score,
-      label,
-      sev,
-      cycleProgress
-    };
-  }
-}
-
-function rebuildAll(){
-  buildHistoryFromSnapshots();
-  computeModelBaselines();
-  computeMachineStats();
-}
-
-/* ==============================
-   App UI
-================================ */
-function renderAppShell(){
-  setTheme(STATE.ui.theme);
-
-  const root = $("#app");
-  root.innerHTML = `
+  app.innerHTML = `
     <div class="wrap">
       <div class="topbar">
         <div class="brand">
-          <div class="logo"></div>
+          <div class="logo"><b>LAB</b></div>
           <div>
-            <h1>SinotticoLab <span class="muted">|</span> Analisi AWP</h1>
-            <small id="sessionInfo"></small>
+            <h1>SinotticoLab</h1>
+            <div class="sub">${userInfo} · ${folderInfo} · Ultima analisi: ${last}</div>
           </div>
         </div>
-
-        <div class="top-actions">
-          <span class="pill" id="loadPill">Pronto</span>
-
-          <select id="theme" class="select" title="Tema">
+        <div class="actions">
+          <select id="themeSel">
             <option value="dark">Scuro</option>
             <option value="light">Chiaro</option>
             <option value="amber">Amber</option>
             <option value="lime">Lime</option>
           </select>
-
-          <button class="btn primary" id="btnAnalyze">🧠 Analizza sinottici</button>
-          <button class="btn" id="btnChat">💬 NOVA</button>
-          <button class="btn danger" id="btnLogout">🚪 Esci</button>
+          <input id="folderOverride" placeholder="Folder override (es. Dati)" style="width:220px"/>
+          <button id="btnAnalyze">Analizza tutti i sinottici</button>
+          <button id="btnLogout">Esci</button>
         </div>
       </div>
 
       <div class="grid">
-        <div class="card">
-          <div class="card-h">
-            <div>
-              <h2>Macchine</h2>
-              <div class="hint">Ricerca, filtri e stato “pagamento” con PayScore.</div>
-            </div>
-            <div class="row">
-              <label class="toggle"><input type="checkbox" id="onlyLikely"> Solo probabile pagamento</label>
-            </div>
-          </div>
-          <div class="card-b">
-            <div class="row">
-              <input class="input" id="search" placeholder="Cerca per esercente, PDV, PDA, ID AWP, modello..." />
-              <select class="select" id="range">
-                <option value="30">Ultimi 30 giorni</option>
-                <option value="90">Ultimi 90 giorni</option>
-                <option value="365">Ultimi 365 giorni</option>
-                <option value="99999">Tutto</option>
-              </select>
-            </div>
+        <div class="stack">
 
-            <div class="kpis">
-              <div class="kpi"><div class="lab">Sinottici caricati</div><div class="val" id="kSin">—</div><div class="sub" id="kSinSub">—</div></div>
-              <div class="kpi"><div class="lab">Macchine uniche</div><div class="val" id="kMac">—</div><div class="sub">ID AWP distinti</div></div>
-              <div class="kpi"><div class="lab">Probabile pagamento</div><div class="val" id="kPay">—</div><div class="sub">PayScore ≥ 75</div></div>
-              <div class="kpi"><div class="lab">Modelli</div><div class="val" id="kMod">—</div><div class="sub">Codici modello distinti</div></div>
+          <div class="card">
+            <div class="hd">
+              <h2>Caricamento & Log</h2>
+              <span class="chip">XLSX: ${typeof XLSX !== "undefined" ? "OK" : "NO"}</span>
             </div>
-
-            <div style="margin-top:12px;overflow:auto;border-radius:14px;border:1px solid var(--border)">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Stato</th>
-                    <th>Esercente / PDV</th>
-                    <th>ID AWP</th>
-                    <th>Modello</th>
-                    <th>Ultimo Δ</th>
-                    <th>RTP recente</th>
-                    <th>Ciclo</th>
-                    <th>PayScore</th>
-                  </tr>
-                </thead>
-                <tbody id="tbl"></tbody>
-              </table>
-            </div>
-
-            <div class="small muted" style="margin-top:10px">
-              Nota: il PayScore è una stima basata sui tuoi storici (deltas IN/OUT) e baseline per modello, non una “certezza matematica”.
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="card-h">
-            <div>
-              <h2>Diagnostica caricamento</h2>
-              <div class="hint">Se non vedi macchine, qui trovi l’errore vero.</div>
-            </div>
-          </div>
-          <div class="card-b">
-            <div class="split">
-              <div>
-                <div class="small muted">Manifest</div>
-                <pre id="dbgManifest" class="mono" style="white-space:pre-wrap;margin:8px 0 0;padding:10px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.02);min-height:120px"></pre>
-              </div>
-              <div>
-                <div class="small muted">Log</div>
-                <pre id="dbgLog" class="mono" style="white-space:pre-wrap;margin:8px 0 0;padding:10px;border:1px solid var(--border);border-radius:14px;background:rgba(255,255,255,.02);min-height:120px"></pre>
-              </div>
-            </div>
-
-            <div style="margin-top:12px" class="row">
-              <button class="btn" id="btnQuickSelfTest">🧪 Self-test (fetch xlsx + parse)</button>
-            </div>
-
-            <div class="footnote">
-              Se GitHub ha rinominato la cartella (Dati/dati) o c’è un 404, lo vedi qui subito.
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Machine modal -->
-      <div class="modal" id="mModal">
-        <div class="box">
-          <div class="mh">
-            <div>
-              <h3 id="mTitle">Macchina</h3>
-              <div class="small muted" id="mSub">—</div>
-            </div>
-            <div class="x" id="mClose">✕</div>
-          </div>
-          <div class="mb">
-            <div class="row" style="justify-content:space-between;align-items:center">
+            <div class="bd stack">
               <div class="row">
-                <label class="toggle"><input type="checkbox" id="showDeltas" checked> Mostra deltas (Δ)</label>
+                <input id="search" placeholder="Cerca: locale, comune, modello, CODEID, PDV..." style="flex:1"/>
               </div>
               <div class="row">
-                <button class="btn" data-range="30">30g</button>
-                <button class="btn" data-range="90">90g</button>
-                <button class="btn" data-range="99999">Tutto</button>
+                <select id="filterScore">
+                  <option value="all">Tutte</option>
+                  <option value="high">Prob. pagamento alta</option>
+                  <option value="mid">Prob. pagamento media</option>
+                  <option value="low">Prob. pagamento bassa</option>
+                </select>
+
+                <select id="filterComune" style="flex:1;min-width:170px">
+                  <option value="">Tutti i comuni</option>
+                </select>
+              </div>
+
+              <div class="log" id="log"></div>
+
+              <div class="row">
+                <span class="chip">Macchine: <b id="countMachines">0</b></span>
+                <span class="chip">Sinottici letti: <b id="countFiles">0</b></span>
               </div>
             </div>
+          </div>
 
-            <div style="margin-top:12px">
-              <canvas id="mChart" height="120"></canvas>
+          <div class="card">
+            <div class="hd">
+              <h2>Lista AWP</h2>
+              <span class="muted" style="font-size:12px">Click per dettagli</span>
             </div>
-
-            <div style="margin-top:12px;overflow:auto;border-radius:14px;border:1px solid var(--border)">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Data</th>
-                    <th>File</th>
-                    <th>Tot IN</th>
-                    <th>Tot OUT</th>
-                    <th>Δ IN</th>
-                    <th>Δ OUT</th>
-                    <th>RTP Δ</th>
-                    <th>PDA</th>
-                    <th>PDV</th>
-                  </tr>
-                </thead>
-                <tbody id="mTable"></tbody>
-              </table>
-            </div>
-
-            <div class="small muted" style="margin-top:10px">
-              Suggerimento: usa “Mostra deltas” per capire gli stacchi reali tra un sinottico e l’altro.
+            <div class="bd" style="padding:0">
+              <div style="max-height:520px;overflow:auto">
+                <table class="table" id="tblMachines">
+                  <thead>
+                    <tr>
+                      <th>Prob.</th>
+                      <th>Locale</th>
+                      <th>Comune</th>
+                      <th>Modello</th>
+                      <th>IN</th>
+                      <th>OUT%</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
             </div>
           </div>
+
         </div>
-      </div>
 
-      <!-- Chat modal -->
-      <div class="modal" id="cModal">
-        <div class="box">
-          <div class="mh">
-            <div>
-              <h3>N.O.V.A. (Neural Operational Virtual Analyst)</h3>
-              <div class="small muted">Chat interna: risponde usando SOLO i dati del programma.</div>
+        <div class="stack">
+
+          <div class="card">
+            <div class="hd">
+              <h2>Dettaglio macchina</h2>
+              <span class="muted" id="selTitle">Nessuna selezionata</span>
             </div>
-            <div class="x" id="cClose">✕</div>
+            <div class="bd stack">
+              <div class="kpi">
+                <div class="box"><div class="t">CODEID</div><div class="v" id="k_codeid">—</div></div>
+                <div class="box"><div class="t">Locale</div><div class="v" id="k_locale">—</div></div>
+                <div class="box"><div class="t">IN totale</div><div class="v" id="k_in">—</div></div>
+                <div class="box"><div class="t">OUT totale</div><div class="v" id="k_out">—</div></div>
+              </div>
+
+              <div class="row">
+                <span class="pill" id="pillScore">—</span>
+                <span class="chip" id="k_model">Modello: —</span>
+                <span class="chip" id="k_ciclo">Ciclo: —</span>
+                <span class="chip" id="k_pdv">PDV: —</span>
+                <span class="chip" id="k_pda">PDA: —</span>
+              </div>
+
+              <div class="row">
+                <label class="muted" style="font-size:12px">Punti grafico</label>
+                <input type="range" id="rangePts" min="60" max="600" value="${state.settings.downsamplePoints}" style="flex:1"/>
+                <span class="chip"><span id="rangePtsVal">${state.settings.downsamplePoints}</span></span>
+              </div>
+
+              <canvas id="chart" height="120"></canvas>
+
+              <div class="divider"></div>
+
+              <div class="row" style="justify-content:space-between">
+                <h2 style="font-size:13px;margin:0">Storico (ultime righe)</h2>
+                <button id="btnExportCSV">Esporta CSV (solo macchina)</button>
+              </div>
+
+              <div style="max-height:260px;overflow:auto">
+                <table class="table" id="tblHistory">
+                  <thead>
+                    <tr>
+                      <th>Data</th>
+                      <th>IN</th>
+                      <th>OUT</th>
+                      <th>OUT%</th>
+                      <th>Diff vs Target</th>
+                      <th>Fase ciclo</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+
+            </div>
           </div>
-          <div class="mb">
-            <div class="chat">
+
+          <div class="card">
+            <div class="hd">
+              <h2>Chat IA (S.A.G.A.)</h2>
+              <span class="muted" style="font-size:12px">Guida e interrogazione dati</span>
+            </div>
+            <div class="bd chatbox">
               <div class="chatlog" id="chatlog"></div>
-              <div class="chatbar">
-                <input id="chatin" class="input" placeholder="Esempi: 'quale macchina è in pagamento?' / 'quando paga 12345?' / 'mostrami marim'">
-                <button class="btn primary" id="chatsend">Invia</button>
+              <div class="row">
+                <input id="chatin" placeholder="Es: quale macchina è in pagamento? / quando paga questa macchina?" style="flex:1"/>
+                <button id="chatsend">Invia</button>
               </div>
-              <div class="chips">
-                <div class="chip" data-q="Quale macchina è in pagamento?">Quale è in pagamento?</div>
-                <div class="chip" data-q="Mostrami le top 10 per PayScore">Top 10 PayScore</div>
-                <div class="chip" data-q="Cerca modello MARIM">Cerca modello</div>
-                <div class="chip" data-q="Spiegami PayScore e come lo calcoli">Cos’è PayScore?</div>
-              </div>
-              <div class="footnote">
-                NOVA: se chiedi cose fuori contesto (meteo, politica, ecc) ti riporta su domande AWP/sinottici.
+              <div class="muted" style="font-size:12px">
+                S.A.G.A. risponde solo su dati del programma (sinottici, macchine, cicli). Se chiedi altro ti reindirizza. 🧩
               </div>
             </div>
           </div>
-        </div>
-      </div>
 
+        </div>
+
+      </div>
     </div>
   `;
 
-  $("#sessionInfo").textContent = `Utente: ${STATE.session.user} • Livello: ${STATE.session.level}${STATE.session.expires ? " • Scadenza: "+STATE.session.expires : ""}`;
-
-  $("#theme").value = STATE.ui.theme;
-  $("#theme").addEventListener("change", e=> setTheme(e.target.value));
-
-  $("#btnLogout").addEventListener("click", ()=>{
-    localStorage.removeItem("sinotticolab_session");
-    STATE.session = null;
-    renderLogin();
-  });
-
-  $("#btnAnalyze").addEventListener("click", bootLoad);
-
-  $("#search").value = STATE.ui.search;
-  $("#search").addEventListener("input", e=>{
-    STATE.ui.search = e.target.value;
-    renderTable();
-  });
-
-  $("#onlyLikely").checked = STATE.ui.onlyLikely;
-  $("#onlyLikely").addEventListener("change", e=>{
-    STATE.ui.onlyLikely = e.target.checked;
-    renderTable();
-  });
-
-  $("#range").value = String(STATE.ui.rangeDays);
-  $("#range").addEventListener("change", e=>{
-    STATE.ui.rangeDays = Number(e.target.value);
-    renderTable();
-  });
-
-  // Modals
-  $("#mClose").addEventListener("click", ()=> $("#mModal").classList.remove("on"));
-  $("#mModal").addEventListener("click", e=> { if(e.target.id==="mModal") $("#mModal").classList.remove("on"); });
-
-  $("#btnChat").addEventListener("click", ()=>{
-    $("#cModal").classList.add("on");
-    novaHello();
-  });
-  $("#cClose").addEventListener("click", ()=> $("#cModal").classList.remove("on"));
-  $("#cModal").addEventListener("click", e=> { if(e.target.id==="cModal") $("#cModal").classList.remove("on"); });
-
-  $("#chatsend").addEventListener("click", novaSend);
-  $("#chatin").addEventListener("keydown", e=> { if(e.key==="Enter") novaSend(); });
-  $$(".chip").forEach(ch=>{
-    ch.addEventListener("click", ()=>{
-      $("#chatin").value = ch.dataset.q;
-      novaSend();
-    });
-  });
-
-  $("#btnQuickSelfTest").addEventListener("click", quickSelfTest);
-
-  renderKPIs();
-  renderTable();
-}
-
-function logLine(s){
-  const el = $("#dbgLog");
-  if(!el) return;
-  el.textContent += (el.textContent ? "\n" : "") + s;
-}
-function setPill(t, mood=""){
-  const p = $("#loadPill");
-  if(!p) return;
-  p.textContent = t;
-  p.style.borderColor = mood==="good" ? "rgba(52,211,153,.35)" : mood==="bad" ? "rgba(251,113,133,.35)" : "var(--border)";
-  p.style.background = mood==="good" ? "rgba(52,211,153,.10)" : mood==="bad" ? "rgba(251,113,133,.10)" : "rgba(255,255,255,.03)";
-  p.style.color = mood==="good" ? "var(--text)" : mood==="bad" ? "var(--text)" : "var(--muted)";
-}
-
-function renderKPIs(){
-  const sinCount = STATE.snapshots.length;
-  const machines = [...STATE.machines.values()];
-  const macCount = machines.length;
-  const payCount = machines.filter(m=>m.stats && m.stats.score>=75).length;
-  const modCount = new Set(machines.map(m=>String(m.codModel||"").trim()).filter(Boolean)).size;
-
-  $("#kSin").textContent = fmt(sinCount);
-  const dates = STATE.snapshots.map(s=>s.dt).filter(d=>d && d.getTime()>0).sort((a,b)=>a-b);
-  $("#kSinSub").textContent = dates.length ? `Da ${isoShort(dates[0])} a ${isoShort(dates[dates.length-1])}` : "—";
-  $("#kMac").textContent = fmt(macCount);
-  $("#kPay").textContent = fmt(payCount);
-  $("#kMod").textContent = fmt(modCount);
-}
-
-function machineMatches(m, q){
-  if(!q) return true;
-  q = q.toLowerCase();
-  const fields = [
-    m.eserc, m.pda, m.pdv, m.idAwp, m.matricola, m.codModel, m.nomeModel, m.concess
-  ].map(x=>String(x||"").toLowerCase());
-  return fields.some(x=>x.includes(q));
-}
-
-function sevDot(sev){
-  if(sev==="good") return `<span class="badge"><span class="dot good"></span>Pagamento</span>`;
-  if(sev==="bad") return `<span class="badge"><span class="dot bad"></span>Poco</span>`;
-  return `<span class="badge"><span class="dot warn"></span>Neutra</span>`;
-}
-
-function renderTable(){
-  const tb = $("#tbl");
-  if(!tb) return;
-
-  const q = STATE.ui.search.trim().toLowerCase();
-  const now = new Date();
-  const cutoff = new Date(now.getTime() - (STATE.ui.rangeDays*24*3600*1000));
-
-  let list = [...STATE.machines.values()].filter(m=>{
-    // must have at least one history record in range
-    const inRange = m.history.some(h=>h.dt >= cutoff);
-    if(!inRange) return false;
-    if(!machineMatches(m, q)) return false;
-    if(STATE.ui.onlyLikely && (!m.stats || m.stats.score<75)) return false;
-    return true;
-  });
-
-  // sort by PayScore desc then recent activity
-  list.sort((a,b)=>{
-    const sa = a.stats?.score ?? -1;
-    const sb = b.stats?.score ?? -1;
-    if(sb!==sa) return sb-sa;
-    const da = a.stats?.last?.dtTo?.getTime?.() ?? 0;
-    const db = b.stats?.last?.dtTo?.getTime?.() ?? 0;
-    return db-da;
-  });
-
-  const rows = list.map(m=>{
-    const st = m.stats || {score:null, sev:"warn", rtpRecent:null, last:null, cycleProgress:null};
-    const last = st.last;
-    const lastStr = last ? `ΔIN ${fmt(last.dIn)}\nΔOUT ${fmt(last.dOut)}` : "—";
-    const rtp = st.rtpRecent;
-    const cyc = m.ciclo ? `${fmt(m.ciclo)}${st.cycleProgress!==null ? ` (${Math.round(st.cycleProgress*100)}%)` : ""}` : "—";
-
-    return `
-      <tr>
-        <td>${sevDot(st.sev)}<div class="small muted" style="margin-top:6px">${st.label || "—"}</div></td>
-        <td>
-          <div style="font-weight:900">${m.eserc || "—"}</div>
-          <div class="small muted">PDV: <span class="mono">${m.pdv || "—"}</span> • PDA: <span class="mono">${m.pda || "—"}</span></div>
-        </td>
-        <td class="mono click" data-open="${m.idAwp}">${m.idAwp}</td>
-        <td>
-          <div style="font-weight:900">${m.nomeModel || "—"}</div>
-          <div class="small muted">Mod: <span class="mono">${m.codModel || "—"}</span></div>
-        </td>
-        <td class="mono">${lastStr.replaceAll("\n","<br>")}</td>
-        <td><span class="badge">${fmtPct(rtp)}</span><div class="small muted" style="margin-top:6px">baseline: ${fmtPct(st.baseMedian)}</div></td>
-        <td class="mono">${cyc}</td>
-        <td><span class="badge">${st.score!==null ? st.score : "—"}</span></td>
-      </tr>
-    `;
-  }).join("");
-
-  tb.innerHTML = rows || `<tr><td colspan="8" class="muted">Nessuna macchina trovata con i filtri attuali.</td></tr>`;
-
-  // open handlers
-  $$('[data-open]').forEach(el=>{
-    el.addEventListener("click", ()=> openMachine(el.dataset.open));
-  });
-
-  renderKPIs();
-}
-
-/* ==============================
-   Machine modal + chart
-================================ */
-let machineChart = null;
-function openMachine(id){
-  const m = STATE.machines.get(String(id));
-  if(!m) return;
-
-  $("#mModal").classList.add("on");
-  $("#mTitle").textContent = `ID AWP ${m.idAwp} • ${m.eserc || "—"}`;
-  $("#mSub").textContent = `PDV ${m.pdv || "—"} • PDA ${m.pda || "—"} • Modello ${m.nomeModel || "—"} (${m.codModel || "—"}) • PayScore ${m.stats?.score ?? "—"}`;
-
-  // default from global
-  $("#showDeltas").checked = STATE.ui.showDeltas;
-
-  const rangeBtns = $$('#mModal [data-range]');
-  rangeBtns.forEach(b=>{
-    b.onclick = ()=> renderMachineDetails(m, Number(b.dataset.range), $("#showDeltas").checked);
-  });
-  $("#showDeltas").onchange = ()=>{
-    STATE.ui.showDeltas = $("#showDeltas").checked;
-    renderMachineDetails(m, 99999, $("#showDeltas").checked);
+  // set theme UI
+  const themeSel = document.getElementById("themeSel");
+  themeSel.value = state.settings.theme || "dark";
+  themeSel.onchange = () => {
+    state.settings.theme = themeSel.value;
+    saveSettings();
+    document.documentElement.setAttribute("data-theme", state.settings.theme);
   };
 
-  renderMachineDetails(m, 99999, $("#showDeltas").checked);
+  // folder override
+  const folderOverride = document.getElementById("folderOverride");
+  folderOverride.value = state.settings.folderOverride || "";
+  folderOverride.onchange = () => {
+    state.settings.folderOverride = folderOverride.value.trim();
+    saveSettings();
+  };
+
+  document.getElementById("btnLogout").onclick = () => {
+    state.user = null;
+    renderLogin();
+  };
+
+  document.getElementById("btnAnalyze").onclick = async () => {
+    document.getElementById("log").textContent = "";
+    log("Avvio analisi completa…");
+    try{
+      await loadCicloSlot();
+      await analyzeAll();
+      log("Analisi completata ✅");
+    }catch(e){
+      log("ERRORE: " + e.message);
+    }finally{
+      refreshList();
+    }
+  };
+
+  // range pts
+  const rangePts = document.getElementById("rangePts");
+  rangePts.oninput = () => {
+    document.getElementById("rangePtsVal").textContent = rangePts.value;
+  };
+  rangePts.onchange = () => {
+    state.settings.downsamplePoints = parseInt(rangePts.value,10);
+    saveSettings();
+    if(state.selectedCodeid) showMachine(state.selectedCodeid);
+  };
+
+  // filters
+  document.getElementById("search").oninput = refreshList;
+  document.getElementById("filterScore").onchange = refreshList;
+  document.getElementById("filterComune").onchange = refreshList;
+
+  // chat
+  setupChat();
+
+  refreshList();
 }
 
-function renderMachineDetails(m, rangeDays, showDeltas){
-  const now = new Date();
-  const cutoff = new Date(now.getTime() - (rangeDays*24*3600*1000));
+function refreshComuneOptions(){
+  const sel = document.getElementById("filterComune");
+  if(!sel) return;
+  const comuni = new Set();
+  for(const m of state.machines.values()){
+    if(m.meta?.comune) comuni.add(m.meta.comune);
+  }
+  const sorted = [...comuni].sort((a,b)=>a.localeCompare(b));
+  const cur = sel.value;
+  sel.innerHTML = `<option value="">Tutti i comuni</option>` + sorted.map(c=>`<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+  sel.value = cur;
+}
 
-  const hist = m.history.filter(h=>h.dt>=cutoff);
-  const deltas = m.deltas.filter(d=>d.dtTo>=cutoff);
+function refreshList(){
+  const tbody = document.querySelector("#tblMachines tbody");
+  if(!tbody) return;
 
-  // Table
-  const mapDeltaByTo = new Map(deltas.map(d=>[d.fileTo, d]));
-  $("#mTable").innerHTML = hist.map(h=>{
-    const d = mapDeltaByTo.get(h.file) || null;
+  document.getElementById("countMachines").textContent = state.machines.size;
+  document.getElementById("countFiles").textContent = state.sinottici.length;
+
+  refreshComuneOptions();
+
+  const q = (document.getElementById("search")?.value || "").trim().toLowerCase();
+  const fScore = document.getElementById("filterScore")?.value || "all";
+  const fComune = document.getElementById("filterComune")?.value || "";
+
+  const items = [...state.machines.values()];
+
+  // sort by score desc
+  items.sort((a,b)=> (b.score||0) - (a.score||0));
+
+  const filtered = items.filter(m=>{
+    if(fComune && (m.meta?.comune||"") !== fComune) return false;
+    if(fScore==="high" && (m.score||0) < 0.72) return false;
+    if(fScore==="mid" && !((m.score||0) >= 0.50 && (m.score||0) < 0.72)) return false;
+    if(fScore==="low" && (m.score||0) >= 0.50) return false;
+
+    if(!q) return true;
+    const hay = [
+      m.codeid,
+      m.meta?.denom,
+      m.meta?.comune,
+      m.meta?.provincia,
+      m.meta?.modello,
+      m.meta?.codicePDV,
+      m.meta?.codiceSede,
+      m.meta?.macPDA
+    ].filter(Boolean).join(" ").toLowerCase();
+    return hay.includes(q);
+  });
+
+  tbody.innerHTML = filtered.slice(0, 5000).map(m=>{
+    const last = latestPoint(m);
+    const inTot = last?.in ?? null;
+    const ratio = last?.ratioOut ?? null;
+    const scoreClass = m.scoreClass || "warn";
+    const scoreTxt = m.scoreLabel || "—";
     return `
-      <tr>
-        <td>${isoShort(h.dt)}</td>
-        <td class="mono">${h.file}</td>
-        <td class="mono">${fmt(h.totIn)}</td>
-        <td class="mono">${fmt(h.totOut)}</td>
-        <td class="mono">${d ? fmt(d.dIn) : "—"}</td>
-        <td class="mono">${d ? fmt(d.dOut) : "—"}</td>
-        <td>${d && d.rtp!==null ? `<span class="badge">${fmtPct(d.rtp)}</span>` : "—"}</td>
-        <td class="mono">${h.pda || m.pda || "—"}</td>
-        <td class="mono">${h.pdv || m.pdv || "—"}</td>
+      <tr data-codeid="${escapeAttr(m.codeid)}" style="cursor:pointer">
+        <td><span class="pill ${scoreClass}">${scoreTxt}</span></td>
+        <td>${escapeHtml(m.meta?.denom || "—")}</td>
+        <td>${escapeHtml(m.meta?.comune || "—")}</td>
+        <td>${escapeHtml(m.meta?.modello || "—")}</td>
+        <td>${money(inTot)}</td>
+        <td>${ratio!=null ? pct(ratio) : "—"}</td>
       </tr>
     `;
   }).join("");
 
-  // Chart
-  const labels = hist.map(h=> isoShort(h.dt));
-  const totIn = hist.map(h=> h.totIn ?? null);
-  const totOut = hist.map(h=> h.totOut ?? null);
-
-  const dIn = hist.map(h=>{
-    const d = mapDeltaByTo.get(h.file);
-    return d ? d.dIn : null;
-  });
-  const dOut = hist.map(h=>{
-    const d = mapDeltaByTo.get(h.file);
-    return d ? d.dOut : null;
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    tr.onclick = ()=> {
+      const codeid = tr.getAttribute("data-codeid");
+      showMachine(codeid);
+    };
   });
 
-  const ctx = $("#mChart").getContext("2d");
-  if(machineChart) machineChart.destroy();
+  // se nessuna selezionata, seleziona la prima
+  if(!state.selectedCodeid && filtered.length){
+    showMachine(filtered[0].codeid);
+  }
+}
 
-  const datasets = showDeltas ? [
-    {label:"Δ IN", data:dIn, borderWidth:2, tension:.25},
-    {label:"Δ OUT", data:dOut, borderWidth:2, tension:.25},
-  ] : [
-    {label:"Tot IN", data:totIn, borderWidth:2, tension:.25},
-    {label:"Tot OUT", data:totOut, borderWidth:2, tension:.25},
-  ];
+function latestPoint(machine){
+  const tl = (machine.timeline||[]).filter(p=>p.t && p.in!=null && p.out!=null);
+  if(!tl.length) return null;
+  tl.sort((a,b)=>a.t-b.t);
+  return tl[tl.length-1];
+}
 
-  machineChart = new Chart(ctx, {
-    type:"line",
-    data:{labels, datasets},
+let chartInstance = null;
+function downsampleSeries(points, maxPts){
+  if(points.length <= maxPts) return points;
+  const step = Math.ceil(points.length / maxPts);
+  const out = [];
+  for(let i=0;i<points.length;i+=step) out.push(points[i]);
+  return out;
+}
+
+function showMachine(codeid){
+  state.selectedCodeid = codeid;
+  const m = state.machines.get(codeid);
+  if(!m) return;
+
+  document.getElementById("selTitle").textContent = codeid;
+  document.getElementById("k_codeid").textContent = codeid;
+  document.getElementById("k_locale").textContent = m.meta?.denom || "—";
+
+  const last = latestPoint(m);
+  document.getElementById("k_in").textContent = money(last?.in);
+  document.getElementById("k_out").textContent = money(last?.out);
+
+  const pill = document.getElementById("pillScore");
+  pill.className = `pill ${m.scoreClass||"warn"}`;
+  pill.textContent = `Prob. pagamento: ${m.scoreLabel||"—"} (${Math.round((m.score||0)*100)}%)`;
+
+  document.getElementById("k_model").textContent = `Modello: ${m.meta?.modello || "—"} (${m.meta?.codiceModello || "—"})`;
+  document.getElementById("k_ciclo").textContent = `Ciclo: ${last?.ciclo ? money(last.ciclo) : "—"}`;
+  document.getElementById("k_pdv").textContent = `PDV: ${m.meta?.codicePDV || "—"} · Sede: ${m.meta?.codiceSede || "—"}`;
+  document.getElementById("k_pda").textContent = `PDA: ${m.meta?.macPDA || "—"} · NOE: ${m.meta?.noe || "—"}`;
+
+  // build chart series
+  let tl = (m.timeline||[]).filter(p=>p.t && p.in!=null && p.out!=null)
+    .sort((a,b)=>a.t-b.t);
+
+  const maxPts = state.settings.downsamplePoints || 180;
+  tl = downsampleSeries(tl, maxPts);
+
+  const labels = tl.map(p => p.t.toLocaleString());
+  const serieIn = tl.map(p => p.in);
+  const serieOut = tl.map(p => p.out);
+  const serieRatio = tl.map(p => p.ratioOut!=null ? (p.ratioOut*100) : null);
+
+  const ctx = document.getElementById("chart").getContext("2d");
+  if(chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels,
+      datasets: [
+        {label:"CNTTOTIN (€)", data: serieIn, yAxisID:"y", tension:.25, pointRadius:0, borderWidth:2},
+        {label:"CNTTOTOUT (€)", data: serieOut, yAxisID:"y", tension:.25, pointRadius:0, borderWidth:2},
+        {label:"OUT% (calcolata)", data: serieRatio, yAxisID:"y2", tension:.25, pointRadius:0, borderWidth:2},
+      ]
+    },
     options:{
       responsive:true,
       maintainAspectRatio:false,
-      interaction:{mode:"index", intersect:false},
       plugins:{
-        legend:{labels:{color:getComputedStyle(document.documentElement).getPropertyValue("--text")}},
-        tooltip:{callbacks:{
-          label:(ctx)=>{
-            const v = ctx.parsed.y;
-            if(v===null || v===undefined) return `${ctx.dataset.label}: —`;
-            return `${ctx.dataset.label}: ${fmt(v)}`;
-          }
-        }}
+        legend:{labels:{color:getComputedStyle(document.documentElement).getPropertyValue("--muted")}},
+        tooltip:{mode:"index", intersect:false}
       },
+      interaction:{mode:"index", intersect:false},
       scales:{
         x:{ticks:{color:getComputedStyle(document.documentElement).getPropertyValue("--muted"), maxRotation:0, autoSkip:true}},
-        y:{ticks:{color:getComputedStyle(document.documentElement).getPropertyValue("--muted")}}
+        y:{ticks:{color:getComputedStyle(document.documentElement).getPropertyValue("--muted")}, grid:{color:getComputedStyle(document.documentElement).getPropertyValue("--line")}},
+        y2:{position:"right", min:0, max:100, ticks:{color:getComputedStyle(document.documentElement).getPropertyValue("--muted")}, grid:{display:false}}
       }
     }
   });
+
+  // history table (ultime 80 righe)
+  const tbody = document.querySelector("#tblHistory tbody");
+  const full = (m.timeline||[]).filter(p=>p.t && p.in!=null && p.out!=null).sort((a,b)=>b.t-a.t);
+  tbody.innerHTML = full.slice(0, 80).map(p=>{
+    const diff = (p.diffOut!=null) ? money2(p.diffOut) : "—";
+    const fase = (p.faseCiclo!=null) ? (p.faseCiclo*100).toFixed(1)+"%" : "—";
+    const ratio = (p.ratioOut!=null) ? (p.ratioOut*100).toFixed(2)+"%" : "—";
+    return `
+      <tr>
+        <td>${p.t.toLocaleString()}</td>
+        <td>${money(p.in)}</td>
+        <td>${money(p.out)}</td>
+        <td>${ratio}</td>
+        <td>${diff}</td>
+        <td>${fase}</td>
+      </tr>
+    `;
+  }).join("");
+
+  // export CSV
+  document.getElementById("btnExportCSV").onclick = ()=>{
+    exportMachineCSV(m);
+  };
 }
 
-/* ==============================
-   NOVA chat (rule-based + data retrieval)
-================================ */
-function chatAdd(text, who="ai"){
-  const log = $("#chatlog");
-  const div = document.createElement("div");
-  div.className = "msg " + (who==="me" ? "me":"ai");
-  div.textContent = text;
-  log.appendChild(div);
-  log.scrollTop = log.scrollHeight;
+function exportMachineCSV(m){
+  const rows = (m.timeline||[]).filter(p=>p.t && p.in!=null && p.out!=null).sort((a,b)=>a.t-b.t);
+  const head = ["date","in_eur","out_eur","out_pct_calc","target_pct","diff_out_eur","ciclo","fase_ciclo"];
+  const lines = [head.join(",")];
+  for(const p of rows){
+    const outPctCalc = p.ratioOut!=null ? (p.ratioOut*100).toFixed(4) : "";
+    const tgt = p.target!=null ? (p.target*100).toFixed(4) : "";
+    const diff = p.diffOut!=null ? p.diffOut.toFixed(2) : "";
+    const ciclo = p.ciclo!=null ? p.ciclo : "";
+    const fase = p.faseCiclo!=null ? p.faseCiclo.toFixed(6) : "";
+    lines.push([
+      `"${p.t.toISOString()}"`,
+      p.in?.toFixed(2) ?? "",
+      p.out?.toFixed(2) ?? "",
+      outPctCalc,
+      tgt,
+      diff,
+      ciclo,
+      fase
+    ].join(","));
+  }
+  const blob = new Blob([lines.join("\n")], {type:"text/csv;charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `awp_${m.codeid}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
-function novaHello(){
-  const log = $("#chatlog");
-  if(log.dataset.helloDone==="1") return;
-  log.dataset.helloDone="1";
-  chatAdd("Ciao, sono NOVA.\nPosso rispondere usando i sinottici caricati.\nEsempi:\n- 'quale macchina è in pagamento?'\n- 'quando paga 12345?'\n- 'mostrami marim'\n- 'top 10 payscore'\n\nDimmi cosa ti serve.", "ai");
+/* =========================================================
+   Chat IA locale: S.A.G.A.
+   ========================================================= */
+function setupChat(){
+  const logEl = document.getElementById("chatlog");
+  const input = document.getElementById("chatin");
+  const send = document.getElementById("chatsend");
+
+  logEl.innerHTML = "";
+  chatSay("S.A.G.A.", "Ciao! Posso rispondere su sinottici, macchine e cicli.\nEsempi:\n- “quale macchina è in pagamento?”\n- “quando paga questa macchina?”\n- “cerca CODEID 123…”\n- “top 10 pagamenti probabili”");
+
+  const go = ()=>{
+    const t = input.value.trim();
+    if(!t) return;
+    chatSay("Tu", t);
+    input.value="";
+    const ans = sagaRespond(t);
+    chatSay("S.A.G.A.", ans);
+  };
+  send.onclick = go;
+  input.onkeydown = (e)=>{ if(e.key==="Enter") go(); };
+
+  function chatSay(who, txt){
+    const div = document.createElement("div");
+    div.className="msg";
+    div.innerHTML = `<div class="who">${escapeHtml(who)}</div><div class="txt">${escapeHtml(txt)}</div>`;
+    logEl.appendChild(div);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
 }
 
-function topMachines(n=10){
-  const list = [...STATE.machines.values()].filter(m=>m.stats && m.stats.score!==null);
-  list.sort((a,b)=> (b.stats.score - a.stats.score));
-  return list.slice(0,n);
-}
+function sagaRespond(text){
+  const t = text.toLowerCase();
 
-function findMachineByIdOrFuzzy(q){
-  q = q.trim();
-  if(!q) return null;
-  if(STATE.machines.has(q)) return STATE.machines.get(q);
-  // try contains
-  const list = [...STATE.machines.values()].filter(m=>{
-    return String(m.idAwp).includes(q) || String(m.matricola||"").includes(q);
-  });
-  if(list.length===1) return list[0];
-  return null;
-}
-
-function novaAnswer(queryRaw){
-  const q = (queryRaw||"").trim();
-  const low = q.toLowerCase();
-
-  // out-of-scope guardrails
-  const scopeHints = ["awp","macchina","sinottico","payscore","pagamento","rtp","modello","pdv","pda","id"];
-  const looksInScope = scopeHints.some(w=>low.includes(w)) || /\d{3,}/.test(low);
-  if(!looksInScope){
-    return "Io posso aiutarti solo con richieste legate ai sinottici AWP.\nProva con: 'quale macchina è in pagamento?', 'quando paga 12345?', 'mostrami marim', 'top 10 payscore'.";
+  if(state.machines.size===0){
+    return "Prima devo analizzare i sinottici. Premi “Analizza tutti i sinottici”.";
   }
 
-  // "quale è in pagamento"
-  if(low.includes("quale") && low.includes("pag") || low.includes("in pagamento")){
-    const best = topMachines(10).filter(m=>m.stats.score>=75);
-    if(!best.length){
-      const top = topMachines(10);
-      if(!top.length) return "Non ho ancora dati analizzati. Premi 'Analizza sinottici' prima.";
-      return "Nessuna macchina supera la soglia 'Probabile pagamento' (PayScore ≥ 75).\nTop attuali:\n" +
-        top.map((m,i)=>`${i+1}) ${m.idAwp} • ${m.eserc||"—"} • ${m.nomeModel||"—"} • PayScore ${m.stats.score}`).join("\n");
+  // helper: top list
+  const topMachines = (n=10)=> {
+    const arr = [...state.machines.values()].sort((a,b)=>(b.score||0)-(a.score||0)).slice(0,n);
+    return arr.map((m,i)=>{
+      const last = latestPoint(m);
+      return `${i+1}) ${m.meta?.denom||"—"} · ${m.meta?.comune||"—"} · ${m.meta?.modello||"—"} · CODEID ${m.codeid} · Prob ${Math.round((m.score||0)*100)}% · IN ${money(last?.in)} · OUT% ${last?.ratioOut!=null?pct(last.ratioOut):"—"}`;
+    }).join("\n");
+  };
+
+  // “top 10”
+  if(t.includes("top") || t.includes("migliori") || t.includes("più in pagamento") || t.includes("in pagamento")){
+    // se chiede "quale macchina è in pagamento" -> top 10
+    return "Ecco le macchine con probabilità più alta (stima):\n" + topMachines(10) +
+      "\n\nSe vuoi, dimmi: “seleziona CODEID ...”";
+  }
+
+  // cerca CODEID
+  const mCode = t.match(/codeid\s*([0-9]+)/i);
+  if(mCode){
+    const codeid = mCode[1];
+    if(state.machines.has(codeid)){
+      state.selectedCodeid = codeid;
+      showMachine(codeid);
+      return `Ho selezionato CODEID ${codeid}. Vuoi che stimi “quando paga” basandomi su fase ciclo e scarto rispetto al target?`;
     }
-    return "Le più probabili (PayScore ≥ 75):\n" +
-      best.map((m,i)=>`${i+1}) ${m.idAwp} • ${m.eserc||"—"} • ${m.nomeModel||"—"} • PayScore ${m.stats.score}`).join("\n") +
-      "\n\nVuoi che apro una macchina? Scrivi: 'apri 12345'.";
+    return `Non trovo CODEID ${codeid} nei sinottici caricati. Controlla che sia presente nei file analizzati.`;
   }
 
-  // top 10
-  if(low.includes("top") && (low.includes("10") || low.includes("payscore"))){
-    const top = topMachines(10);
-    if(!top.length) return "Non ho dati analizzati. Premi 'Analizza sinottici'.";
-    return "Top 10 PayScore:\n" + top.map((m,i)=>`${i+1}) ${m.idAwp} • ${m.eserc||"—"} • ${m.nomeModel||"—"} • ${m.stats.score}`).join("\n");
-  }
-
-  // open machine
-  if(low.startsWith("apri ")){
-    const id = q.slice(5).trim();
-    const m = findMachineByIdOrFuzzy(id);
-    if(!m) return "Non trovo quella macchina. Prova con un ID AWP esatto.";
-    // side effect: open modal
-    openMachine(m.idAwp);
-    return `Ok, apro la macchina ${m.idAwp}.`;
-  }
-
-  // "quando paga X"
-  if(low.includes("quando") && low.includes("pag")){
-    const id = (q.match(/(\d{3,})/)||[])[1];
-    if(!id) return "Dimmi l'ID AWP. Esempio: 'quando paga 12345'.";
-    const m = findMachineByIdOrFuzzy(id);
-    if(!m) return "Non trovo quell'ID AWP nei dati analizzati.";
-    const st = m.stats;
-    if(!st) return "Ho la macchina ma non ho statistiche: premi 'Analizza sinottici'.";
-    let extra = "";
-    if(m.ciclo && st.cycleProgress!==null){
-      extra = `\nCiclo: ${fmt(m.ciclo)} • avanzamento IN (informativo): ${Math.round(st.cycleProgress*100)}%`;
+  // “seleziona ...”
+  const mSel = t.match(/seleziona\s*([0-9]+)/i);
+  if(mSel){
+    const codeid = mSel[1];
+    if(state.machines.has(codeid)){
+      state.selectedCodeid = codeid;
+      showMachine(codeid);
+      return `Selezionata ${codeid}.`;
     }
-    const last = st.last ? `\nUltimo Δ: IN ${fmt(st.last.dIn)} • OUT ${fmt(st.last.dOut)} • RTP ${fmtPct(st.last.rtp)}` : "";
-    return `Macchina ${m.idAwp} (${m.nomeModel||"—"})\nPayScore: ${st.score} (${st.label})\nRTP recente: ${fmtPct(st.rtpRecent)} • baseline modello: ${fmtPct(st.baseMedian)}${last}${extra}\n\nVuoi che la apro? Scrivi: 'apri ${m.idAwp}'.`;
+    return `Non ho trovato ${codeid}.`;
   }
 
-  // model search
-  if(low.includes("mostra") || low.includes("cerca") || low.includes("modello")){
-    const term = low.replace("mostrami","").replace("mostra","").replace("cerca","").replace("modello","").trim();
-    if(!term) return "Dimmi cosa cercare. Esempio: 'mostrami marim'.";
-    const list = [...STATE.machines.values()].filter(m=>String(m.nomeModel||"").toLowerCase().includes(term) || String(m.codModel||"").includes(term));
-    if(!list.length) return "Nessun risultato per: " + term;
-    list.sort((a,b)=>(b.stats?.score??-1)-(a.stats?.score??-1));
-    return `Trovate ${list.length} macchine per '${term}'. Prime 10:\n` +
-      list.slice(0,10).map((m,i)=>`${i+1}) ${m.idAwp} • ${m.eserc||"—"} • PayScore ${m.stats?.score ?? "—"}`).join("\n");
+  // quando paga questa macchina / questa
+  if(t.includes("quando") && (t.includes("paga") || t.includes("pagare"))){
+    const codeid = state.selectedCodeid;
+    if(!codeid) return "Dimmi quale macchina: ad esempio “CODEID 123…” oppure cliccala dalla lista.";
+    const m = state.machines.get(codeid);
+    const last = latestPoint(m);
+    if(!last) return "Per questa macchina non ho abbastanza dati validi.";
+
+    const fase = last.faseCiclo!=null ? (last.faseCiclo*100).toFixed(1)+"%" : "—";
+    const diff = last.diffOut!=null ? money2(last.diffOut) : "—";
+    const ciclo = last.ciclo!=null ? money(last.ciclo) : "—";
+
+    return [
+      `Stima per CODEID ${codeid} (euristica):`,
+      `- Probabilità: ${Math.round((m.score||0)*100)}% (${m.scoreLabel})`,
+      `- Fase ciclo: ${fase} (ciclo: ${ciclo})`,
+      `- Scarto vs target (${Math.round((last.target||0.65)*100)}%): ${diff} € (positivo = sotto target)`,
+      "",
+      `Interpretazione rapida:`,
+      `- Se fase ciclo è alta e la macchina è sotto target, la probabilità sale.`,
+      `- Se ha appena pagato tanto nello step recente, la probabilità scende.`,
+      "",
+      `Vuoi che ti mostri anche le ultime 10 variazioni (ΔIN/ΔOUT) per capire il ritmo?`
+    ].join("\n");
   }
 
-  // explain PayScore
-  if(low.includes("payscore") && (low.includes("spiega") || low.includes("cos") || low.includes("calcoli"))){
-    return "PayScore (0..100) usa solo i tuoi storici:\n- calcola i Δ IN/OUT tra sinottici\n- stima RTP per intervallo (ΔOUT/ΔIN)\n- crea una baseline per ogni modello (mediana + MAD)\n- confronta l'RTP recente della macchina con la baseline (robust z-score)\n- aggiunge 'spike' sull'ultimo intervallo e un po' di consistenza\n\nSoglia: ≥75 = 'Probabile pagamento'.";
+  // richiesta locale generica
+  if(t.includes("ai") || t.includes("ia") || t.includes("neural") || t.includes("algoritmo")){
+    return "Io qui sono S.A.G.A.: non posso “scoprire” l’algoritmo reale della scheda, ma posso stimare pattern usando:\n- storico IN/OUT\n- % OUT\n- ciclo da cicloslot\n- fase ciclo e scarto dal target\n\nDimmi che analisi vuoi: “top 10”, “quando paga questa macchina”, oppure “cerca CODEID …”.";
   }
 
-  return "Ho capito il tema (AWP/sinottici) ma non la richiesta precisa.\nProva con: 'quale macchina è in pagamento?', 'quando paga 12345?', 'mostrami marim', 'top 10 payscore'.";
+  // fallback
+  return "Posso aiutarti solo su sinottici/macchine/cicli.\nProva con:\n- “quale macchina è in pagamento?”\n- “top 10”\n- “quando paga questa macchina?”\n- “CODEID 123…”";
 }
 
-function novaSend(){
-  const input = $("#chatin");
-  const q = (input.value || "").trim();
-  if(!q) return;
-  input.value = "";
-  chatAdd(q, "me");
-  const ans = novaAnswer(q);
-  chatAdd(ans, "ai");
+/* =========================================================
+   Helpers escape
+   ========================================================= */
+function escapeHtml(s){
+  return (s??"").toString()
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 }
+function escapeAttr(s){ return escapeHtml(s).replaceAll('"',"&quot;"); }
 
-/* ==============================
-   Loader
-================================ */
-async function loadManifestAndCicli(){
-  // manifest
-  const man = await fetchJson("manifest.json");
-  STATE.manifest = man;
-  $("#dbgManifest").textContent = JSON.stringify(man, null, 2);
-
-  // cicloslot
-  const ciclos = await fetchJson("cicloslot.json");
-  STATE.ciclos = Array.isArray(ciclos) ? ciclos : [];
-  STATE.cicloByModel = new Map();
-  for(const c of STATE.ciclos){
-    const key = String(c.codiceModello||"").trim();
-    const ciclo = safeNum(c.ciclo);
-    if(key && ciclo) STATE.cicloByModel.set(key, ciclo);
-  }
-}
-
-async function bootLoad(){
-  try{
-    $("#dbgLog").textContent = "";
-    setPill("Carico manifest...", "");
-
-    await loadManifestAndCicli();
-    logLine("OK: manifest.json e cicloslot.json caricati.");
-
-    const files = Array.isArray(STATE.manifest?.sinottici) ? STATE.manifest.sinottici : [];
-    if(!files.length){
-      setPill("Manifest vuoto", "bad");
-      logLine("ERRORE: manifest.json non contiene 'sinottici' (array) o è vuoto.");
-      STATE.snapshots = [];
-      STATE.machines.clear();
-      renderKPIs(); renderTable();
-      return;
-    }
-
-    // Sort by date from filename when possible
-    const sorted = files.slice().sort((a,b)=>{
-      const da = parseDateFromFilename(a)?.getTime?.() ?? 0;
-      const db = parseDateFromFilename(b)?.getTime?.() ?? 0;
-      return da-db;
-    });
-
-    // try base folders
-    const foldersToTry = ["Dati", "dati", "DATI"];
-    let chosenFolder = null;
-    let testErr = null;
-
-    for(const f of foldersToTry){
-      try{
-        setPill(`Test path ${f}/...`, "");
-        // test first file
-        await fetchArrayBuffer(`${f}/${sorted[0]}`);
-        chosenFolder = f;
-        break;
-      }catch(e){
-        testErr = e;
-        logLine(`Path ${f}/ non ok: ${String(e.message||e)}`);
-      }
-    }
-
-    if(!chosenFolder){
-      setPill("404 sinottici", "bad");
-      logLine("ERRORE: Non riesco a leggere i file .xlsx. Controlla che la cartella sia 'Dati/' e i nomi corrispondano al manifest.");
-      if(testErr) logLine("Ultimo errore: " + String(testErr.message||testErr));
-      return;
-    }
-
-    logLine(`Cartella sinottici: ${chosenFolder}/`);
-    setPill("Carico sinottici...", "");
-
-    // Load all snapshots (in RAM)
-    const snaps = [];
-    for(let i=0;i<sorted.length;i++){
-      const file = sorted[i];
-      setPill(`Carico ${i+1}/${sorted.length}`, "");
-      try{
-        const snap = await loadOneSinottico(file, chosenFolder);
-        snaps.push(snap);
-        logLine(`OK: ${file} (${snap.rows.length} righe)`);
-      }catch(e){
-        logLine(`ERRORE su ${file}: ${String(e.message||e)}`);
-      }
-    }
-
-    STATE.snapshots = snaps;
-    if(!STATE.snapshots.length){
-      setPill("Nessun sinottico valido", "bad");
-      logLine("ERRORE: nessun file è stato parsato correttamente.");
-      STATE.machines.clear();
-      renderKPIs(); renderTable();
-      return;
-    }
-
-    setPill("Analizzo...", "");
-    rebuildAll();
-
-    const macCount = STATE.machines.size;
-    if(macCount===0){
-      setPill("0 macchine", "bad");
-      logLine("ERRORE: snapshots parsati ma nessuna macchina trovata. Probabile mismatch colonne / header.");
-      logLine("Controllo: nei tuoi XLSX le colonne devono includere 'id awp' e 'tot in/out'.");
-    }else{
-      setPill("OK", "good");
-      logLine(`Analisi completata. Macchine: ${macCount}`);
-    }
-
-    renderKPIs();
-    renderTable();
-
-  }catch(e){
-    setPill("Errore", "bad");
-    logLine("ERRORE FATALE: " + String(e.message||e));
-    console.error(e);
-  }
-}
-
-async function quickSelfTest(){
-  $("#dbgLog").textContent = "";
-  try{
-    setPill("Self-test...", "");
-    await loadManifestAndCicli();
-    const files = Array.isArray(STATE.manifest?.sinottici) ? STATE.manifest.sinottici : [];
-    if(!files.length) throw new Error("manifest.json non contiene sinottici.");
-
-    const file = files[0];
-    logLine("Primo file da manifest: " + file);
-
-    const foldersToTry = ["Dati","dati","DATI"];
-    let okFolder=null;
-    for(const f of foldersToTry){
-      try{
-        const snap = await loadOneSinottico(file, f);
-        okFolder=f;
-        logLine(`OK fetch+parse da ${f}/${file} righe=${snap.rows.length}`);
-        logLine("Esempio riga (keys normalizzate): " + JSON.stringify(snap.rows[0], null, 2));
-        break;
-      }catch(e){
-        logLine(`NO ${f}/${file}: ${String(e.message||e)}`);
-      }
-    }
-    if(!okFolder) throw new Error("Nessun folder valido (Dati/dati).");
-    setPill("Self-test OK", "good");
-  }catch(e){
-    setPill("Self-test KO", "bad");
-    logLine("Self-test errore: " + String(e.message||e));
-  }
-}
-
-/* ==============================
+/* =========================================================
    Boot
-================================ */
-(async function(){
-  document.documentElement.setAttribute("data-theme", STATE.ui.theme);
-
+   ========================================================= */
+(async function init(){
+  loadSettings();
   try{
     await loadUsers();
-    if(tryRestoreSession()){
-      renderAppShell();
-      bootLoad();
-    }else{
-      renderLogin();
-    }
   }catch(e){
-    // If users.json fails, show a friendly login error screen with debug
-    const root = $("#app");
-    root.innerHTML = `
-      <div class="gate">
-        <div class="login">
-          <div class="login-h">
-            <div class="logo"></div>
-            <div>
-              <h2>Errore caricamento</h2>
-              <p>Non riesco a leggere <span class="mono">users.json</span>.</p>
-            </div>
-          </div>
-          <div class="login-b">
-            <div class="err on">Dettaglio: ${String(e.message||e)}</div>
-            <div class="footnote">Controlla che users.json sia nella stessa cartella di index.html e pubblico su GitHub Pages.</div>
-          </div>
-        </div>
-      </div>
-    `;
+    console.error(e);
+    // se users.json manca, facciamo comunque vedere login ma non entrerà
   }
+  renderLogin();
 })();
 </script>
 </body>
