@@ -1,3 +1,7 @@
+<!-- =========================
+TRANCHE 1/4 — index.html (UI invariata + badge sinottico + utilità + parse date robusto)
+Incolla QUESTO come inizio file e arriva fino a "Boot" (che completerò nelle tranche successive).
+========================= -->
 <!doctype html>
 <html lang="it">
 <head>
@@ -313,6 +317,12 @@
         <span id="txtStatus">Non autenticato</span>
       </div>
 
+      <!-- ✅ NUOVO: stato ultimo sinottico (da manifest.json) -->
+      <div class="pill" id="pillSinottico" style="display:none">
+        <span class="dot" id="dotSinottico"></span>
+        <span id="txtSinottico">Sinottico: —</span>
+      </div>
+
       <button class="btn small" id="btnLogout" style="display:none" title="Esci">Esci</button>
     </div>
   </div>
@@ -374,7 +384,7 @@
       </div>
     </div>
 
-    <!-- MAIN -->
+    <!-- MAIN (resto invariato, continua nelle tranche successive) -->
     <div class="view" id="viewMain">
 
       <div class="grid">
@@ -540,27 +550,20 @@ const S = {
   ciclos: [],
   session: null,
 
-  // current snapshot: latest row per CODEID
-  machines: new Map(),     // codeid -> machineSnapshot
-  // history: codeid -> array of points {ts, in, out, pctOut, row, file}
+  machines: new Map(),
   history: new Map(),
 
-  // indexes
-  locals: new Map(),       // localeName -> {name, codeSede, provincia, comune, address, pdv, pdaSet, codeids:Set}
-  pdas: new Map(),         // pda -> Set(codeid)
-  provinces: new Map(),    // prov -> Set(codeid)
-  comunes: new Map(),      // comune -> Set(codeid)
-  models: new Map(),       // modelCode -> Set(codeid)
+  locals: new Map(),
+  pdas: new Map(),
+  provinces: new Map(),
+  comunes: new Map(),
+  models: new Map(),
+  modelStats: new Map(),
 
-  // computed correlations per model
-  modelStats: new Map(),   // modelCode -> stats
-
-  // UI
   lastSelectedCode: null,
   chartMode: "IN",
   chartObj: null,
 
-  // cache
   cacheKey: "awp_session_v1"
 };
 
@@ -607,49 +610,126 @@ function clearSession(){
 }
 
 function normalizeUser(u){ return (u||"").trim().toLowerCase(); }
-function normalizePin(p){
-  const s = String(p ?? "").trim();
-  if(/^\d+$/.test(s)) return String(parseInt(s,10));
-  return s;
-}
+// ✅ PIN: non trasformo "0001" in "1"
+function normalizePin(p){ return String(p ?? "").trim(); }
 
-function parseItalianDateTime(s){
-  // Accept: Date object, ISO, "DD/MM/YYYY HH:MM:SS", "DD/MM/YYYY HH:MM", etc.
-  if(!s) return null;
-  if(s instanceof Date && isFinite(s)) return s;
-  const str = String(s).trim();
+/* ---------- DATE: robusto per 2026 (GG-MM-AAAA hh:mm + seriale Excel) ---------- */
+function parseItalianDateTime(v){
+  if(v === null || v === undefined || v === "") return null;
+
+  if(v instanceof Date && isFinite(v)) return v;
+
+  // Excel serial number (con raw:true succede spesso)
+  if(typeof v === "number" && isFinite(v)){
+    if(typeof XLSX !== "undefined" && XLSX.SSF && XLSX.SSF.parse_date_code){
+      const p = XLSX.SSF.parse_date_code(v);
+      if(p && p.y && p.m && p.d){
+        const d = new Date(
+          p.y, p.m-1, p.d,
+          p.H || 0, p.M || 0, Math.floor(p.S || 0)
+        );
+        return isFinite(d) ? d : null;
+      }
+    }
+    return null;
+  }
+
+  const str = String(v).trim();
   if(!str) return null;
 
-  // ISO-like
-  const d1 = new Date(str);
-  if(isFinite(d1)) return d1;
-
-  // dd/mm/yyyy [hh:mm[:ss]]
-  const m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  // GG/MM/AAAA [HH:MM[:SS]]
+  let m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
   if(m){
     const dd = parseInt(m[1],10);
     const mm = parseInt(m[2],10)-1;
-    let yy = parseInt(m[3],10);
-    if(yy < 100) yy = 2000 + yy;
+    let yy = parseInt(m[3],10); if(yy < 100) yy = 2000 + yy;
     const hh = parseInt(m[4]||"0",10);
     const mi = parseInt(m[5]||"0",10);
     const ss = parseInt(m[6]||"0",10);
     const d = new Date(yy,mm,dd,hh,mi,ss);
-    if(isFinite(d)) return d;
+    return isFinite(d) ? d : null;
   }
-  return null;
+
+  // ✅ GG-MM-AAAA [HH:MM[:SS]]
+  m = str.match(/^(\d{1,2})-(\d{1,2})-(\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  if(m){
+    const dd = parseInt(m[1],10);
+    const mm = parseInt(m[2],10)-1;
+    let yy = parseInt(m[3],10); if(yy < 100) yy = 2000 + yy;
+    const hh = parseInt(m[4]||"0",10);
+    const mi = parseInt(m[5]||"0",10);
+    const ss = parseInt(m[6]||"0",10);
+    const d = new Date(yy,mm,dd,hh,mi,ss);
+    return isFinite(d) ? d : null;
+  }
+
+  // ISO-like fallback
+  const d1 = new Date(str);
+  return isFinite(d1) ? d1 : null;
+}
+
+/* ---------- Nome sinottico -> data (Sinottico-AAAA-MM-GG-hhmm.xlsx) ---------- */
+function parseDateFromSinotticoName(filename){
+  const m = String(filename||"").match(/(\d{4})-(\d{2})-(\d{2})-(\d{2})(\d{2})/);
+  if(!m) return null;
+  const y = parseInt(m[1],10);
+  const mo = parseInt(m[2],10)-1;
+  const d = parseInt(m[3],10);
+  const h = parseInt(m[4],10);
+  const mi = parseInt(m[5],10);
+  const dt = new Date(y, mo, d, h, mi, 0);
+  return isFinite(dt) ? dt : null;
+}
+
+function fmtDate(d){
+  if(!d || !(d instanceof Date) || !isFinite(d)) return "N/A";
+  const pad=(n)=>String(n).padStart(2,"0");
+  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function updateSinotticoStatus(){
+  try{
+    if(!S.manifest || !Array.isArray(S.manifest.sinottici) || !S.manifest.sinottici.length) return;
+
+    const lastFile = S.manifest.sinottici[S.manifest.sinottici.length - 1];
+    const dt = parseDateFromSinotticoName(lastFile);
+    if(!dt) return;
+
+    const now = new Date();
+    const sameDay =
+      dt.getFullYear() === now.getFullYear() &&
+      dt.getMonth() === now.getMonth() &&
+      dt.getDate() === now.getDate();
+
+    const pill = document.getElementById("pillSinottico");
+    const dot = document.getElementById("dotSinottico");
+    const txt = document.getElementById("txtSinottico");
+
+    pill.style.display = "flex";
+
+    const hh = String(dt.getHours()).padStart(2,"0");
+    const mm = String(dt.getMinutes()).padStart(2,"0");
+
+    if(sameDay){
+      dot.className = "dot ok";
+      txt.textContent = `Aggiornato oggi alle ${hh}:${mm}`;
+    }else{
+      dot.className = "dot bad";
+      txt.textContent = `Non aggiornato (ultimo: ${fmtDate(dt)})`;
+    }
+  }catch(e){
+    // non blocco la UI se succede qualcosa
+  }
 }
 
 function moneyFromCounter(raw){
-  // CNTTOTIN/CNTTOTOT: last 2 digits are cents, remove them
   if(raw === null || raw === undefined || raw === "") return null;
-  const s = String(raw).trim();
-  if(!s) return null;
-  // Sometimes Excel gives numbers
-  let n = Number(s.replace(/[^\d.-]/g,""));
+  let n = Number(String(raw).trim().replace(/[^\d.-]/g,""));
   if(!isFinite(n)) return null;
-  // remove cents
-  return Math.floor(n / 100);
+
+  // euristica: se sembra già in euro (troppo piccolo per essere centesimi totali)
+  if(Math.abs(n) < 10000) return Math.trunc(n);
+  return Math.trunc(n / 100);
 }
 
 function pctFromCell(raw){
@@ -657,28 +737,45 @@ function pctFromCell(raw){
   const s = String(raw).trim().replace(",",".");
   let n = Number(s.replace(/[^\d.-]/g,""));
   if(!isFinite(n)) return null;
-  // may be 65 or 0.65
   if(n > 1.5) return n;
   return n*100;
 }
 
 function safeStr(v){ return (v===null||v===undefined) ? "" : String(v).trim(); }
 
-/* -------------------------
-   Fetch helpers
-------------------------- */
+function escapeHtml(s){
+  return String(s||"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
+}
+
+function fmtInt(n){
+  if(!isFinite(n)) return "0";
+  return Math.round(n).toLocaleString("it-IT");
+}
+
+/* ---------- Fetch helpers ---------- */
 async function fetchJSON(url){
   const r = await fetch(url, {cache:"no-store"});
   if(!r.ok) throw new Error(`HTTP ${r.status} su ${url}`);
   return await r.json();
 }
-
 async function fetchArrayBuffer(url){
   const r = await fetch(url, {cache:"no-store"});
   if(!r.ok) throw new Error(`HTTP ${r.status} su ${url}`);
   return await r.arrayBuffer();
 }
 
+/* =========================
+TRANCHE 2/4 continuerà da qui:
+- selfTest()
+- loadCore() (con updateSinotticoStatus dopo manifest)
+- login/logout
+- parsing XLSX + pickLike
+- analyzeAll + indici + score + rendering tabella
+========================= */
+  <!-- =========================
+TRANCHE 2/4 — CONTINUA dentro lo stesso <script> (NON toccare UI)
+Incolla QUESTA TRANCHE subito DOPO la Tranche 1, al posto del commento "TRANCHE 2/4 continuerà..."
+========================= -->
 /* -------------------------
    Self test
 ------------------------- */
@@ -760,6 +857,9 @@ async function loadCore(){
     const n = (man && Array.isArray(man.sinottici)) ? man.sinottici.length : 0;
     setDot("#dotManifest", n ? "ok" : "warn");
     $("#manifestInfo").textContent = `manifest.json: ${n} sinottici`;
+
+    // ✅ NUOVO: badge "Aggiornato oggi..." / "Non aggiornato"
+    updateSinotticoStatus();
   }catch(e){
     S.manifest = null;
     setDot("#dotManifest","bad");
@@ -778,7 +878,6 @@ async function loadCore(){
   // Try auto session
   const sess = loadSession();
   if(sess && sess.user){
-    // validate quickly expiration
     const u = S.users.find(x => normalizeUser(x.user) === normalizeUser(sess.user));
     if(u){
       if(u.expires){
@@ -889,11 +988,12 @@ function ensureLocal(name){
   return S.locals.get(key);
 }
 
+/* -------------------------
+   Scoring (invariato)
+------------------------- */
 function computeScore(codeid){
-  // Robust heuristic using last point and model cycle and trend.
   const hist = S.history.get(codeid) || [];
   if(hist.length < 2){
-    // If no deltas, weak
     return {score: 10, label:"Basso", color:"warn"};
   }
   const last = hist[hist.length-1];
@@ -906,8 +1006,6 @@ function computeScore(codeid){
   const snap = S.machines.get(codeid);
   const cyc = cicloForModel(snap?.modelCode, snap?.modelName);
 
-  // "Approach to cycle": we approximate where we are in cycle by cumulating net (IN-OUT)
-  // using last ~ N points
   const window = hist.slice(Math.max(0,hist.length-20));
   let net=0;
   for(let i=1;i<window.length;i++){
@@ -917,26 +1015,21 @@ function computeScore(codeid){
 
   let cycleFactor = 0.5;
   if(cyc && cyc>0){
-    // nearer to cycle -> higher chance
     const mod = ((net % cyc) + cyc) % cyc;
-    // bell shape around end of cycle
     const nearEnd = 1 - (mod / cyc);
     cycleFactor = Math.min(1, Math.max(0, nearEnd));
   }
 
-  // payout alignment: if pct lower than expected %OUT, might "owe" payout soon
   const targetPct = snap?.pctOut ?? 65;
   let align = 0.5;
   if(pct !== null && isFinite(pct)){
-    const diff = targetPct - pct; // positive means below target
-    align = Math.min(1, Math.max(0, 0.5 + (diff/40))); // scaled
+    const diff = targetPct - pct;
+    align = Math.min(1, Math.max(0, 0.5 + (diff/40)));
   }
 
-  // activity factor (if it is playing)
   let activity = 0.3;
   if(dIn > 0) activity = Math.min(1, 0.3 + Math.log10(dIn+1)/2.5);
 
-  // stability factor from last 6 deltas
   const w2 = hist.slice(Math.max(0,hist.length-8));
   let varTerm=0;
   for(let i=1;i<w2.length;i++){
@@ -956,17 +1049,18 @@ function computeScore(codeid){
   return {score, label, color};
 }
 
+/* -------------------------
+   History (dedup per timestamp)
+------------------------- */
 function addHistoryPoint(codeid, point){
   if(!S.history.has(codeid)) S.history.set(codeid, []);
   const arr = S.history.get(codeid);
 
-  // Deduplicate by timestamp (DATA ULTIMA LETTURA VAL.)
   const ts = point.ts?.getTime?.();
   if(!ts) return;
 
   const last = arr[arr.length-1];
   if(last && last.ts && last.ts.getTime() === ts){
-    // same reading time, skip
     return;
   }
   arr.push(point);
@@ -975,7 +1069,6 @@ function addHistoryPoint(codeid, point){
 function sortAllHistories(){
   for(const [codeid, arr] of S.history.entries()){
     arr.sort((a,b)=>a.ts-b.ts);
-    // remove accidental duplicates not adjacent
     const out=[];
     let prevTs=null;
     for(const p of arr){
@@ -1011,10 +1104,30 @@ function pick(o, ...keys){
   return undefined;
 }
 
+// ✅ nuovo: pick più permissivo (tolleranza punti/spazi)
+function keyCanon(s){
+  return String(s||"")
+    .toUpperCase()
+    .replace(/\./g,"")
+    .replace(/\s+/g," ")
+    .trim();
+}
+function pickLike(o, ...keys){
+  const wanted = keys.map(keyCanon);
+  for(const k of Object.keys(o)){
+    const kc = keyCanon(k);
+    const idx = wanted.indexOf(kc);
+    if(idx >= 0) return o[k];
+  }
+  return undefined;
+}
+
 function parseSinottico(buffer, fileName){
   const wb = XLSX.read(buffer, {type:"array"});
   const sheetName = wb.SheetNames[0];
   const ws = wb.Sheets[sheetName];
+
+  // raw:true per non perdere i numeri (incluse date seriali)
   const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true});
   if(!rows || rows.length < 2) return [];
 
@@ -1033,28 +1146,31 @@ function parseSinottico(buffer, fileName){
   for(const r of dataRows){
     const o = rowToObj(headersRaw, r);
 
-    // required
-    const codeid = safeStr(pick(o,"CODEID"));
+    const codeid = safeStr(pickLike(o,"CODEID"));
     if(!codeid) continue;
 
-    const modelCode = safeStr(pick(o,"CODICE MODELLO"));
-    const modelName = safeStr(pick(o,"MODELLO"));
-    const locale = safeStr(pick(o,"DENOMIN. SEDE","DENOMIN SEDE","DENOMINAZIONE SEDE"));
-    const pda = safeStr(pick(o,"MACADDRESS PDA","MACADDRESS  PDA","MACADDRESS"));
-    const provincia = safeStr(pick(o,"PROVINCIA"));
-    const comune = safeStr(pick(o,"COMUNE"));
-    const indirizzo = safeStr(pick(o,"INDIRIZZO"));
-    const codeSede = safeStr(pick(o,"CODICE SEDE"));
-    const pdv = safeStr(pick(o,"CODICE PDV AAMS","CODICE PDV","PDV AAMS"));
-    const stato = safeStr(pick(o,"DESCR. STATO","DESCR STATO","STATO"));
-    const em = safeStr(pick(o,"E/M","E M"));
-    const pctOut = pctFromCell(pick(o,"% OUT","%OUT")) ?? null;
+    const modelCode = safeStr(pickLike(o,"CODICE MODELLO"));
+    const modelName = safeStr(pickLike(o,"MODELLO"));
+    const locale = safeStr(pickLike(o,"DENOMIN. SEDE","DENOMIN SEDE","DENOMINAZIONE SEDE"));
+    const pda = safeStr(pickLike(o,"MACADDRESS PDA","MACADDRESS  PDA","MACADDRESS"));
+    const provincia = safeStr(pickLike(o,"PROVINCIA"));
+    const comune = safeStr(pickLike(o,"COMUNE"));
+    const indirizzo = safeStr(pickLike(o,"INDIRIZZO"));
+    const codeSede = safeStr(pickLike(o,"CODICE SEDE"));
+    const pdv = safeStr(pickLike(o,"CODICE PDV AAMS","CODICE PDV","PDV AAMS"));
+    const stato = safeStr(pickLike(o,"DESCR. STATO","DESCR STATO","STATO"));
+    const em = safeStr(pickLike(o,"E/M","E M"));
+    const pctOut = pctFromCell(pickLike(o,"% OUT","%OUT")) ?? null;
 
-    const ts = parseItalianDateTime(pick(o,"DATA ULTIMA LETTURA VAL.","DATA ULTIMA LETTURA VAL", "DATA ULTIMA LETTURA", "DATA ULTIMA LETTURA VAL."));
-    const cntIn = moneyFromCounter(pick(o,"CNTTOTIN"));
-    const cntOut = moneyFromCounter(pick(o,"CNTTOTOT"));
+    // ✅ QUI la fix vera: supporta GG-MM-AAAA hh:mm e seriali Excel
+    const ts = parseItalianDateTime(
+      pickLike(o,"DATA ULTIMA LETTURA VAL.","DATA ULTIMA LETTURA VAL", "DATA ULTIMA LETTURA", "DATA ULTIMA LETTURA VAL")
+    );
 
-    const ggNoLink = Number(pick(o,"GG MANCATO COLLEGAMENTO")) || 0;
+    const cntIn = moneyFromCounter(pickLike(o,"CNTTOTIN"));
+    const cntOut = moneyFromCounter(pickLike(o,"CNTTOTOT"));
+
+    const ggNoLink = Number(pickLike(o,"GG MANCATO COLLEGAMENTO")) || 0;
 
     out.push({
       codeid,
@@ -1072,6 +1188,25 @@ function parseSinottico(buffer, fileName){
   return out;
 }
 
+/* =========================
+TRANCHE 3/4 continuerà da qui:
+- analyzeAll()
+- buildIndexesAndStats()
+- renderMachinesTable() + statusChip()
+- dettagli: openMachine/openLocale/openGenericList
+- grafico
+========================= */
+  /* =========================
+TRANCHE 3/4 — SOLO JS (da incollare DENTRO lo stesso <script>, prima dell’unico </script>)
+Contiene:
+- analyzeAll()
+- countAllHistoryPoints()
+- buildIndexesAndStats()
+- renderMachinesTable() + helpers (fmtDate, statusChip, escapeHtml)
+- Details: openMachine, openLocale, openPDA/openProvince/openComune/openGenericList
+- History mini table + chart
+========================= */
+
 /* -------------------------
    Analyze all sinottici
 ------------------------- */
@@ -1083,7 +1218,7 @@ async function analyzeAll(){
 
   $("#subMain").textContent = "Analisi in corso…";
   setDot("#dotData","warn");
-  $("#dotData").className = "dot warn";
+  $("#dataInfo").textContent = "Dati: caricamento…";
 
   // reset structures
   S.machines.clear();
@@ -1096,13 +1231,13 @@ async function analyzeAll(){
   S.modelStats.clear();
   S.lastSelectedCode = null;
 
-  const files = S.manifest.sinottici.slice(); // as list
+  const files = S.manifest.sinottici.slice();
   $("#countFiles").textContent = String(files.length);
 
   let ok=0, fail=0;
   let totalRows=0;
 
-  // load sequentially (safer memory on mobile)
+  // load sequentially (mobile-friendly)
   for(let i=0;i<files.length;i++){
     const f = files[i];
     try{
@@ -1110,7 +1245,6 @@ async function analyzeAll(){
       const rows = parseSinottico(buf, f);
       totalRows += rows.length;
 
-      // integrate
       for(const r of rows){
         // history requires valid timestamp + counters
         if(r.ts && isFinite(r.ts) && r.cntIn !== null && r.cntOut !== null){
@@ -1124,7 +1258,7 @@ async function analyzeAll(){
           });
         }
 
-        // latest snapshot by most recent ts (or if missing, keep first)
+        // latest snapshot per CODEID by most recent ts (or keep first if missing)
         const prev = S.machines.get(r.codeid);
         if(!prev){
           S.machines.set(r.codeid, r);
@@ -1137,12 +1271,12 @@ async function analyzeAll(){
 
       ok++;
       $("#subMain").textContent = `Analisi: ${i+1}/${files.length} file (OK:${ok}, KO:${fail})`;
-      await new Promise(res=>setTimeout(res, 0)); // yield UI
+      await new Promise(res=>setTimeout(res, 0));
     }catch(e){
       fail++;
       $("#subMain").textContent = `Analisi: ${i+1}/${files.length} file (OK:${ok}, KO:${fail})`;
-      // non spammo toast per ogni errore, ma loggo
       console.warn("Errore file", f, e);
+      await new Promise(res=>setTimeout(res, 0));
     }
   }
 
@@ -1157,10 +1291,17 @@ async function analyzeAll(){
   $("#countLocals").textContent = String(S.locals.size);
   $("#countModels").textContent = String(S.modelStats.size);
 
-  $("#subMain").textContent = `Analisi completata. Righe totali lette: ${totalRows.toLocaleString("it-IT")}`;
+  $("#subMain").textContent = `Analisi completata. Righe lette: ${totalRows.toLocaleString("it-IT")}`;
 
   renderMachinesTable();
-  awisPush("AWIS", `Analisi completata ✅\nMacchine: ${S.machines.size}\nLocali: ${S.locals.size}\nStorico (letture deduplicate): ${countAllHistoryPoints()}\n\nChiedimi: “quali sono in pagamento?”, “quando paga CODEID ...”, “spiega CNTTOTIN”, “apri locale Bar Fortini”…`);
+
+  awisPush("AWIS",
+    `Analisi completata ✅\n` +
+    `Macchine: ${S.machines.size}\n` +
+    `Locali: ${S.locals.size}\n` +
+    `Storico (deduplicato): ${countAllHistoryPoints()}\n\n` +
+    `Chiedimi: “quali sono in pagamento?”, “quando paga CODEID ...”, “spiega CNTTOTIN”, “apri locale ...”`
+  );
 }
 
 function countAllHistoryPoints(){
@@ -1188,7 +1329,7 @@ function buildIndexesAndStats(){
     if(m.modelCode) ensureSetMap(S.models, m.modelCode).add(codeid);
   }
 
-  // model stats from histories: average deltas, volatility, etc.
+  // model stats from histories: avg deltas, etc.
   for(const [modelCode, setCodes] of S.models.entries()){
     const codes = Array.from(setCodes);
     let totalNet=0, totalIn=0, totalOut=0, points=0;
@@ -1233,6 +1374,10 @@ function fmtDate(d){
   return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function escapeHtml(s){
+  return String(s||"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
+}
+
 function statusChip(m){
   const s = (m.em||"").toUpperCase().includes("E") ? "E" : (m.em||"").toUpperCase().includes("M") ? "M" : "";
   const stale = (m.ggNoLink||0) >= 3;
@@ -1245,6 +1390,7 @@ function statusChip(m){
 
 function renderMachinesTable(){
   const tbody = $("#tblMachines tbody");
+  if(!tbody) return;
   tbody.innerHTML = "";
 
   const q = ($("#qSearch").value||"").trim().toLowerCase();
@@ -1305,7 +1451,6 @@ function renderMachinesTable(){
     tbody.appendChild(tr);
   }
 
-  // table clicks
   tbody.querySelectorAll("[data-act]").forEach(el=>{
     el.addEventListener("click", ()=>{
       const act = el.getAttribute("data-act");
@@ -1317,13 +1462,35 @@ function renderMachinesTable(){
   });
 }
 
-function escapeHtml(s){
-  return String(s||"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
-}
-
 /* -------------------------
    Details views
 ------------------------- */
+function fmtInt(n){
+  if(!isFinite(n)) return "0";
+  return Math.round(n).toLocaleString("it-IT");
+}
+
+function renderHistoryMini(hist){
+  if(!hist.length) return `<div class="footer-note">Nessuna lettura valida trovata (manca DATA ULTIMA LETTURA VAL. o contatori).</div>`;
+  const limit = Math.min(12, hist.length);
+  const tail = hist.slice(hist.length-limit);
+  let html = `<table class="table"><thead><tr><th>Data</th><th>ΔIN</th><th>ΔOUT</th><th>%</th></tr></thead><tbody>`;
+  for(let i=1;i<tail.length;i++){
+    const a=tail[i-1], b=tail[i];
+    const dIn=Math.max(0,b.in-a.in);
+    const dOut=Math.max(0,b.out-a.out);
+    const pct=dIn>0?(dOut/dIn)*100:null;
+    html += `<tr>
+      <td>${fmtDate(b.ts)}</td>
+      <td>${fmtInt(dIn)}€</td>
+      <td>${fmtInt(dOut)}€</td>
+      <td>${pct?pct.toFixed(1)+"%":"—"}</td>
+    </tr>`;
+  }
+  html += `</tbody></table>`;
+  return html;
+}
+
 function openMachine(codeid){
   const m = S.machines.get(codeid);
   if(!m){ toast("Errore", "Macchina non trovata."); return; }
@@ -1333,7 +1500,6 @@ function openMachine(codeid){
   const cyc = cicloForModel(m.modelCode, m.modelName);
   const score = computeScore(codeid);
 
-  // compute deltas summary
   let lastDelta = {in:0,out:0,pct:null};
   if(hist.length>=2){
     const a=hist[hist.length-2], b=hist[hist.length-1];
@@ -1344,7 +1510,6 @@ function openMachine(codeid){
     lastDelta.pct = dIn>0 ? (dOut/dIn)*100 : null;
   }
 
-  // compute cycle position estimation
   let net=0;
   const window = hist.slice(Math.max(0,hist.length-20));
   for(let i=1;i<window.length;i++){
@@ -1415,13 +1580,13 @@ function openMachine(codeid){
               <tr><th>CNTTOTOT</th><td>${m.cntOut!==null?fmtInt(m.cntOut)+" €":"N/A"}</td></tr>
               <tr><th>INDIRIZZO</th><td>${escapeHtml(m.indirizzo||"N/A")}</td></tr>
               <tr><th>CODICE MODELLO</th><td class="mono">${escapeHtml(m.modelCode||"N/A")}</td></tr>
-              <tr><th>NOE</th><td class="mono">${escapeHtml(safeStr(pick(m.raw,"NOE"))||"N/A")}</td></tr>
-              <tr><th>CODICE IS ESERCENTE</th><td class="mono">${escapeHtml(safeStr(pick(m.raw,"CODICE IS ESERCENTE"))||"N/A")}</td></tr>
-              <tr><th>DATA RILASCIO N.O.E.</th><td>${escapeHtml(safeStr(pick(m.raw,"DATA RILASCIO N.O.E."))||"N/A")}</td></tr>
-              <tr><th>DATA ULTIMO COLLEGAMENTO</th><td>${escapeHtml(safeStr(pick(m.raw,"DATA ULTIMO COLLEGAMENTO"))||"N/A")}</td></tr>
-              <tr><th>INCASSO GIORNALIERO</th><td>${escapeHtml(safeStr(pick(m.raw,"INCASSO GIORNALIERO"))||"N/A")}</td></tr>
-              <tr><th>MEDIA INCASSO GG ESERCIZIO</th><td>${escapeHtml(safeStr(pick(m.raw,"MEDIA INCASSO GG ESERCIZIO"))||"N/A")}</td></tr>
-              <tr><th>WARNING</th><td>${escapeHtml(safeStr(pick(m.raw,"WARNING"))||"N/A")}</td></tr>
+              <tr><th>NOE</th><td class="mono">${escapeHtml(safeStr(pickLike(m.raw,"NOE"))||"N/A")}</td></tr>
+              <tr><th>CODICE IS ESERCENTE</th><td class="mono">${escapeHtml(safeStr(pickLike(m.raw,"CODICE IS ESERCENTE"))||"N/A")}</td></tr>
+              <tr><th>DATA RILASCIO N.O.E.</th><td>${escapeHtml(safeStr(pickLike(m.raw,"DATA RILASCIO N.O.E."))||"N/A")}</td></tr>
+              <tr><th>DATA ULTIMO COLLEGAMENTO</th><td>${escapeHtml(safeStr(pickLike(m.raw,"DATA ULTIMO COLLEGAMENTO"))||"N/A")}</td></tr>
+              <tr><th>INCASSO GIORNALIERO</th><td>${escapeHtml(safeStr(pickLike(m.raw,"INCASSO GIORNALIERO"))||"N/A")}</td></tr>
+              <tr><th>MEDIA INCASSO GG ESERCIZIO</th><td>${escapeHtml(safeStr(pickLike(m.raw,"MEDIA INCASSO GG ESERCIZIO"))||"N/A")}</td></tr>
+              <tr><th>WARNING</th><td>${escapeHtml(safeStr(pickLike(m.raw,"WARNING"))||"N/A")}</td></tr>
             </tbody>
           </table>
         </div>
@@ -1452,32 +1617,6 @@ function openMachine(codeid){
   renderChartFor(codeid);
 }
 
-function renderHistoryMini(hist){
-  if(!hist.length) return `<div class="footer-note">Nessuna lettura valida trovata (manca DATA ULTIMA LETTURA VAL. o contatori).</div>`;
-  const limit = Math.min(12, hist.length);
-  const tail = hist.slice(hist.length-limit);
-  let html = `<table class="table"><thead><tr><th>Data</th><th>ΔIN</th><th>ΔOUT</th><th>%</th></tr></thead><tbody>`;
-  for(let i=1;i<tail.length;i++){
-    const a=tail[i-1], b=tail[i];
-    const dIn=Math.max(0,b.in-a.in);
-    const dOut=Math.max(0,b.out-a.out);
-    const pct=dIn>0?(dOut/dIn)*100:null;
-    html += `<tr>
-      <td>${fmtDate(b.ts)}</td>
-      <td>${fmtInt(dIn)}€</td>
-      <td>${fmtInt(dOut)}€</td>
-      <td>${pct?pct.toFixed(1)+"%":"—"}</td>
-    </tr>`;
-  }
-  html += `</tbody></table>`;
-  return html;
-}
-
-function fmtInt(n){
-  if(!isFinite(n)) return "0";
-  return Math.round(n).toLocaleString("it-IT");
-}
-
 function openLocale(localeName){
   const name = (localeName||"").trim();
   const loc = S.locals.get(name);
@@ -1486,7 +1625,6 @@ function openLocale(localeName){
   $("#detailsTitle").textContent = `Scheda locale: ${name}`;
   $("#detailsSub").textContent = `${loc.comune||""}${loc.provincia?(" ("+loc.provincia+")"):""} • Macchine: ${loc.codeids.size} • PDA: ${loc.pdaSet.size}`;
 
-  // group machines by PDA
   const byPDA = new Map();
   for(const codeid of loc.codeids){
     const m = S.machines.get(codeid);
@@ -1495,7 +1633,6 @@ function openLocale(localeName){
     byPDA.get(p).push(m);
   }
 
-  // compute locale totals (day/week/month) based on deltas
   const now = new Date();
   const dayAgo = new Date(now.getTime() - 24*3600*1000);
   const weekAgo = new Date(now.getTime() - 7*24*3600*1000);
@@ -1591,7 +1728,6 @@ function renderLocaleGroups(byPDA){
     `;
   }
 
-  // after render attach handlers (delegation via wrapper)
   setTimeout(()=>{
     $("#detailsBody").querySelectorAll("[data-code]").forEach(el=>{
       el.addEventListener("click", ()=> openMachine(el.getAttribute("data-code")));
@@ -1710,6 +1846,100 @@ function renderChartFor(codeid){
     }
   });
 }
+  /* =========================
+TRANCHE 4/4 — SOLO JS (da incollare DENTRO lo stesso <script>, prima dell’unico </script>)
+Contiene:
+- Banner “ultimo sinottico” (verde/rosso) basato su manifest.json + data odierna
+- AWIS assistant (greet, push, answer) + fuzzy
+- UI actions + boot
+========================= */
+
+/* -------------------------
+   Banner: ultimo sinottico (manifest) -> "Aggiornato oggi alle HH:MM" / "Non aggiornato"
+   NOTE: NON cambia lo stile UI: usa badge/pill già esistenti.
+------------------------- */
+function ensureManifestBanner(){
+  // Lo metto nel topbar vicino allo status (senza cambiare layout globale)
+  if(document.getElementById("manifestBanner")) return;
+
+  const pill = document.createElement("div");
+  pill.id = "manifestBanner";
+  pill.className = "pill";
+  pill.style.gap = "8px";
+  pill.style.borderColor = "var(--line)";
+  pill.innerHTML = `
+    <span class="dot" id="dotManifestBanner"></span>
+    <span id="txtManifestBanner">Sinottico: …</span>
+  `;
+
+  const top = document.querySelector(".topbar-inner");
+  const statusPill = document.getElementById("pillStatus");
+  if(top && statusPill){
+    // inserisco subito dopo lo status
+    statusPill.insertAdjacentElement("afterend", pill);
+  }
+}
+
+function parseSinotticoNameDate(fileName){
+  // formato atteso: Sinottico-AAAA-MM-GG-hhmm.xlsx
+  // es: Sinottico-2026-01-16-0830.xlsx
+  const s = String(fileName||"").trim();
+  const m = s.match(/Sinottico-(\d{4})-(\d{2})-(\d{2})-(\d{2})(\d{2})\.xlsx$/i);
+  if(!m) return null;
+  const yy = parseInt(m[1],10);
+  const mm = parseInt(m[2],10)-1;
+  const dd = parseInt(m[3],10);
+  const hh = parseInt(m[4],10);
+  const mi = parseInt(m[5],10);
+  const d = new Date(yy,mm,dd,hh,mi,0);
+  if(!isFinite(d)) return null;
+  return {date:d, hh, mi, raw:s};
+}
+
+function sameDay(a,b){
+  return a.getFullYear()===b.getFullYear() &&
+         a.getMonth()===b.getMonth() &&
+         a.getDate()===b.getDate();
+}
+
+function pad2(n){ return String(n).padStart(2,"0"); }
+
+function updateManifestBanner(){
+  ensureManifestBanner();
+
+  const dot = document.getElementById("dotManifestBanner");
+  const txt = document.getElementById("txtManifestBanner");
+  if(!dot || !txt) return;
+
+  if(!S.manifest || !Array.isArray(S.manifest.sinottici) || !S.manifest.sinottici.length){
+    dot.className = "dot bad";
+    txt.textContent = "Sinottico: manifest non valido";
+    return;
+  }
+
+  // prendo l'ultimo elemento (assumiamo manifest già ordinato)
+  const lastName = S.manifest.sinottici[S.manifest.sinottici.length-1];
+  const info = parseSinotticoNameDate(lastName);
+
+  if(!info){
+    dot.className = "dot warn";
+    txt.textContent = `Sinottico: ultimo file non nel formato atteso`;
+    return;
+  }
+
+  const now = new Date();
+  const hhmm = `${pad2(info.hh)}:${pad2(info.mi)}`;
+
+  if(sameDay(info.date, now)){
+    dot.className = "dot ok";
+    txt.textContent = `Aggiornato oggi alle ${hhmm}`;
+  }else{
+    dot.className = "dot bad";
+    // data europea
+    const d = `${pad2(info.date.getDate())}-${pad2(info.date.getMonth()+1)}-${info.date.getFullYear()}`;
+    txt.textContent = `Non aggiornato (ultimo: ${d} ${hhmm})`;
+  }
+}
 
 /* -------------------------
    AWIS assistant (NLP + program knowledge)
@@ -1717,7 +1947,14 @@ function renderChartFor(codeid){
 function greetAWIS(){
   if($("#chatlog").dataset.greeted) return;
   $("#chatlog").dataset.greeted = "1";
-  awisPush("AWIS", "Ciao! Sono AWIS (AWP Web Intelligence System).\n\nPosso:\n• trovare macchine “in pagamento”\n• stimare quando una macchina potrebbe pagare\n• aprire schede (locale, pda, comune, provincia)\n• spiegare colonne e acronimi del sinottico\n\nProva: “quali sono in pagamento?” oppure “quando paga CODEID 7767…?”");
+  awisPush("AWIS",
+    "Ciao! Sono AWIS (AWP Web Intelligence System).\n\nPosso:\n" +
+    "• trovare macchine “in pagamento”\n" +
+    "• stimare quando una macchina potrebbe pagare\n" +
+    "• aprire schede (locale, pda, comune, provincia)\n" +
+    "• spiegare colonne e acronimi del sinottico\n\n" +
+    "Prova: “quali sono in pagamento?” oppure “quando paga CODEID 7767…?”"
+  );
 }
 
 function awisPush(who, text){
@@ -1738,22 +1975,18 @@ function awisAnswer(input){
 
   awisPush("TU", q);
 
-  // If no data analyzed yet
   const hasData = S.machines.size > 0;
-
   const t = q.toLowerCase();
 
-  // intents
   const wantsTop = /in pagamento|pagamento|paga|pagherà|paghera|probabile|top/i.test(q);
   const wantsExplain = /spiega|cosa vuol dire|che significa|significa|acronimo|colonna/i.test(q);
-  const wantsOpenLocale = /apri locale|locale\s+/i.test(q);
+  const wantsOpenLocale = /apri locale/i.test(t);
   const wantsHelp = /aiuto|help|come funziona|spiegami il programma/i.test(q);
 
-  // detect CODEID
   const codeMatch = q.match(/(\d{10,})/);
   const codeid = codeMatch ? codeMatch[1] : null;
 
-  // detect column names
+  // explain columns (teniamo le chiavi come nel sinottico)
   const colMap = {
     "CODEID":"Codice univoco AAMS della macchina.",
     "CODEID PROVV":"Codice provvisorio assegnato dal produttore schede.",
@@ -1761,16 +1994,15 @@ function awisAnswer(input){
     "DATA ULTIMA LETTURA VAL.":"Timestamp della lettura contatori. È la chiave per lo storico.",
     "CNTTOTIN":"Contatore totale IN (in centesimi). Nel programma rimuovo gli ultimi 2 zeri.",
     "CNTTOTOT":"Contatore totale OUT (in centesimi). Nel programma rimuovo gli ultimi 2 zeri.",
-    "% OUT":"Percentuale di payout normativa indicata dal sinottico (es. 65).",
-    "E/M":"Esercizio o Magazzino.",
+    "% OUT":"Percentuale payout indicata dal sinottico (es. 65).",
+    "E/M":"Esercizio (E) o Magazzino (M).",
     "MACADDRESS PDA":"MAC del PDA/modem su cui è collegata la AWP.",
     "CODICE SEDE":"Codice del locale (sede).",
-    "CODICE PDV AAMS":"Codice pratica PDV AAMS (proprietario/gestione).",
+    "CODICE PDV AAMS":"Codice pratica PDV AAMS (gestione/proprietà).",
     "GG MANCATO COLLEGAMENTO":"Giorni senza trasmissione.",
     "GG DECADENZA":"Giorni verso decadenza nullaosta (magazzino/fermo)."
   };
 
-  // help
   if(wantsHelp){
     awisPush("AWIS",
       "Panoramica:\n" +
@@ -1786,32 +2018,35 @@ function awisAnswer(input){
     return;
   }
 
-  // explain columns
   if(wantsExplain){
-    // find mention of a known column
     const keys = Object.keys(colMap);
-    const found = keys.find(k => t.includes(k.toLowerCase().replace(/\./g,"").replace(/\s+/g," ")) ||
-                                 t.includes(k.toLowerCase()));
+
+    // Match robusto: tolgo punti e doppi spazi dal testo
+    const normText = t.replace(/\./g,"").replace(/\s+/g," ").trim();
+    let found = null;
+    for(const k of keys){
+      const nk = k.toLowerCase().replace(/\./g,"").replace(/\s+/g," ").trim();
+      if(normText.includes(nk)){ found = k; break; }
+    }
+
     if(found){
       awisPush("AWIS", `${found}: ${colMap[found]}`);
     }else{
       awisPush("AWIS",
-        "Dimmi il nome della colonna (es: CNTTOTIN, DATA ULTIMA LETTURA VAL., MACADDRESS PDA, % OUT…). " +
-        "Posso anche spiegarti sigle tipo PDV, PDA, NOE, E/M."
+        "Dimmi il nome della colonna (es: CNTTOTIN, DATA ULTIMA LETTURA VAL., MACADDRESS PDA, % OUT…)."
       );
     }
     return;
   }
 
-  // If asks about a specific machine payout
   if(codeid && wantsTop){
     if(!hasData){
-      awisPush("AWIS", "Prima premi “Analizza tutti i sinottici”, così posso stimare la situazione reale dai dati.");
+      awisPush("AWIS", "Prima premi “Analizza tutti i sinottici”, così posso stimare dai dati.");
       return;
     }
     const m = S.machines.get(codeid);
     if(!m){
-      awisPush("AWIS", `Non trovo il CODEID ${codeid} nello snapshot corrente. Controlla che sia corretto o che il sinottico lo contenga.`);
+      awisPush("AWIS", `Non trovo il CODEID ${codeid} nello snapshot. Controlla che sia corretto.`);
       return;
     }
     const sc = computeScore(codeid);
@@ -1831,20 +2066,19 @@ function awisAnswer(input){
       `Prob. pagamento stimata: ${sc.score}/100 (${sc.label})\n` +
       `Ciclo modello: ${cyc?fmtInt(cyc)+"€":"N/A"}\n` +
       `${lastLine}\n\n` +
-      `Se vuoi apro la scheda completa: ho già selezionato questa macchina nella UI.`
+      `Apro la scheda macchina.`
     );
-    // auto open
     openMachine(codeid);
     return;
   }
 
-  // list top “in pagamento”
   if(wantsTop){
     if(!hasData){
       awisPush("AWIS", "Prima premi “Analizza tutti i sinottici”. Poi posso proporti la top list.");
       return;
     }
-    const list = Array.from(S.machines.values()).map(m=>({m,sc:computeScore(m.codeid)}))
+    const list = Array.from(S.machines.values())
+      .map(m=>({m,sc:computeScore(m.codeid)}))
       .sort((a,b)=>b.sc.score-a.sc.score)
       .slice(0,10);
 
@@ -1859,19 +2093,16 @@ function awisAnswer(input){
     return;
   }
 
-  // open locale by name (simple)
   if(wantsOpenLocale){
     if(!hasData){
       awisPush("AWIS","Prima analizza i sinottici.");
       return;
     }
-    // guess locale name after keyword
     const guess = q.replace(/apri\s+locale/i,"").trim();
     if(!guess){
       awisPush("AWIS","Dimmi il nome del locale (DENOMIN. SEDE).");
       return;
     }
-    // find best match
     const names = Array.from(S.locals.keys());
     const best = bestFuzzy(guess, names);
     if(best){
@@ -1883,17 +2114,15 @@ function awisAnswer(input){
     return;
   }
 
-  // General fallback (not program-related)
   if(!hasData){
     awisPush("AWIS",
-      "Posso aiutarti, ma per le domande sui dati devo prima analizzare i sinottici.\n" +
-      "Premi “Analizza tutti i sinottici”.\n\n" +
-      "Se invece mi stai chiedendo qualcosa di generale, dimmelo e ti rispondo in modo generico."
+      "Per domande sui dati devo prima analizzare i sinottici.\n" +
+      "Premi “Analizza tutti i sinottici”."
     );
     return;
   }
 
-  // Try interpret as search/filter request: find machines containing words
+  // fallback: ricerca testo
   const tokens = t.split(/\s+/).filter(Boolean);
   const hits = [];
   for(const m of S.machines.values()){
@@ -1911,16 +2140,16 @@ function awisAnswer(input){
 
   if(hits.length){
     awisPush("AWIS",
-      `Ho trovato ${hits.length} risultati. Ti mostro una lista rapida nei dettagli.\n` +
-      `Se vuoi essere più preciso: “apri macchina CODEID …” oppure “apri locale …”.`
+      `Ho trovato ${hits.length} risultati. Ti apro una lista nei dettagli.\n` +
+      `Se vuoi: “apri macchina CODEID …” oppure “apri locale …”.`
     );
     openGenericList("Risultati ricerca (AWIS)", hits.map(x=>x.codeid));
     return;
   }
 
   awisPush("AWIS",
-    "Non capisco esattamente cosa vuoi fare con questi dati.\n" +
-    "Esempi utili:\n" +
+    "Non capisco esattamente.\n" +
+    "Esempi:\n" +
     "• “quali sono in pagamento?”\n" +
     "• “quando paga CODEID 7767…?”\n" +
     "• “apri locale Bar Fortini”\n" +
@@ -1936,7 +2165,6 @@ function bestFuzzy(query, list){
     let score=0;
     if(a===q) score=100;
     else{
-      // simple overlap
       if(a.includes(q)) score=80;
       const parts = q.split(/\s+/).filter(Boolean);
       for(const p of parts){
@@ -1993,8 +2221,13 @@ $("#chartLimit").addEventListener("change", ()=>{
   $("#chartLimitLabel").textContent = $("#chartLimit").value;
 
   await loadCore();
+
+  // Banner ultimo sinottico (subito dopo loadCore, così S.manifest esiste)
+  updateManifestBanner();
+
+        
   await selfTest();
-})();
+})();  
 </script>
 
 </body>
