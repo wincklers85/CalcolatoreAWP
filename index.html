@@ -581,7 +581,6 @@ async function selfTest(){
   $("#xlsxInfo").textContent = hasXLSX ? "XLSX: OK" : "XLSX: NON caricato (CDN bloccato?)";
 
   try{
-    const users = await fetchJSON(PATH.users);
     if(Array.isArray(users) && users.length){
       setDot("#dotUsers","ok");
       $("#usersInfo").textContent = `users.json: ${users.length} utenti`;
