@@ -697,26 +697,26 @@ async function loadCore(){
    LOGIN / LOGOUT
 ========================= */
 function doLogin(){
-  const user = normalizeUser($("#loginUser").value);
-  const pinIn = ($("#loginPin").value||"").trim();
+  const userIn = ($("#loginUser").value || "").trim();
+  const pinIn  = ($("#loginPin").value  || "").trim();
 
-  if(!S.users.length){
-    toast("Login","users.json non caricato o vuoto. Controlla ./Dati/users.json");
+  if(!S.users || !Array.isArray(S.users) || S.users.length === 0){
+    toast("Login","Lista utenti non disponibile (errore interno).");
     return;
   }
-  if(!user || !pinIn){
+
+  if(!userIn || !pinIn){
     toast("Login","Inserisci utente e PIN.");
     return;
   }
 
-  const pinNorm = normalizePin(pinIn);
-
-  const found = S.users.find(x=>{
-    return normalizeUser(x.user)===user && normalizePin(x.pin)===pinNorm;
-  });
+  const found = S.users.find(u =>
+    String(u.user).trim() === userIn &&
+    String(u.pin).trim()  === pinIn
+  );
 
   if(!found){
-    toast("Login", `Utente non trovato o PIN errato. (Utenti: ${S.users.length})`);
+    toast("Login","Utente o PIN errati.");
     return;
   }
 
@@ -728,7 +728,12 @@ function doLogin(){
     }
   }
 
-  S.session = { user: found.user, level: found.level, expires: found.expires || null };
+  S.session = {
+    user: found.user,
+    level: found.level || "user",
+    expires: found.expires || null
+  };
+
   saveSession(S.session);
   afterLogin();
 }
