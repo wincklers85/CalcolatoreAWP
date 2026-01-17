@@ -4,16 +4,5 @@
     "pin": "7410",
     "level": "admin",
     "expires": "2030-12-31"
-  },
-  {
-    "user": "Aurelio",
-    "pin": "2025",
-    "level": "admin",
-    "expires": "2030-12-31"
-  }, 
-  {
-    "user": "user",
-    "pin": "0000",
-    "level": "user"
   }
 ]
