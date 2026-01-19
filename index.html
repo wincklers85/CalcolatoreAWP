@@ -5,9 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>AWP Analyzer</title>
 
-  <!-- Dipendenze client-only (GitHub Pages ok) -->
+  <!-- XLSX in browser -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
   <link rel="stylesheet" href="./assets/styles.css" />
 </head>
@@ -20,13 +19,13 @@
         <div class="logo">AWP</div>
         <div>
           AWP Analyzer
-          <small>Sinottici • Storico • Predizione • Modelli</small>
+          <small>Sinottici • Storico • Predizione</small>
         </div>
       </div>
 
       <div class="spacer"></div>
 
-      <div class="pill" id="pillStatus" title="Stato sessione">
+      <div class="pill" id="pillStatus">
         <span class="dot" id="dotStatus"></span>
         <span id="txtStatus">Non autenticato</span>
       </div>
@@ -37,7 +36,7 @@
 
   <div class="wrap">
 
-    <!-- BANNER ULTIMO SINOTTICO -->
+    <!-- BANNER ULTIMO SINOTTICO (visibile anche per utenti scaduti) -->
     <div class="card" id="cardBanner" style="display:none; margin-bottom:14px">
       <div class="bd" style="display:flex; align-items:center; gap:10px; justify-content:space-between; flex-wrap:wrap">
         <div class="row" style="gap:10px">
@@ -61,7 +60,7 @@
         <div class="card">
           <div class="hd">
             <h2>Accesso</h2>
-            <div class="sub" id="loginStatus">Self-check…</div>
+            <div class="sub" id="loginStatus">Pronto</div>
           </div>
 
           <div class="bd">
@@ -75,7 +74,6 @@
                   placeholder="Inserisci nome utente"
                   autocomplete="username"
                 />
-                <div class="muted" style="font-size:12px">Gli utenti sono in <b>./Dati/users.json</b>.</div>
               </div>
 
               <div class="field">
@@ -89,7 +87,6 @@
                   pattern="[0-9]{4}"
                   autocomplete="current-password"
                 />
-                <div class="muted" style="font-size:12px">Il PIN non viene mostrato a schermo.</div>
               </div>
             </div>
 
@@ -105,26 +102,39 @@
             <div id="loginError" class="footer-note" style="color:var(--bad); display:none"></div>
 
             <div class="footer-note">
-              Requisiti: cartella <b>/Dati/</b> (D maiuscola), file: manifest.json, cicloslot.json, users.json e sinottici .xlsx
+              Dati in <b>/Dati/</b>: manifest.json, users.json e i sinottici .xlsx.
             </div>
           </div>
         </div>
 
         <div class="card">
           <div class="hd">
-            <h2>Assistente</h2>
-            <div class="sub">online dopo login</div>
+            <h2 id="assistantNameLogin">Sibilla</h2>
+            <div class="sub">si attiva dopo login</div>
           </div>
           <div class="bd">
             <div class="chat" style="height:340px">
               <div class="chatlog" id="chatlogLogin"></div>
               <div class="footer-note">
-                Dopo l’accesso potrai chiedere predizioni e statistiche (in base ai dati reali).
+                Dopo l’accesso: “top pagamenti”, “dettagli 123…”, “cerca Molini”, “modello XYZ”.
               </div>
             </div>
           </div>
         </div>
 
+      </div>
+    </div>
+
+    <!-- VIEW: EXPIRED (utente scaduto) -->
+    <div class="view" id="viewExpired">
+      <div class="card">
+        <div class="hd">
+          <h2>Profilo</h2>
+          <div class="sub">Abbonamento scaduto</div>
+        </div>
+        <div class="bd" id="expiredBox">
+          <!-- riempito da JS -->
+        </div>
       </div>
     </div>
 
@@ -134,7 +144,7 @@
       <div class="grid">
 
         <!-- LEFT -->
-        <div class="card" id="cardMain">
+        <div class="card">
           <div class="hd">
             <h2>Dashboard</h2>
             <div class="sub" id="subMain">Pronto</div>
@@ -148,6 +158,17 @@
 
               <span class="badge"><span class="dot" id="dotData"></span><span id="dataInfo">Dati: non caricati</span></span>
               <span class="badge"><span class="dot" id="dotHist"></span><span id="histInfo">Storico: 0</span></span>
+            </div>
+
+            <!-- PROGRESS -->
+            <div id="progressWrap" class="progressWrap" style="display:none; margin-top:10px">
+              <div class="row" style="justify-content:space-between; gap:10px">
+                <div class="muted" id="progressText">Caricamento…</div>
+                <div class="badge mono" id="progressPct">0%</div>
+              </div>
+              <div class="progressBar">
+                <div class="progressFill" id="progressFill" style="width:0%"></div>
+              </div>
             </div>
 
             <div style="height:12px"></div>
@@ -169,15 +190,15 @@
             </div>
 
             <div class="row" style="margin-top:10px">
-              <span class="badge"><b id="countMachines">0</b>&nbsp;macchine</span>
-              <span class="badge"><b id="countLocals">0</b>&nbsp;locali</span>
-              <span class="badge"><b id="countModels">0</b>&nbsp;modelli</span>
-              <span class="badge"><b id="countFiles">0</b>&nbsp;sinottici</span>
+              <span class="badge">Macchine: <b id="countMachines">0</b></span>
+              <span class="badge">Locali: <b id="countLocals">0</b></span>
+              <span class="badge">Modelli: <b id="countModels">0</b></span>
+              <span class="badge">Sinottici: <b id="countFiles">0</b></span>
             </div>
 
             <div style="height:12px"></div>
 
-            <!-- TABELLA MACCHINE (IMPORTANTISSIMA) -->
+            <!-- TABLE MACHINES -->
             <div style="max-height:520px; overflow:auto; border-radius:14px; border:1px solid var(--line)">
               <table class="table" id="tblMachines">
                 <thead>
@@ -188,7 +209,7 @@
                     <th class="mono">CODEID</th>
                     <th>PDA</th>
                     <th>Stato</th>
-                    <th style="min-width:180px">Predizione</th>
+                    <th style="min-width:190px">Predizione</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
@@ -196,26 +217,26 @@
             </div>
 
             <div class="footer-note">
-              Clicca una riga per aprire la scheda macchina (storico, predizione e confronto con macchine uguali).
+              Nota: caricamento iniziale = ultimi 3 sinottici (rapido). “Analizza tutti” migliora le predizioni.
             </div>
           </div>
         </div>
 
-        <!-- RIGHT CHAT -->
+        <!-- RIGHT -->
         <div class="card" id="cardChat">
           <div class="hd">
-            <h2 id="assistantName">Assistente</h2>
-            <div class="sub">domande sui dati</div>
+            <h2 id="assistantName">Sibilla</h2>
+            <div class="sub">domande sui tuoi dati</div>
           </div>
           <div class="bd">
             <div class="chat">
               <div class="chatlog" id="chatlog"></div>
               <div class="chatbar">
-                <input class="input" id="chatInput" placeholder="Es: top pagamenti • dettagli 123… • modello X stats" />
+                <input class="input" id="chatInput" placeholder="Es: top pagamenti • dettagli 123… • cerca Molini • modello X" />
                 <button class="btn primary" id="chatSend">Invia</button>
               </div>
               <div class="footer-note">
-                Suggerimenti: “top pagamenti”, “cerca Molini”, “dettagli &lt;CODEID&gt;”, “modello &lt;codice&gt;”
+                “Sibilla” non è ChatGPT: ragiona sui tuoi sinottici e spiega perché stima una predizione.
               </div>
             </div>
           </div>
@@ -225,17 +246,16 @@
 
       <!-- MODELS COLLAPSIBLE -->
       <div style="height:16px"></div>
-      <div class="card" id="cardModels">
+      <div class="card">
         <div class="hd">
           <h2>Modelli</h2>
-          <div class="sub">statistiche & fingerprint</div>
+          <div class="sub">fingerprint statistico</div>
           <button class="btn small" id="btnToggleModels" style="margin-left:auto">Apri</button>
         </div>
         <div class="bd" id="modelsPanel" style="display:none">
           <div class="row" style="margin-bottom:10px">
             <span class="badge">Totale modelli: <b id="modelsCount">0</b></span>
-            <span class="badge">Macchine con storico: <b id="modelsActive">0</b></span>
-            <span class="badge">Punti analizzati: <b id="modelsPoints">0</b></span>
+            <span class="badge">Campioni payout: <b id="modelsPayouts">0</b></span>
           </div>
 
           <div style="max-height:360px; overflow:auto; border-radius:14px; border:1px solid var(--line)">
@@ -244,9 +264,9 @@
                 <tr>
                   <th class="mono">MODELLO</th>
                   <th>Macchine</th>
-                  <th>Con storico</th>
                   <th>Ciclo stimato (IN)</th>
                   <th>Payout mediano</th>
+                  <th>Payout medio</th>
                   <th>Volatilità</th>
                   <th>Campioni</th>
                 </tr>
@@ -256,55 +276,21 @@
           </div>
 
           <div class="footer-note">
-            “Fingerprint” = ciclo stimato + volatilità + pattern payout. Migliora con più sinottici.
+            Il fingerprint migliora con più storico. I contatori sono in centesimi: qui vengono convertiti in euro.
           </div>
         </div>
       </div>
 
-      <!-- DETAILS + CHART -->
+      <!-- ADMIN PANEL -->
       <div style="height:16px"></div>
-      <div class="grid">
-
-        <div class="card">
-          <div class="hd">
-            <h2 id="detailsTitle">Dettagli</h2>
-            <div class="sub" id="detailsSub">Seleziona una macchina</div>
-          </div>
-          <div class="bd" id="detailsBody">
-            <div class="kpis">
-              <div class="kpi"><div class="label">Tip</div><div class="value" style="font-size:14px">Clicca una riga</div><div class="hint">Apre il modal scheda macchina</div></div>
-              <div class="kpi"><div class="label">Predizione</div><div class="value" style="font-size:14px">IN rimanente + ETA</div><div class="hint">stimati su storico e modello</div></div>
-              <div class="kpi"><div class="label">Coorte</div><div class="value" style="font-size:14px">Macchine uguali</div><div class="hint">confronto tra locali</div></div>
-              <div class="kpi"><div class="label">Diagnosi</div><div class="value" style="font-size:14px">Admin only</div><div class="hint">parametri vitali e check</div></div>
-            </div>
-          </div>
+      <div class="card" id="adminPanel" style="display:none">
+        <div class="hd">
+          <h2>Admin</h2>
+          <div class="sub">diagnostica e utenti</div>
         </div>
-
-        <div class="card">
-          <div class="hd">
-            <h2>Grafico</h2>
-            <div class="sub" id="chartSub">Seleziona una macchina</div>
-          </div>
-          <div class="bd">
-            <div class="row" style="margin-bottom:10px">
-              <span class="badge">Vista:</span>
-              <button class="btn small" id="btnChartIN">IN (Δ)</button>
-              <button class="btn small" id="btnChartOUT">OUT (Δ)</button>
-              <button class="btn small" id="btnChartPct">%</button>
-              <span class="badge">Punti: <b id="chartPoints">0</b></span>
-              <span class="badge">Limite:</span>
-              <select id="chartLimit" class="input" style="min-width:120px">
-                <option value="60">60</option>
-                <option value="120" selected>120</option>
-                <option value="250">250</option>
-                <option value="999999">Tutto</option>
-              </select>
-            </div>
-            <canvas id="chart" height="160"></canvas>
-            <div class="footer-note">Il grafico mostra i delta tra letture consecutive.</div>
-          </div>
+        <div class="bd" id="adminBox">
+          <!-- riempito da JS -->
         </div>
-
       </div>
 
     </div>
@@ -364,12 +350,11 @@
     </div>
   </div>
 
-  <div class="toast" id="toast">
+  <div class="toast" id="toast" style="display:none">
     <b id="toastTitle">Info</b>
     <small id="toastMsg">…</small>
   </div>
 
-  <!-- App -->
   <script type="module" src="./assets/app.js"></script>
 </body>
 </html>
