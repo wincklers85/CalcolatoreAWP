@@ -5,4 +5,11 @@
     "level": "admin",
     "expires": "2030-12-31"
   }
+  
+  {
+    "user": "Aurelio",
+    "pin": "2025",
+    "level": "Abbonato",
+    "expires": "2027-12-31"
+  }
 ]
