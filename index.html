@@ -3,192 +3,15 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>AWP Analyzer Pro</title>
+  <title>Calcolatore AWP | Analisi Pagamento</title>
 
-  <!-- SheetJS -->
+  <!-- SheetJS (XLSX parser) -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
-  <style>
-    :root{
-      --bg:#f6f7fb;
-      --panel:#ffffff;
-      --ink:#101828;
-      --muted:#667085;
-      --line:#e5e7eb;
-      --brand:#2563eb;
-      --ok:#16a34a;
-      --warn:#f59e0b;
-      --bad:#dc2626;
-      --chip:#f1f5f9;
-      --shadow: 0 10px 30px rgba(16,24,40,.08);
-      --radius: 16px;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family:var(--sans);
-      color:var(--ink);
-      background:linear-gradient(180deg,#f9fafb 0%, var(--bg) 60%, #f9fafb 100%);
-    }
-    a{color:inherit; text-decoration:none}
-    button, input, select{font:inherit}
-
-    .topbar{
-      position:sticky; top:0; z-index:20;
-      background:rgba(255,255,255,.9);
-      backdrop-filter:saturate(140%) blur(10px);
-      border-bottom:1px solid var(--line);
-    }
-    .topbar-inner{
-      max-width:1200px; margin:0 auto;
-      padding:12px 16px;
-      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
-    }
-    .brand{display:flex; align-items:center; gap:10px; font-weight:900}
-    .logo{
-      width:36px; height:36px; border-radius:12px;
-      background: radial-gradient(circle at 30% 30%, #60a5fa, #2563eb);
-      box-shadow: 0 10px 20px rgba(37,99,235,.25);
-      display:grid; place-items:center; color:#fff; font-weight:900;
-    }
-    .brand small{display:block; font-weight:600; color:var(--muted); margin-top:2px}
-    .spacer{flex:1}
-
-    .pill{
-      border:1px solid var(--line);
-      background:var(--panel);
-      border-radius:999px;
-      padding:8px 12px;
-      display:flex; align-items:center; gap:8px;
-      box-shadow:0 8px 20px rgba(16,24,40,.05);
-      white-space:nowrap;
-    }
-    .dot{width:10px; height:10px; border-radius:999px; background:var(--muted)}
-    .dot.ok{background:var(--ok)}
-    .dot.warn{background:var(--warn)}
-    .dot.bad{background:var(--bad)}
-
-    .btn{
-      border:1px solid var(--line);
-      background:var(--panel);
-      padding:10px 12px;
-      border-radius:12px;
-      box-shadow:0 10px 20px rgba(16,24,40,.05);
-      cursor:pointer;
-      display:inline-flex; gap:8px; align-items:center;
-    }
-    .btn.primary{
-      border-color:rgba(37,99,235,.25);
-      background:linear-gradient(180deg,#3b82f6,#2563eb);
-      color:#fff;
-    }
-    .btn:active{transform:translateY(1px)}
-
-    .wrap{max-width:1200px; margin:0 auto; padding:18px 16px 48px}
-    .grid{
-      display:grid; gap:16px;
-      grid-template-columns: 1.35fr .65fr;
-      align-items:start;
-    }
-    @media (max-width: 980px){ .grid{grid-template-columns:1fr} }
-
-    .card{
-      background:var(--panel);
-      border:1px solid var(--line);
-      border-radius:var(--radius);
-      box-shadow:var(--shadow);
-      overflow:hidden;
-    }
-    .card .hd{
-      padding:14px 16px;
-      border-bottom:1px solid var(--line);
-      display:flex; align-items:center; gap:10px;
-    }
-    .card .hd h2{margin:0; font-size:16px}
-    .card .hd .sub{color:var(--muted); font-size:12px; margin-left:auto}
-    .card .bd{padding:14px 16px}
-
-    .split{display:grid; grid-template-columns:1fr 1fr; gap:12px}
-    @media (max-width:980px){ .split{grid-template-columns:1fr} }
-
-    .field{display:flex; flex-direction:column; gap:6px; min-width:220px; flex:1}
-    .field label{font-size:12px; color:var(--muted)}
-    .input, select{
-      border:1px solid var(--line);
-      background:#fff;
-      border-radius:12px;
-      padding:10px 12px;
-      outline:none;
-      min-height:42px;
-    }
-
-    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
-    .badge{
-      display:inline-flex; align-items:center; gap:6px;
-      padding:6px 10px; border-radius:999px;
-      font-size:12px; border:1px solid var(--line);
-      background:var(--chip); white-space:nowrap;
-    }
-
-    .table{
-      width:100%;
-      border-collapse:separate;
-      border-spacing:0;
-      border:1px solid var(--line);
-      border-radius:14px;
-      overflow:hidden;
-    }
-    .table th, .table td{
-      padding:10px 10px;
-      border-bottom:1px solid var(--line);
-      font-size:13px;
-      text-align:left;
-      vertical-align:middle;
-    }
-    .table th{
-      background:#f8fafc;
-      color:#334155;
-      font-weight:800;
-      position:sticky; top:0;
-      z-index:1;
-    }
-    .table tr:last-child td{border-bottom:none}
-    .mono{font-family:var(--mono)}
-
-    .linklike{color:var(--brand); cursor:pointer; font-weight:900}
-    .linklike:hover{text-decoration:underline}
-
-    details{border:1px solid var(--line); border-radius:14px; overflow:hidden; background:#fff}
-    details summary{
-      list-style:none;
-      cursor:pointer;
-      padding:12px 12px;
-      font-weight:900;
-      display:flex; gap:10px; align-items:center;
-      background:linear-gradient(180deg,#fff,#fbfdff);
-      border-bottom:1px solid var(--line);
-    }
-    details summary::-webkit-details-marker{display:none}
-    details .inner{padding:12px}
-
-    .toast{
-      position:fixed; right:16px; bottom:16px;
-      background:#0b1220; color:#fff;
-      border:1px solid rgba(255,255,255,.08);
-      padding:12px 14px; border-radius:14px;
-      box-shadow:0 20px 60px rgba(0,0,0,.28);
-      width:min(420px, calc(100vw - 32px));
-      z-index:99; display:none;
-    }
-    .toast b{display:block}
-    .toast small{opacity:.85}
-    .view{display:none}
-    .view.active{display:block}
-  </style>
+  <link rel="stylesheet" href="./assets/styles.css" />
 </head>
 
 <body>
@@ -197,16 +20,16 @@
       <div class="brand">
         <div class="logo">AWP</div>
         <div>
-          AWP Analyzer Pro
-          <small>Analisi sinottici • Storici • Modelli (profilo statistico)</small>
+          Calcolatore AWP | Analisi Pagamento
+          <small>Storici sinottici • correlazioni modello • AWIS</small>
         </div>
       </div>
 
       <div class="spacer"></div>
 
-      <div class="pill" id="pillBanner" style="display:none">
-        <span class="dot" id="dotBanner"></span>
-        <span id="txtBanner">—</span>
+      <div class="pill" id="pillUpdate">
+        <span class="dot" id="dotUpdate"></span>
+        <span id="txtUpdate">Carico ultimo sinottico…</span>
       </div>
 
       <div class="pill" id="pillStatus">
@@ -214,8 +37,7 @@
         <span id="txtStatus">Non autenticato</span>
       </div>
 
-      <button class="btn" id="btnSelfTest" title="Controlla file e librerie">Self-test</button>
-      <button class="btn" id="btnLogout" style="display:none" title="Esci">Esci</button>
+      <button class="btn small" id="btnLogout" style="display:none">Esci</button>
     </div>
   </div>
 
@@ -229,44 +51,51 @@
             <h2>Accesso</h2>
             <div class="sub" id="loginStatus">Caricamento…</div>
           </div>
+
           <div class="bd">
             <div class="split">
               <div class="field">
                 <label>Utente</label>
-                <input class="input" id="loginUser" placeholder="es. user" autocomplete="username" />
+                <input class="input" id="loginUser" placeholder="es. Admin" autocomplete="username" />
               </div>
               <div class="field">
                 <label>PIN</label>
-                <input class="input" id="loginPin" placeholder="es. 0000" inputmode="numeric" autocomplete="current-password" />
+                <input class="input" id="loginPin" placeholder="es. 7410" inputmode="numeric" autocomplete="current-password" />
               </div>
             </div>
 
             <div class="row" style="margin-top:12px">
               <button class="btn primary" id="btnLogin">Entra</button>
+              <button class="btn" id="btnSelfTest">Self-test</button>
+
               <span class="badge"><span class="dot" id="dotUsers"></span><span id="usersInfo">users.json: …</span></span>
               <span class="badge"><span class="dot" id="dotManifest"></span><span id="manifestInfo">manifest.json: …</span></span>
-              <span class="badge"><span class="dot" id="dotCiclos"></span><span id="ciclosInfo">cicloslot.json: …</span></span>
               <span class="badge"><span class="dot" id="dotXLSX"></span><span id="xlsxInfo">XLSX: …</span></span>
             </div>
 
-            <div style="margin-top:10px; color:var(--muted); font-size:12px">
-              File richiesti in <b>/Dati/</b>: users.json, manifest.json, cicloslot.json e sinottici .xlsx.<br>
-              Il nome sinottico atteso: <span class="mono">Sinottico-AAAA-MM-GG-hhmm.xlsx</span>
+            <div class="footer-note">
+              File richiesti in <b>/Dati/</b> (D maiuscola): users.json, manifest.json, cicloslot.json e i sinottici .xlsx.
             </div>
           </div>
         </div>
 
         <div class="card">
           <div class="hd">
-            <h2>Come funziona</h2>
-            <div class="sub">in 20 secondi</div>
+            <h2>Info rapido</h2>
+            <div class="sub">Cartella /Dati/</div>
           </div>
-          <div class="bd" style="color:var(--muted); font-size:13px; line-height:1.45">
-            1) Login (users.json)<br>
-            2) Banner: controlla se l’ultimo sinottico è di oggi (manifest.json)<br>
-            3) “Analizza”: legge tutti i .xlsx e costruisce lo storico per CODEID (DATA ULTIMA LETTURA VAL.)<br>
-            4) Sezione Modelli: profilo statistico (payout reale, frequenza uscite, comportamento)<br><br>
-            <b>Nota:</b> “Algoritmo” qui significa <b>profilo stimato</b> dai dati storici, non reverse engineering.
+          <div class="bd">
+            <div class="kpi">
+              <div class="label">Percorso dati</div>
+              <div class="value" style="font-family:var(--mono); font-size:14px">./Dati/</div>
+              <div class="hint">Compatibile GitHub Pages (URL relativo)</div>
+            </div>
+
+            <div class="kpi" style="margin-top:12px">
+              <div class="label">Modalità utente</div>
+              <div class="value">Admin / Abbonato</div>
+              <div class="hint">Abbonato scaduto: accesso limitato con richiesta rinnovo.</div>
+            </div>
           </div>
         </div>
       </div>
@@ -275,18 +104,21 @@
     <!-- MAIN -->
     <div class="view" id="viewMain">
       <div class="grid">
-        <div class="card">
+
+        <!-- LEFT -->
+        <div class="card" id="cardDashboard">
           <div class="hd">
-            <h2>Dashboard</h2>
+            <h2>Dashboard AWP</h2>
             <div class="sub" id="subMain">Pronto</div>
           </div>
-          <div class="bd">
 
+          <div class="bd">
             <div class="row">
               <button class="btn primary" id="btnAnalyzeAll">Analizza tutti i sinottici</button>
-              <button class="btn" id="btnReset">Reset dati (RAM)</button>
+              <button class="btn" id="btnClearCache">Reset sessione</button>
+
               <span class="badge"><span class="dot" id="dotData"></span><span id="dataInfo">Dati: non caricati</span></span>
-              <span class="badge"><span class="dot" id="dotHist"></span><span id="histInfo">Storico: 0</span></span>
+              <span class="badge"><span class="dot" id="dotHist"></span><span id="histInfo">Storico: 0 letture</span></span>
             </div>
 
             <div style="height:12px"></div>
@@ -297,14 +129,21 @@
                 <input class="input" id="qSearch" placeholder="es. Molini, 7767..., PDA..." />
               </div>
               <div class="field">
-                <label>Filtro</label>
-                <select id="qFilter" class="input">
+                <label>Filtro rapido</label>
+                <select id="qFilter">
                   <option value="all">Tutte</option>
                   <option value="likely">Probabile pagamento (Top)</option>
-                  <option value="active">Solo E (attive)</option>
-                  <option value="stale">≥ 3 gg no link</option>
+                  <option value="active">Solo attive (E)</option>
+                  <option value="stale">Non aggiorna (GG mancato colleg.)</option>
                 </select>
               </div>
+            </div>
+
+            <div class="row" style="margin-top:10px">
+              <span class="badge"><b id="countMachines">0</b>&nbsp;macchine</span>
+              <span class="badge"><b id="countLocals">0</b>&nbsp;locali</span>
+              <span class="badge"><b id="countModels">0</b>&nbsp;modelli</span>
+              <span class="badge"><b id="countFiles">0</b>&nbsp;sinottici</span>
             </div>
 
             <div style="height:12px"></div>
@@ -318,65 +157,128 @@
                     <th class="mono">CODEID</th>
                     <th>PDA</th>
                     <th>Stato</th>
-                    <th style="min-width:160px">Prob. pagamento</th>
+                    <th style="min-width:140px">Prob. pagamento</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
               </table>
             </div>
 
-            <div style="margin-top:10px; color:var(--muted); font-size:12px">
-              Probabilità = euristica su storico (ΔIN/ΔOUT), ciclo modello (cicloslot) e allineamento payout.
+            <div class="footer-note">
+              “Prob. pagamento” = euristica basata su ciclo + trend storico + %OUT.
+              È una stima, non una garanzia.
             </div>
           </div>
         </div>
 
-        <div class="card">
+        <!-- RIGHT -->
+        <div class="card" id="cardRight">
           <div class="hd">
-            <h2>Dettagli</h2>
-            <div class="sub" id="detailsSub">Seleziona una macchina</div>
+            <h2 id="rightTitle">AWIS | Assistente</h2>
+            <div class="sub" id="rightSub">domande sui dati</div>
           </div>
-          <div class="bd" id="detailsBody" style="color:var(--muted); font-size:13px">
-            Seleziona una riga per vedere storico e grafico.
+          <div class="bd">
+            <div class="chat" id="awisBlock">
+              <div class="chatlog" id="chatlog"></div>
+              <div class="chatbar">
+                <input class="input" id="chatInput" placeholder="Es: quali macchine sono in pagamento? / quando paga CODEID 776...?" />
+                <button class="btn primary" id="chatSend">Invia</button>
+              </div>
+              <div class="footer-note">AWIS usa SOLO i dati caricati.</div>
+            </div>
+
+            <!-- PROFILE / RENEW (for expired abbonato) -->
+            <div id="renewBlock" style="display:none">
+              <div class="kpis">
+                <div class="kpi">
+                  <div class="label">Profilo</div>
+                  <div class="value" id="profileUser">—</div>
+                  <div class="hint" id="profileInfo">—</div>
+                </div>
+                <div class="kpi">
+                  <div class="label">Stato abbonamento</div>
+                  <div class="value" style="color:var(--bad)">Scaduto</div>
+                  <div class="hint">Accesso limitato.</div>
+                </div>
+              </div>
+
+              <div style="height:12px"></div>
+
+              <div class="card" style="box-shadow:none">
+                <div class="hd" style="border:none; padding:0 0 10px 0">
+                  <h2 style="font-size:14px; margin:0">Richiesta rinnovo</h2>
+                </div>
+                <div class="bd" style="padding:0">
+                  <div class="footer-note" style="margin:0 0 10px 0">
+                    Premi il pulsante per inviare una mail di richiesta rinnovo.
+                  </div>
+                  <button class="btn primary" id="btnRenewEmail">Invia richiesta via email</button>
+                </div>
+              </div>
+            </div>
+
           </div>
         </div>
+
       </div>
 
+      <!-- DETAILS + CHART -->
       <div style="height:16px"></div>
 
       <div class="grid">
-        <div class="card">
+
+        <div class="card" id="cardDetails">
           <div class="hd">
-            <h2>Grafico (delta)</h2>
-            <div class="sub" id="chartSub">—</div>
+            <h2 id="detailsTitle">Dettagli</h2>
+            <div class="sub" id="detailsSub">Seleziona una macchina o un locale</div>
           </div>
-          <div class="bd">
-            <div class="row" style="margin-bottom:10px">
-              <button class="btn" id="btnChartIN">IN (Δ)</button>
-              <button class="btn" id="btnChartOUT">OUT (Δ)</button>
-              <button class="btn" id="btnChartPCT">%</button>
-              <span class="badge">Punti: <b id="chartPoints">0</b></span>
-              <select id="chartLimit" class="input" style="min-width:140px">
-                <option value="60">Ultimi 60</option>
-                <option value="120" selected>Ultimi 120</option>
-                <option value="250">Ultimi 250</option>
-                <option value="999999">Tutto</option>
-              </select>
+          <div class="bd" id="detailsBody">
+            <div class="kpis">
+              <div class="kpi"><div class="label">Suggerimento</div><div class="value" style="font-size:14px">Seleziona una riga</div><div class="hint">Aprirai scheda macchina / locale.</div></div>
+              <div class="kpi"><div class="label">Storico</div><div class="value" style="font-size:14px">Deduplicato</div><div class="hint">Stessa data lettura = 1 punto.</div></div>
+              <div class="kpi"><div class="label">Cache</div><div class="value" style="font-size:14px">Sessione</div><div class="hint">Salvo login in localStorage.</div></div>
+              <div class="kpi"><div class="label">Parsing date</div><div class="value" style="font-size:14px">DD/MM/YYYY HH:mm</div><div class="hint">Compatibile 2026+</div></div>
             </div>
-            <canvas id="chart" height="170"></canvas>
           </div>
         </div>
 
-        <div class="card">
+        <div class="card" id="cardChart">
           <div class="hd">
-            <h2>Modelli</h2>
-            <div class="sub">menu a scomparsa</div>
+            <h2>Grafico</h2>
+            <div class="sub" id="chartSub">Seleziona una macchina</div>
           </div>
           <div class="bd">
-            <div id="modelsBox" style="display:flex; flex-direction:column; gap:10px; color:var(--muted); font-size:13px">
-              Premi “Analizza” per calcolare i profili dei modelli.
+            <div class="row" style="margin-bottom:10px">
+              <span class="badge">Vista:</span>
+              <button class="btn small" id="btnChartIN">IN (Δ)</button>
+              <button class="btn small" id="btnChartOUT">OUT (Δ)</button>
+              <button class="btn small" id="btnChartPct">%</button>
+              <span class="badge">Punti: <b id="chartPoints">0</b></span>
+              <span class="badge">Limite: <b id="chartLimitLabel">120</b></span>
+              <select id="chartLimit" class="input" style="min-width:120px">
+                <option value="60">60</option>
+                <option value="120" selected>120</option>
+                <option value="250">250</option>
+                <option value="999999">Tutto</option>
+              </select>
             </div>
+            <canvas id="chart" height="160"></canvas>
+            <div class="footer-note">Grafico sui delta tra letture consecutive.</div>
           </div>
+        </div>
+
+      </div>
+
+      <!-- ADMIN -->
+      <div style="height:16px"></div>
+
+      <div class="card" id="adminPanel" style="display:none">
+        <div class="hd">
+          <h2>Admin • Diagnostica e Utenti</h2>
+          <div class="sub">visibile solo a Admin</div>
+        </div>
+        <div class="bd" id="adminBody">
+          <!-- injected by JS -->
         </div>
       </div>
 
@@ -388,1175 +290,6 @@
     <small id="toastMsg">…</small>
   </div>
 
-<script>
-/* =========================================================
-   AWP Analyzer Pro (single-file)
-   Dati in ./Dati/: users.json, manifest.json, cicloslot.json, *.xlsx
-   ========================================================= */
-
-const PATH = {
-  users: "./Dati/users.json",
-  manifest: "./Dati/manifest.json",
-  cicloslot: "./Dati/cicloslot.json",
-  sinottico: (name) => `./Dati/${encodeURIComponent(name)}`
-};
-
-const S = {
-  users: [],
-  manifest: null,
-  ciclos: [],
-  session: null,
-
-  machines: new Map(),   // codeid -> latest snapshot
-  history: new Map(),    // codeid -> points [{ts,in,out,pctCol, row, file}]
-  models: new Map(),     // modelCode -> computed stats
-
-  locals: new Map(),
-  pdas: new Map(),
-  comunes: new Map(),
-  provinces: new Map(),
-
-  lastSelectedCode: null,
-  chartMode: "IN",
-  chartObj: null,
-
-  cacheKey: "awp_analyzer_session_v2"
-};
-
-const $ = (q)=>document.querySelector(q);
-const $$ = (q)=>Array.from(document.querySelectorAll(q));
-
-function toast(title, msg){
-  $("#toastTitle").textContent = title;
-  $("#toastMsg").textContent = msg;
-  const t = $("#toast");
-  t.style.display = "block";
-  clearTimeout(toast._t);
-  toast._t = setTimeout(()=> t.style.display="none", 3800);
-}
-
-function setDot(sel, state){
-  const el = $(sel);
-  el.className = "dot " + (state==="ok" ? "ok" : state==="warn" ? "warn" : state==="bad" ? "bad" : "");
-}
-function setStatus(ok, text){
-  $("#dotStatus").className = "dot " + (ok ? "ok" : "");
-  $("#txtStatus").textContent = text;
-}
-function showView(id){
-  $$(".view").forEach(v=>v.classList.remove("active"));
-  $(id).classList.add("active");
-}
-
-function saveSession(sess){ try{ localStorage.setItem(S.cacheKey, JSON.stringify(sess)); }catch(e){} }
-function loadSession(){ try{ const raw = localStorage.getItem(S.cacheKey); return raw?JSON.parse(raw):null; }catch(e){ return null; } }
-function clearSession(){ try{ localStorage.removeItem(S.cacheKey); }catch(e){} }
-
-function normalizeUser(u){ return (u||"").trim().toLowerCase(); }
-function normalizePin(p){
-  const s = String(p ?? "").trim();
-  if(/^\d+$/.test(s)) return String(parseInt(s,10));
-  return s;
-}
-
-function escapeHtml(s){
-  return String(s||"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
-}
-
-function fmtInt(n){
-  if(!isFinite(n)) return "0";
-  return Math.round(n).toLocaleString("it-IT");
-}
-function fmtDate(d){
-  if(!d || !(d instanceof Date) || !isFinite(d)) return "N/A";
-  const pad=(n)=>String(n).padStart(2,"0");
-  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-/* --------- DATE PARSER ROBUSTO (2026 FIX) ---------
-   Supporta:
-   - Date object
-   - numero seriale Excel
-   - "GG/MM/AAAA HH:mm"
-   - "GG-MM-AAAA HH:mm"
-   - ISO fallback
---------------------------------------------------- */
-function parseDateTimeRobust(v){
-  if(v === null || v === undefined || v === "") return null;
-
-  if(v instanceof Date && isFinite(v)) return v;
-
-  if(typeof v === "number" && isFinite(v)){
-    if(typeof XLSX !== "undefined" && XLSX.SSF && XLSX.SSF.parse_date_code){
-      const p = XLSX.SSF.parse_date_code(v);
-      if(p && p.y && p.m && p.d){
-        const d = new Date(p.y, p.m-1, p.d, p.H||0, p.M||0, Math.floor(p.S||0));
-        return isFinite(d) ? d : null;
-      }
-    }
-    return null;
-  }
-
-  const str = String(v).trim();
-  let m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if(m){
-    const d = new Date(+m[3], +m[2]-1, +m[1], +(m[4]||0), +(m[5]||0), +(m[6]||0));
-    return isFinite(d) ? d : null;
-  }
-
-  m = str.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if(m){
-    const d = new Date(+m[3], +m[2]-1, +m[1], +(m[4]||0), +(m[5]||0), +(m[6]||0));
-    return isFinite(d) ? d : null;
-  }
-
-  const d = new Date(str);
-  return isFinite(d) ? d : null;
-}
-
-function parseDateFromSinotticoName(filename){
-  // Sinottico-AAAA-MM-GG-hhmm.xlsx
-  const m = String(filename||"").match(/(\d{4})-(\d{2})-(\d{2})-(\d{2})(\d{2})/);
-  if(!m) return null;
-  const dt = new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5], 0);
-  return isFinite(dt) ? dt : null;
-}
-
-function moneyFromCounter(raw){
-  if(raw === null || raw === undefined || raw === "") return null;
-  let n = Number(String(raw).replace(/[^\d.-]/g,""));
-  if(!isFinite(n)) return null;
-  return Math.floor(n/100);
-}
-function pctFromCell(raw){
-  if(raw === null || raw === undefined || raw === "") return null;
-  const s = String(raw).trim().replace(",",".");
-  let n = Number(s.replace(/[^\d.-]/g,""));
-  if(!isFinite(n)) return null;
-  if(n > 1.5) return n;
-  return n*100;
-}
-
-async function fetchJSON(url){
-  const r = await fetch(url, {cache:"no-store"});
-  if(!r.ok) throw new Error(`HTTP ${r.status} su ${url}`);
-  return await r.json();
-}
-async function fetchArrayBuffer(url){
-  const r = await fetch(url, {cache:"no-store"});
-  if(!r.ok) throw new Error(`HTTP ${r.status} su ${url}`);
-  return await r.arrayBuffer();
-}
-
-function showBannerFromManifest(){
-  if(!S.manifest?.sinottici?.length) return;
-  const lastFile = S.manifest.sinottici[S.manifest.sinottici.length-1];
-  const dt = parseDateFromSinotticoName(lastFile);
-  if(!dt) return;
-
-  const now = new Date();
-  const sameDay = dt.getFullYear()===now.getFullYear() && dt.getMonth()===now.getMonth() && dt.getDate()===now.getDate();
-
-  $("#pillBanner").style.display = "flex";
-  if(sameDay){
-    $("#dotBanner").className = "dot ok";
-    $("#txtBanner").textContent = `Aggiornato oggi alle ${String(dt.getHours()).padStart(2,"0")}:${String(dt.getMinutes()).padStart(2,"0")}`;
-  }else{
-    $("#dotBanner").className = "dot bad";
-    $("#txtBanner").textContent = `Non aggiornato (ultimo: ${fmtDate(dt)})`;
-  }
-}
-
-/* ============ PARTE 2/3 ARRIVA SOTTO ============ */
-
-/* =========================
-   SELF-TEST + LOAD CORE
-========================= */
-async function selfTest(){
-  $("#loginStatus").textContent = "Self-test in corso…";
-  setDot("#dotUsers",""); setDot("#dotManifest",""); setDot("#dotCiclos",""); setDot("#dotXLSX","");
-
-  const hasXLSX = typeof XLSX !== "undefined" && XLSX.read;
-  setDot("#dotXLSX", hasXLSX ? "ok" : "bad");
-  $("#xlsxInfo").textContent = hasXLSX ? "XLSX: OK" : "XLSX: NON caricato (CDN bloccato?)";
-
-  try{
-    if(Array.isArray(users) && users.length){
-      setDot("#dotUsers","ok");
-      $("#usersInfo").textContent = `users.json: ${users.length} utenti`;
-    }else{
-      setDot("#dotUsers","warn");
-      $("#usersInfo").textContent = `users.json: formato non valido`;
-    }
-  }catch(e){
-    setDot("#dotUsers","bad");
-    $("#usersInfo").textContent = `users.json: ${e.message}`;
-  }
-
-  try{
-    const man = await fetchJSON(PATH.manifest);
-    const arr = man && Array.isArray(man.sinottici) ? man.sinottici : null;
-    if(arr && arr.length){
-      setDot("#dotManifest","ok");
-      $("#manifestInfo").textContent = `manifest.json: ${arr.length} sinottici`;
-    }else{
-      setDot("#dotManifest","warn");
-      $("#manifestInfo").textContent = `manifest.json: sinottici mancanti`;
-    }
-  }catch(e){
-    setDot("#dotManifest","bad");
-    $("#manifestInfo").textContent = `manifest.json: ${e.message}`;
-  }
-
-  try{
-    const cyc = await fetchJSON(PATH.cicloslot);
-    const ok = Array.isArray(cyc) && cyc.length>0;
-    setDot("#dotCiclos", ok ? "ok":"warn");
-    $("#ciclosInfo").textContent = ok ? `cicloslot.json: ${cyc.length} righe` : "cicloslot.json: vuoto/invalid";
-  }catch(e){
-    setDot("#dotCiclos","warn");
-    $("#ciclosInfo").textContent = `cicloslot.json: ${e.message}`;
-  }
-
-  $("#loginStatus").textContent = "Self-test completato.";
-}
-
-async function loadCore(){
-  if(typeof XLSX === "undefined" || !XLSX.read){
-    $("#loginStatus").textContent = "Errore: libreria XLSX non disponibile (CDN bloccato).";
-    setDot("#dotXLSX","bad");
-    return;
-  } else {
-    setDot("#dotXLSX","ok");
-    $("#xlsxInfo").textContent = "XLSX: OK";
-  }
-
-  // users
-  try{
-    const users = await fetchJSON(PATH.users);
-    S.users = Array.isArray(users) ? users : [];
-    setDot("#dotUsers", S.users.length ? "ok":"warn");
-    $("#usersInfo").textContent = `users.json: ${S.users.length} utenti`;
-    $("#loginStatus").textContent = `Utenti caricati: ${S.users.length}`;
-  }catch(e){
-    S.users = [];
-    setDot("#dotUsers","bad");
-    $("#usersInfo").textContent = `users.json: ${e.message}`;
-    $("#loginStatus").textContent = `Errore users.json: ${e.message}`;
-  }
-
-  // manifest
-  try{
-    const man = await fetchJSON(PATH.manifest);
-    S.manifest = man;
-    const n = Array.isArray(man?.sinottici) ? man.sinottici.length : 0;
-    setDot("#dotManifest", n ? "ok":"warn");
-    $("#manifestInfo").textContent = `manifest.json: ${n} sinottici`;
-    showBannerFromManifest();
-  }catch(e){
-    S.manifest = null;
-    setDot("#dotManifest","bad");
-    $("#manifestInfo").textContent = `manifest.json: ${e.message}`;
-  }
-
-  // cicloslot
-  try{
-    const cyc = await fetchJSON(PATH.cicloslot);
-    S.ciclos = Array.isArray(cyc) ? cyc : [];
-    setDot("#dotCiclos", S.ciclos.length ? "ok":"warn");
-    $("#ciclosInfo").textContent = `cicloslot.json: ${S.ciclos.length} righe`;
-  }catch(e){
-    S.ciclos = [];
-    setDot("#dotCiclos","warn");
-    $("#ciclosInfo").textContent = `cicloslot.json: ${e.message}`;
-  }
-
-  // auto session
-  const sess = loadSession();
-  if(sess && sess.user){
-    const u = S.users.find(x => normalizeUser(x.user) === normalizeUser(sess.user));
-    if(u){
-      if(u.expires){
-        const exp = new Date(u.expires + "T00:00:00");
-        if(isFinite(exp) && exp < new Date()){
-          clearSession();
-        }else{
-          S.session = {user:u.user, level:u.level, expires:u.expires||null};
-          afterLogin();
-        }
-      }else{
-        S.session = {user:u.user, level:u.level, expires:u.expires||null};
-        afterLogin();
-      }
-    }
-  }
-}
-
-/* =========================
-   LOGIN / LOGOUT
-========================= */
-function doLogin(){
-  const userIn = ($("#loginUser").value || "").trim();
-  const pinIn  = ($("#loginPin").value  || "").trim();
-
-  if(!S.users || !Array.isArray(S.users) || S.users.length === 0){
-    toast("Login","Lista utenti non disponibile (errore interno).");
-    return;
-  }
-
-  if(!userIn || !pinIn){
-    toast("Login","Inserisci utente e PIN.");
-    return;
-  }
-
-  const found = S.users.find(u =>
-    String(u.user).trim() === userIn &&
-    String(u.pin).trim()  === pinIn
-  );
-
-  if(!found){
-    toast("Login","Utente o PIN errati.");
-    return;
-  }
-
-  if(found.expires){
-    const exp = new Date(found.expires + "T00:00:00");
-    if(isFinite(exp) && exp < new Date()){
-      toast("Login","Utente scaduto.");
-      return;
-    }
-  }
-
-  S.session = {
-    user: found.user,
-    level: found.level || "user",
-    expires: found.expires || null
-  };
-
-  saveSession(S.session);
-  afterLogin();
-}
-
-function afterLogin(){
-  $("#btnLogout").style.display = "inline-flex";
-  setStatus(true, `Connesso: ${S.session.user} (${S.session.level})`);
-  showView("#viewMain");
-}
-
-function logout(){
-  S.session = null;
-  clearSession();
-  setStatus(false,"Non autenticato");
-  $("#btnLogout").style.display = "none";
-  showView("#viewLogin");
-}
-
-/* =========================
-   XLSX PARSING
-========================= */
-function normalizeHeader(h){
-  return String(h||"").toUpperCase().replace(/\s+/g," ").trim();
-}
-function rowToObj(headers, row){
-  const o={};
-  for(let i=0;i<headers.length;i++){
-    o[headers[i]] = row[i];
-  }
-  return o;
-}
-function pick(o, ...keys){
-  for(const k of keys){
-    if(o[k] !== undefined) return o[k];
-  }
-  return undefined;
-}
-
-function parseSinottico(buffer, fileName){
-  const wb = XLSX.read(buffer, {type:"array"});
-  const sheetName = wb.SheetNames[0];
-  const ws = wb.Sheets[sheetName];
-  const rows = XLSX.utils.sheet_to_json(ws, {header:1, raw:true});
-  if(!rows || rows.length < 2) return [];
-
-  // find header row (first row containing CODEID)
-  let headerRowIndex = 0;
-  for(let i=0;i<Math.min(30, rows.length);i++){
-    const r = rows[i] || [];
-    const has = r.some(c => normalizeHeader(c) === "CODEID");
-    if(has){ headerRowIndex = i; break; }
-  }
-
-  const headers = (rows[headerRowIndex]||[]).map(normalizeHeader);
-  const dataRows = rows.slice(headerRowIndex+1).filter(r=>r && r.length);
-
-  const out=[];
-  for(const r of dataRows){
-    const o = rowToObj(headers, r);
-
-    const codeid = String(pick(o,"CODEID")||"").trim();
-    if(!codeid) continue;
-
-    const modelCode = String(pick(o,"CODICE MODELLO")||"").trim();
-    const modelName = String(pick(o,"MODELLO")||"").trim();
-    const locale = String(pick(o,"DENOMIN. SEDE","DENOMIN SEDE","DENOMINAZIONE SEDE")||"").trim();
-    const pda = String(pick(o,"MACADDRESS PDA","MACADDRESS  PDA","MACADDRESS")||"").trim();
-    const provincia = String(pick(o,"PROVINCIA")||"").trim();
-    const comune = String(pick(o,"COMUNE")||"").trim();
-    const indirizzo = String(pick(o,"INDIRIZZO")||"").trim();
-    const codeSede = String(pick(o,"CODICE SEDE")||"").trim();
-    const pdv = String(pick(o,"CODICE PDV AAMS","CODICE PDV","PDV AAMS")||"").trim();
-    const stato = String(pick(o,"DESCR. STATO","DESCR STATO","STATO")||"").trim();
-    const em = String(pick(o,"E/M","E M")||"").trim();
-    const pctOut = pctFromCell(pick(o,"% OUT","%OUT")) ?? null;
-
-    const ts = parseDateTimeRobust(pick(o,"DATA ULTIMA LETTURA VAL.","DATA ULTIMA LETTURA VAL", "DATA ULTIMA LETTURA"));
-    const cntIn = moneyFromCounter(pick(o,"CNTTOTIN"));
-    const cntOut = moneyFromCounter(pick(o,"CNTTOTOT"));
-    const ggNoLink = Number(pick(o,"GG MANCATO COLLEGAMENTO")) || 0;
-
-    out.push({
-      codeid, modelCode, modelName, locale, pda, provincia, comune, indirizzo, codeSede, pdv,
-      stato, em, pctOut, ts, cntIn, cntOut, ggNoLink,
-      raw:o, file:fileName
-    });
-  }
-  return out;
-}
-
-/* =========================
-   STORICO + INDICI
-========================= */
-function addHistoryPoint(codeid, point){
-  if(!S.history.has(codeid)) S.history.set(codeid, []);
-  const arr = S.history.get(codeid);
-  const ts = point.ts?.getTime?.();
-  if(!ts) return;
-
-  // dedup: se esiste già questo timestamp, non aggiungere
-  // (non solo ultimo: controllo veloce su ultimi 6)
-  for(let i=Math.max(0, arr.length-6); i<arr.length; i++){
-    if(arr[i]?.ts?.getTime?.() === ts) return;
-  }
-  arr.push(point);
-}
-
-function sortAllHistories(){
-  for(const [codeid, arr] of S.history.entries()){
-    arr.sort((a,b)=>a.ts-b.ts);
-    const out=[];
-    let prev=null;
-    for(const p of arr){
-      const t=p.ts.getTime();
-      if(prev===t) continue;
-      out.push(p);
-      prev=t;
-    }
-    S.history.set(codeid,out);
-  }
-}
-
-function ensureSetMap(map, key){
-  if(!map.has(key)) map.set(key, new Set());
-  return map.get(key);
-}
-
-function buildIndexes(){
-  S.locals.clear(); S.pdas.clear(); S.comunes.clear(); S.provinces.clear();
-
-  for(const [codeid, m] of S.machines.entries()){
-    const locKey = (m.locale||"").trim() || "N/A";
-    if(!S.locals.has(locKey)){
-      S.locals.set(locKey,{name:locKey, codeids:new Set()});
-    }
-    S.locals.get(locKey).codeids.add(codeid);
-
-    if(m.pda) ensureSetMap(S.pdas, m.pda).add(codeid);
-    if(m.comune) ensureSetMap(S.comunes, m.comune).add(codeid);
-    if(m.provincia) ensureSetMap(S.provinces, m.provincia).add(codeid);
-  }
-}
-
-function countAllHistoryPoints(){
-  let n=0;
-  for(const arr of S.history.values()) n += arr.length;
-  return n;
-}
-
-/* =========================
-   CICLO MODELLO
-========================= */
-function cicloForModel(modelCode, modelName){
-  const code = String(modelCode||"").trim();
-  if(code){
-    const hit = S.ciclos.find(x=> String(x.codiceModello||"").trim() === code);
-    if(hit && hit.ciclo) return Number(hit.ciclo);
-  }
-  const nm = normalizeUser(modelName||"");
-  if(nm){
-    const hit2 = S.ciclos.find(x=> normalizeUser(x.nomeModello||"") === nm);
-    if(hit2 && hit2.ciclo) return Number(hit2.ciclo);
-  }
-  return null;
-}
-
-/* =========================
-   SCORE “PROB. PAGAMENTO”
-========================= */
-function computeScore(codeid){
-  const hist = S.history.get(codeid) || [];
-  if(hist.length < 2) return {score: 10, label:"Basso", color:"warn"};
-
-  const last = hist[hist.length-1];
-  const prev = hist[hist.length-2];
-
-  const dIn = Math.max(0, (last.in - prev.in));
-  const dOut = Math.max(0, (last.out - prev.out));
-  const pct = (dIn>0) ? (dOut/dIn)*100 : null;
-
-  const snap = S.machines.get(codeid);
-  const cyc = cicloForModel(snap?.modelCode, snap?.modelName);
-
-  // Net window
-  const window = hist.slice(Math.max(0,hist.length-25));
-  let net=0, actSum=0;
-  for(let i=1;i<window.length;i++){
-    const a=window[i-1], b=window[i];
-    const di=Math.max(0,(b.in-a.in));
-    const doo=Math.max(0,(b.out-a.out));
-    net += (di - doo);
-    actSum += di;
-  }
-
-  let cycleFactor = 0.5;
-  if(cyc && cyc>0){
-    const mod = ((net % cyc) + cyc) % cyc;
-    cycleFactor = Math.min(1, Math.max(0, 1 - (mod / cyc)));
-  }
-
-  const targetPct = snap?.pctOut ?? 65;
-  let align = 0.5;
-  if(pct !== null && isFinite(pct)){
-    const diff = targetPct - pct; // >0 sotto target => "deve recuperare"
-    align = Math.min(1, Math.max(0, 0.5 + (diff/35)));
-  }
-
-  let activity = 0.2;
-  if(actSum>0) activity = Math.min(1, 0.2 + Math.log10(actSum+1)/3);
-
-  const raw = 100 * (0.40*cycleFactor + 0.30*align + 0.30*activity);
-  const score = Math.round(raw);
-
-  let label="Medio", color="warn";
-  if(score>=75){ label="Alto"; color="ok"; }
-  else if(score<=40){ label="Basso"; color="bad"; }
-  return {score,label,color};
-}
-
-/* =========================
-   ANALISI TUTTI I SINOTTICI
-========================= */
-async function analyzeAll(){
-  if(!S.manifest?.sinottici?.length){
-    toast("Errore","manifest.json non valido o vuoto.");
-    return;
-  }
-
-  $("#subMain").textContent = "Analisi in corso…";
-  setDot("#dotData","warn");
-  setDot("#dotHist","warn");
-
-  S.machines.clear();
-  S.history.clear();
-  S.models.clear();
-  S.lastSelectedCode = null;
-
-  const files = S.manifest.sinottici.slice();
-  let ok=0, fail=0, totalRows=0;
-
-  for(let i=0;i<files.length;i++){
-    const f = files[i];
-    try{
-      const buf = await fetchArrayBuffer(PATH.sinottico(f));
-      const rows = parseSinottico(buf, f);
-      totalRows += rows.length;
-
-      for(const r of rows){
-        if(r.ts && isFinite(r.ts) && r.cntIn !== null && r.cntOut !== null){
-          addHistoryPoint(r.codeid, {ts:r.ts, in:r.cntIn, out:r.cntOut, pctOut:r.pctOut, row:r, file:f});
-        }
-
-        const prev = S.machines.get(r.codeid);
-        if(!prev){
-          S.machines.set(r.codeid, r);
-        }else{
-          const t1 = prev.ts ? prev.ts.getTime() : -1;
-          const t2 = r.ts ? r.ts.getTime() : -1;
-          if(t2 > t1) S.machines.set(r.codeid, r);
-        }
-      }
-
-      ok++;
-      $("#subMain").textContent = `Analisi: ${i+1}/${files.length} (OK:${ok} KO:${fail})`;
-      await new Promise(res=>setTimeout(res, 0));
-    }catch(e){
-      fail++;
-      console.warn("Errore file", f, e);
-      $("#subMain").textContent = `Analisi: ${i+1}/${files.length} (OK:${ok} KO:${fail})`;
-    }
-  }
-
-  sortAllHistories();
-  buildIndexes();
-  computeModelsStats();
-
-  setDot("#dotData", fail? "warn":"ok");
-  setDot("#dotHist","ok");
-  $("#dataInfo").textContent = `Dati: macchine=${S.machines.size} | file OK=${ok} KO=${fail}`;
-  $("#histInfo").textContent = `Storico: ${countAllHistoryPoints()} letture`;
-  $("#subMain").textContent = `Analisi completata. Righe lette: ${totalRows.toLocaleString("it-IT")}`;
-
-  renderMachinesTable();
-  renderModelsPanel();
-}
-
-/* =========================
-   MODELLI: PROFILO STATISTICO
-========================= */
-function computeModelsStats(){
-  // modelCode -> accumulator
-  const acc = new Map();
-
-  for(const [codeid, hist] of S.history.entries()){
-    if(hist.length < 2) continue;
-    const m = S.machines.get(codeid);
-    if(!m) continue;
-    const key = m.modelCode || "N/A";
-
-    if(!acc.has(key)){
-      acc.set(key,{
-        modelCode:key,
-        modelName:m.modelName || "N/A",
-        machines:0,
-        points:0,
-        totalIn:0,
-        totalOut:0,
-        payoutSteps:0,
-        avgStepIn:0,
-        avgStepOut:0,
-        payoutReal:null,
-        cycle: cicloForModel(m.modelCode, m.modelName)
-      });
-    }
-
-    const a = acc.get(key);
-    a.machines++;
-
-    for(let i=1;i<hist.length;i++){
-      const dIn=Math.max(0,hist[i].in-hist[i-1].in);
-      const dOut=Math.max(0,hist[i].out-hist[i-1].out);
-      a.totalIn += dIn;
-      a.totalOut += dOut;
-      a.points++;
-      if(dOut>0) a.payoutSteps++;
-    }
-  }
-
-  for(const [k,a] of acc.entries()){
-    a.avgStepIn = a.points ? (a.totalIn/a.points) : 0;
-    a.avgStepOut = a.points ? (a.totalOut/a.points) : 0;
-    a.payoutReal = (a.totalIn>0) ? (a.totalOut/a.totalIn)*100 : null;
-
-    // “profilo” (stima, non reverse engineering)
-    const freq = a.points ? (a.payoutSteps/a.points) : 0;
-    // euristiche per descrizione
-    let profile = "Bilanciato";
-    if(a.payoutReal !== null){
-      if(a.payoutReal < 55) profile = "Conservativo (payout reale basso)";
-      else if(a.payoutReal > 70) profile = "Generoso (payout reale alto)";
-    }
-    if(freq < 0.15) profile += " • Uscite rare";
-    else if(freq > 0.35) profile += " • Uscite frequenti";
-    a.profile = profile;
-
-    S.models.set(k,a);
-  }
-}
-
-/* ============ PARTE 3/3 ARRIVA SOTTO ============ */
-
-/* =========================
-   UI: RENDER TABELLA MACCHINE
-========================= */
-function escapeHtml(s){
-  return String(s||"").replace(/[&<>"']/g, m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;" }[m]));
-}
-function fmtInt(n){
-  if(!isFinite(n)) return "0";
-  return Math.round(n).toLocaleString("it-IT");
-}
-function fmtDate(d){
-  if(!d || !(d instanceof Date) || !isFinite(d)) return "N/A";
-  const pad=(n)=>String(n).padStart(2,"0");
-  return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-function statusChip(m){
-  const em = (m.em||"").toUpperCase();
-  const isE = em.includes("E");
-  const isM = em.includes("M");
-  const stale = (m.ggNoLink||0) >= 3;
-
-  let dot="ok", label="Attiva";
-  if(isM){ dot="warn"; label="Magazzino"; }
-  if(!isE && !isM){ dot="warn"; label="N/D"; }
-  if(stale){ dot="warn"; label += ` | ${m.ggNoLink}gg no link`; }
-  if((m.stato||"").toLowerCase().includes("blocc")){ dot="bad"; label="Bloccata"; }
-
-  return `<span class="badge"><span class="dot ${dot}"></span>${escapeHtml(label)}</span>`;
-}
-
-function renderMachinesTable(){
-  const tbody = $("#tblMachines tbody");
-  tbody.innerHTML = "";
-
-  const q = ($("#qSearch").value||"").trim().toLowerCase();
-  const mode = $("#qFilter").value;
-
-  const list = Array.from(S.machines.values()).map(m=>{
-    const sc = computeScore(m.codeid);
-    return {m, sc};
-  });
-
-  list.sort((a,b)=> b.sc.score - a.sc.score);
-
-  const filtered = list.filter(({m,sc})=>{
-    if(q){
-      const hay = [
-        m.locale, m.modelName, m.modelCode, m.codeid, m.pda, m.comune, m.provincia, m.indirizzo, m.codeSede, m.pdv
-      ].join(" ").toLowerCase();
-      if(!hay.includes(q)) return false;
-    }
-    if(mode==="likely") return sc.score >= 70;
-    if(mode==="active") return String(m.em||"").toUpperCase().includes("E");
-    if(mode==="stale") return (m.ggNoLink||0) >= 3;
-    return true;
-  });
-
-  $("#countMachines").textContent = String(filtered.length);
-  $("#countLocals").textContent = String(S.locals.size);
-  $("#countModels").textContent = String(S.models.size);
-  $("#countFiles").textContent = String(S.manifest?.sinottici?.length || 0);
-
-  for(const {m, sc} of filtered){
-    const tr = document.createElement("tr");
-
-    const locHtml = `<span class="linklike" data-act="open-locale" data-val="${escapeHtml(m.locale)}">${escapeHtml(m.locale||"N/A")}</span>
-      <div class="muted" style="font-size:12px">${escapeHtml(m.comune||"")}${m.provincia?(" ("+escapeHtml(m.provincia)+")"):""}</div>`;
-
-    const modelHtml = `<div style="font-weight:800">${escapeHtml(m.modelName||"N/A")}</div>
-      <div class="muted mono">${escapeHtml(m.modelCode||"")}</div>`;
-
-    const codeHtml = `<span class="linklike mono" data-act="open-machine" data-val="${escapeHtml(m.codeid)}">${escapeHtml(m.codeid)}</span>
-      <div class="muted" style="font-size:12px">${fmtDate(m.ts)}</div>`;
-
-    const pdaHtml = m.pda
-      ? `<span class="linklike mono" data-act="filter-pda" data-val="${escapeHtml(m.pda)}">${escapeHtml(m.pda)}</span>`
-      : `<span class="muted">N/A</span>`;
-
-    const probHtml = `<span class="badge"><span class="dot ${sc.color}"></span><b>${sc.score}</b>/100 • ${sc.label}</span>`;
-
-    tr.innerHTML = `
-      <td>${locHtml}</td>
-      <td>${modelHtml}</td>
-      <td class="mono">${codeHtml}</td>
-      <td>${pdaHtml}</td>
-      <td>${statusChip(m)}</td>
-      <td>${probHtml}</td>
-    `;
-    tbody.appendChild(tr);
-  }
-
-  tbody.querySelectorAll("[data-act]").forEach(el=>{
-    el.addEventListener("click", ()=>{
-      const act = el.getAttribute("data-act");
-      const val = el.getAttribute("data-val");
-      if(act==="open-machine") openMachine(val);
-      if(act==="open-locale") openLocale(val);
-      if(act==="filter-pda") openPDA(val);
-    });
-  });
-}
-
-/* =========================
-   DETTAGLI: MACCHINA / LOCALE / LISTE
-========================= */
-function renderHistoryMini(hist){
-  if(!hist.length) return `<div class="footer-note">Nessuna lettura valida trovata.</div>`;
-  const limit = Math.min(12, hist.length);
-  const tail = hist.slice(hist.length-limit);
-
-  let html = `<table class="table"><thead><tr><th>Data</th><th>ΔIN</th><th>ΔOUT</th><th>%</th></tr></thead><tbody>`;
-  for(let i=1;i<tail.length;i++){
-    const a=tail[i-1], b=tail[i];
-    const dIn=Math.max(0,b.in-a.in);
-    const dOut=Math.max(0,b.out-a.out);
-    const pct=dIn>0?(dOut/dIn)*100:null;
-    html += `<tr>
-      <td>${fmtDate(b.ts)}</td>
-      <td>${fmtInt(dIn)}€</td>
-      <td>${fmtInt(dOut)}€</td>
-      <td>${pct?pct.toFixed(1)+"%":"—"}</td>
-    </tr>`;
-  }
-  html += `</tbody></table>`;
-  return html;
-}
-
-function openMachine(codeid){
-  const m = S.machines.get(codeid);
-  if(!m){ toast("Errore","Macchina non trovata."); return; }
-  S.lastSelectedCode = codeid;
-
-  const hist = (S.history.get(codeid) || []).slice();
-  const cyc = cicloForModel(m.modelCode, m.modelName);
-  const score = computeScore(codeid);
-
-  let lastDelta = {in:0,out:0,pct:null};
-  if(hist.length>=2){
-    const a=hist[hist.length-2], b=hist[hist.length-1];
-    const dIn=Math.max(0,b.in-a.in);
-    const dOut=Math.max(0,b.out-a.out);
-    lastDelta = {in:dIn, out:dOut, pct: dIn>0 ? (dOut/dIn)*100 : null};
-  }
-
-  // posizione ciclo stimata
-  let net=0;
-  const window = hist.slice(Math.max(0,hist.length-25));
-  for(let i=1;i<window.length;i++){
-    const a=window[i-1], b=window[i];
-    net += Math.max(0,(b.in-a.in)) - Math.max(0,(b.out-a.out));
-  }
-  let cyclePos = null;
-  if(cyc && cyc>0){
-    const mod = ((net % cyc)+cyc)%cyc;
-    cyclePos = {mod, cyc, nearEnd: 1-(mod/cyc)};
-  }
-
-  $("#detailsTitle").textContent = `Scheda macchina: ${m.modelName || "N/A"}`;
-  $("#detailsSub").textContent = `CODEID ${m.codeid} • Lettura: ${fmtDate(m.ts)} • Locale: ${m.locale || "N/A"}`;
-
-  $("#detailsBody").innerHTML = `
-    <div class="kpis">
-      <div class="kpi">
-        <div class="label">Prob. pagamento</div>
-        <div class="value">${score.score}/100</div>
-        <div class="hint">${score.label}</div>
-      </div>
-      <div class="kpi">
-        <div class="label">Ultimo Δ IN</div>
-        <div class="value">${fmtInt(lastDelta.in)}€</div>
-        <div class="hint">Delta tra ultime 2 letture</div>
-      </div>
-      <div class="kpi">
-        <div class="label">Ultimo Δ OUT</div>
-        <div class="value">${fmtInt(lastDelta.out)}€</div>
-        <div class="hint">${lastDelta.pct?("Payout step: "+lastDelta.pct.toFixed(1)+"%"):""}</div>
-      </div>
-      <div class="kpi">
-        <div class="label">Ciclo modello</div>
-        <div class="value">${cyc?fmtInt(cyc)+"€":"N/A"}</div>
-        <div class="hint">${cyclePos?("Posizione stimata: "+fmtInt(cyclePos.mod)+" / "+fmtInt(cyclePos.cyc)):""}</div>
-      </div>
-    </div>
-
-    <div style="height:12px"></div>
-
-    <div class="chips">
-      <span class="badge"><b>Locale:</b>&nbsp;<span class="linklike" data-open="locale">${escapeHtml(m.locale||"N/A")}</span></span>
-      <span class="badge"><b>PDA:</b>&nbsp;<span class="${m.pda?'linklike':''} mono" data-open="pda">${escapeHtml(m.pda||"N/A")}</span></span>
-      <span class="badge"><b>Provincia:</b>&nbsp;<span class="${m.provincia?'linklike':''}" data-open="prov">${escapeHtml(m.provincia||"N/A")}</span></span>
-      <span class="badge"><b>Comune:</b>&nbsp;<span class="${m.comune?'linklike':''}" data-open="com">${escapeHtml(m.comune||"N/A")}</span></span>
-      <span class="badge"><b>%OUT:</b>&nbsp;${m.pctOut??"N/A"}</span>
-      <span class="badge"><b>Stato:</b>&nbsp;${escapeHtml(m.stato||"N/A")}</span>
-      <span class="badge"><b>E/M:</b>&nbsp;${escapeHtml(m.em||"N/A")}</span>
-      <span class="badge"><b>GG no link:</b>&nbsp;${fmtInt(m.ggNoLink||0)}</span>
-    </div>
-
-    <div style="height:12px"></div>
-
-    <div class="split">
-      <div class="card" style="box-shadow:none">
-        <div class="hd" style="border:none; padding:0 0 10px 0">
-          <h2 style="font-size:14px; margin:0">Storico (ultime letture)</h2>
-        </div>
-        <div class="bd" style="padding:0">
-          ${renderHistoryMini(hist)}
-        </div>
-      </div>
-
-      <div class="card" style="box-shadow:none">
-        <div class="hd" style="border:none; padding:0 0 10px 0">
-          <h2 style="font-size:14px; margin:0">Dati raw utili</h2>
-        </div>
-        <div class="bd" style="padding:0">
-          <table class="table">
-            <tbody>
-              <tr><th>CNTTOTIN (snapshot)</th><td>${m.cntIn!==null?fmtInt(m.cntIn)+" €":"N/A"}</td></tr>
-              <tr><th>CNTTOTOT (snapshot)</th><td>${m.cntOut!==null?fmtInt(m.cntOut)+" €":"N/A"}</td></tr>
-              <tr><th>CODICE MODELLO</th><td class="mono">${escapeHtml(m.modelCode||"N/A")}</td></tr>
-              <tr><th>INDIRIZZO</th><td>${escapeHtml(m.indirizzo||"N/A")}</td></tr>
-              <tr><th>CODICE SEDE</th><td class="mono">${escapeHtml(m.codeSede||"N/A")}</td></tr>
-              <tr><th>PDV AAMS</th><td class="mono">${escapeHtml(m.pdv||"N/A")}</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  `;
-
-  $("#detailsBody").querySelectorAll("[data-open]").forEach(el=>{
-    el.addEventListener("click", ()=>{
-      const what = el.getAttribute("data-open");
-      if(what==="locale") openLocale(m.locale);
-      if(what==="pda" && m.pda) openPDA(m.pda);
-      if(what==="prov" && m.provincia) openProvince(m.provincia);
-      if(what==="com" && m.comune) openComune(m.comune);
-    });
-  });
-
-  $("#chartSub").textContent = `CODEID ${m.codeid}`;
-  renderChartFor(codeid);
-}
-
-function openLocale(localeName){
-  const name = (localeName||"").trim();
-  const loc = S.locals.get(name);
-  if(!loc){ toast("Locale","Locale non trovato."); return; }
-
-  $("#detailsTitle").textContent = `Scheda locale: ${name}`;
-  $("#detailsSub").textContent = `Macchine: ${loc.codeids.size}`;
-
-  const rows = Array.from(loc.codeids).map(c=>S.machines.get(c)).filter(Boolean)
-    .sort((a,b)=>computeScore(b.codeid).score - computeScore(a.codeid).score);
-
-  $("#detailsBody").innerHTML = `
-    <div style="max-height:520px; overflow:auto; border-radius:14px; border:1px solid var(--line)">
-      <table class="table">
-        <thead><tr><th>Modello</th><th class="mono">CODEID</th><th>Stato</th><th>Prob.</th></tr></thead>
-        <tbody>
-          ${rows.map(m=>{
-            const sc=computeScore(m.codeid);
-            return `<tr>
-              <td><b>${escapeHtml(m.modelName||"N/A")}</b><div class="muted mono">${escapeHtml(m.modelCode||"")}</div></td>
-              <td class="mono"><span class="linklike" data-code="${escapeHtml(m.codeid)}">${escapeHtml(m.codeid)}</span></td>
-              <td>${statusChip(m)}</td>
-              <td><span class="badge"><span class="dot ${sc.color}"></span><b>${sc.score}</b>/100 • ${sc.label}</span></td>
-            </tr>`;
-          }).join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
-
-  $("#detailsBody").querySelectorAll("[data-code]").forEach(el=>{
-    el.addEventListener("click", ()=> openMachine(el.getAttribute("data-code")));
-  });
-}
-
-function openPDA(pda){
-  const set = S.pdas.get(pda);
-  if(!set){ toast("PDA","Nessuna macchina trovata."); return; }
-  openGenericList(`Macchine su PDA: ${pda}`, Array.from(set));
-}
-function openProvince(prov){
-  const set = S.provinces.get(prov);
-  if(!set){ toast("Provincia","Nessuna macchina trovata."); return; }
-  openGenericList(`Macchine in provincia: ${prov}`, Array.from(set));
-}
-function openComune(com){
-  const set = S.comunes.get(com);
-  if(!set){ toast("Comune","Nessuna macchina trovata."); return; }
-  openGenericList(`Macchine nel comune: ${com}`, Array.from(set));
-}
-function openGenericList(title, codes){
-  $("#detailsTitle").textContent = title;
-  $("#detailsSub").textContent = `${codes.length} macchine`;
-
-  const rows = codes.map(c=>S.machines.get(c)).filter(Boolean)
-    .sort((a,b)=>computeScore(b.codeid).score - computeScore(a.codeid).score);
-
-  $("#detailsBody").innerHTML = `
-    <div style="max-height:520px; overflow:auto; border-radius:14px; border:1px solid var(--line)">
-      <table class="table">
-        <thead><tr><th>Locale</th><th>Modello</th><th class="mono">CODEID</th><th>Prob.</th></tr></thead>
-        <tbody>
-          ${rows.map(m=>{
-            const sc=computeScore(m.codeid);
-            return `<tr>
-              <td>${escapeHtml(m.locale||"N/A")}</td>
-              <td><b>${escapeHtml(m.modelName||"N/A")}</b></td>
-              <td class="mono"><span class="linklike" data-code="${escapeHtml(m.codeid)}">${escapeHtml(m.codeid)}</span></td>
-              <td><span class="badge"><span class="dot ${sc.color}"></span><b>${sc.score}</b>/100</span></td>
-            </tr>`;
-          }).join("")}
-        </tbody>
-      </table>
-    </div>
-  `;
-
-  $("#detailsBody").querySelectorAll("[data-code]").forEach(el=>{
-    el.addEventListener("click", ()=> openMachine(el.getAttribute("data-code")));
-  });
-}
-
-/* =========================
-   CHART (Chart.js opzionale)
-========================= */
-function renderChartFor(codeid){
-  if(typeof Chart==="undefined"){
-    $("#chartSub").textContent += " • Chart.js non caricato";
-    return;
-  }
-
-  const arr = (S.history.get(codeid) || []);
-  const limit = parseInt($("#chartLimit").value,10);
-  const slice = (limit>=999999) ? arr.slice() : arr.slice(Math.max(0, arr.length - limit));
-  $("#chartPoints").textContent = String(slice.length);
-
-  const labels=[], dIN=[], dOUT=[], pct=[];
-  for(let i=1;i<slice.length;i++){
-    const a=slice[i-1], b=slice[i];
-    labels.push(fmtDate(b.ts));
-    const di=Math.max(0,b.in-a.in);
-    const doo=Math.max(0,b.out-a.out);
-    dIN.push(di); dOUT.push(doo);
-    pct.push(di>0 ? (doo/di)*100 : null);
-  }
-
-  let dataset = {label:"ΔIN (€)", data:dIN};
-  if(S.chartMode==="OUT") dataset = {label:"ΔOUT (€)", data:dOUT};
-  if(S.chartMode==="PCT") dataset = {label:"Payout (%)", data:pct};
-
-  if(S.chartObj){
-    S.chartObj.data.labels = labels;
-    S.chartObj.data.datasets = [dataset];
-    S.chartObj.update();
-    return;
-  }
-
-  const ctx = $("#chart");
-  S.chartObj = new Chart(ctx, {
-    type: "line",
-    data: { labels, datasets:[dataset] },
-    options: {
-      responsive:true,
-      maintainAspectRatio:false,
-      scales:{ y:{beginAtZero:true} },
-      plugins:{ legend:{display:true} }
-    }
-  });
-}
-
-/* =========================
-   PANNELLO MODELLI (menu a scomparsa)
-========================= */
-function renderModelsPanel(){
-  const box = $("#modelsPanel");
-  if(!box) return;
-
-  const arr = Array.from(S.models.values())
-    .sort((a,b)=> (b.machines - a.machines));
-
-  box.innerHTML = arr.map(m=>{
-    const payout = (m.payoutReal!=null) ? m.payoutReal.toFixed(2)+"%" : "N/A";
-    const cycle = (m.cycle!=null) ? fmtInt(m.cycle)+"€" : "N/A";
-    const freq = (m.points>0) ? ((m.payoutSteps/m.points)*100).toFixed(1)+"%" : "N/A";
-    return `
-      <details class="card" style="box-shadow:none; margin-bottom:12px">
-        <summary>${escapeHtml(m.modelName)} <span class="muted mono">(${escapeHtml(m.modelCode)})</span></summary>
-        <div class="bd" style="padding-top:10px">
-          <div class="kpis">
-            <div class="kpi"><div class="label">Macchine</div><div class="value">${fmtInt(m.machines)}</div><div class="hint">Presenti nello storico</div></div>
-            <div class="kpi"><div class="label">Payout reale</div><div class="value">${payout}</div><div class="hint">OUT/IN sui delta</div></div>
-            <div class="kpi"><div class="label">Uscite frequenza</div><div class="value">${freq}</div><div class="hint">Step con ΔOUT>0</div></div>
-            <div class="kpi"><div class="label">Ciclo (cicloslot)</div><div class="value">${cycle}</div><div class="hint">Se presente nel JSON</div></div>
-          </div>
-          <div class="footer-note" style="margin-top:10px">
-            <b>Profilo stimato:</b> ${escapeHtml(m.profile||"N/A")}<br>
-            Nota: questa è un’estrazione statistica dai dati (non reverse engineering del firmware).
-          </div>
-        </div>
-      </details>
-    `;
-  }).join("");
-}
-
-/* =========================
-   BANNER “SINOTTICO AGGIORNATO”
-========================= */
-function showBannerFromManifest(){
-  const el = $("#updateBanner");
-  if(!el) return;
-  const last = S.manifest?.sinottici?.[S.manifest.sinottici.length-1];
-  if(!last){
-    el.innerHTML = `<span class="badge"><span class="dot bad"></span>manifest.json vuoto</span>`;
-    return;
-  }
-
-  const m = String(last).match(/Sinottico-(\d{4})-(\d{2})-(\d{2})-(\d{2})(\d{2})\.xlsx/i);
-  if(!m){
-    el.innerHTML = `<span class="badge"><span class="dot warn"></span>Ultimo sinottico: ${escapeHtml(last)} (formato nome non riconosciuto)</span>`;
-    return;
-  }
-
-  const d = new Date(Number(m[1]), Number(m[2])-1, Number(m[3]), Number(m[4]), Number(m[5]));
-  const now = new Date();
-  const sameDay = d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth() && d.getDate()===now.getDate();
-
-  const hh = String(d.getHours()).padStart(2,"0");
-  const mm = String(d.getMinutes()).padStart(2,"0");
-
-  if(sameDay){
-    el.innerHTML = `<span class="badge"><span class="dot ok"></span>Aggiornato oggi alle <b>${hh}:${mm}</b> (${escapeHtml(last)})</span>`;
-  }else{
-    el.innerHTML = `<span class="badge"><span class="dot bad"></span>Non aggiornato • ultimo: <b>${fmtDate(d)}</b> (${escapeHtml(last)})</span>`;
-  }
-}
-
-/* =========================
-   EVENTI UI
-========================= */
-$("#btnLogin").addEventListener("click", doLogin);
-$("#btnLogout").addEventListener("click", logout);
-$("#btnSelfTest").addEventListener("click", selfTest);
-
-$("#btnAnalyzeAll").addEventListener("click", analyzeAll);
-$("#btnClearCache").addEventListener("click", ()=>{
-  clearSession();
-  toast("Cache","Sessione resettata.");
-});
-
-$("#qSearch").addEventListener("input", renderMachinesTable);
-$("#qFilter").addEventListener("change", renderMachinesTable);
-
-$("#btnChartIN").addEventListener("click", ()=>{ S.chartMode="IN"; if(S.lastSelectedCode) renderChartFor(S.lastSelectedCode); });
-$("#btnChartOUT").addEventListener("click", ()=>{ S.chartMode="OUT"; if(S.lastSelectedCode) renderChartFor(S.lastSelectedCode); });
-$("#btnChartPct").addEventListener("click", ()=>{ S.chartMode="PCT"; if(S.lastSelectedCode) renderChartFor(S.lastSelectedCode); });
-
-$("#chartLimit").addEventListener("change", ()=>{
-  $("#chartLimitLabel").textContent = $("#chartLimit").value;
-  if(S.lastSelectedCode) renderChartFor(S.lastSelectedCode);
-});
-
-/* =========================
-   BOOT
-========================= */
-(async function boot(){
-  setStatus(false, "Non autenticato");
-  $("#chartLimitLabel").textContent = $("#chartLimit").value;
-
-  await loadCore();
-  await selfTest();
-})();
-</script>
+  <script src="./assets/app.js"></script>
 </body>
 </html>
