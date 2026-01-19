@@ -1,37 +1,61 @@
-const PATH_USERS = "./Dati/users.json";
+const LS_KEY = "awp_session_v1";
 
-export async function loadUsers() {
-  const res = await fetch(PATH_USERS, { cache: "no-store" });
-  if (!res.ok) throw new Error("users.json non disponibile");
-  const users = await res.json();
-  if (!Array.isArray(users)) throw new Error("Formato users.json non valido (deve essere un array)");
-  return users;
+export async function loadUsers(){
+  const r = await fetch("Dati/users.json", { cache:"no-store" });
+  if(!r.ok) throw new Error("Impossibile leggere users.json");
+  const arr = await r.json();
+  if(!Array.isArray(arr)) throw new Error("users.json non è un array");
+  return arr;
 }
 
-export function validateUsers(users){
-  const bad = [];
-  for(const u of users){
-    if(!u || typeof u !== "object") { bad.push("record non oggetto"); continue; }
-    if(!u.user || !/^[A-Za-z][A-Za-z0-9 _-]{1,30}$/.test(String(u.user))) bad.push(`user invalido: ${u.user}`);
-    if(!u.pin  || !/^\d{4}$/.test(String(u.pin))) bad.push(`pin invalido per: ${u.user}`);
-    if(!u.level || !["admin","Abbonato"].includes(String(u.level))) bad.push(`level invalido per: ${u.user}`);
-    if(!u.expires || !/^\d{4}-\d{2}-\d{2}$/.test(String(u.expires))) bad.push(`expires invalido per: ${u.user}`);
-  }
-  if(bad.length) throw new Error("users.json: " + bad[0]);
+export function isExpired(expires){
+  if(!expires) return true;
+  const d = new Date(expires + "T23:59:59");
+  return Date.now() > d.getTime();
 }
 
-export function isExpired(expiresISO) {
-  const today = new Date().toISOString().slice(0, 10);
-  return String(expiresISO) < today;
+export function normalizeLevel(level){
+  const s = String(level || "").toLowerCase();
+  if(s === "admin") return "admin";
+  if(s === "abbonato") return "abbonato";
+  return s; // fallback
 }
 
-export async function login(username, pin) {
+export async function login(username, pin){
   const users = await loadUsers();
-  validateUsers(users);
+  const u = users.find(x =>
+    String(x.user||"").toLowerCase() === String(username||"").trim().toLowerCase()
+    && String(x.pin||"") === String(pin||"").trim()
+  );
 
-  const u = users.find(x => String(x.user) === String(username) && String(x.pin) === String(pin));
-  if(!u) throw new Error("Credenziali non valide");
+  if(!u) return { ok:false, reason:"Credenziali non valide" };
 
+  const level = normalizeLevel(u.level);
   const expired = isExpired(u.expires);
-  return { user: u.user, level: u.level, expires: u.expires, expired, allUsers: users };
+
+  const session = {
+    user: u.user,
+    level,
+    expires: u.expires || null,
+    expired,
+    loginAt: Date.now()
+  };
+
+  localStorage.setItem(LS_KEY, JSON.stringify(session));
+  return { ok:true, session };
+}
+
+export function logout(){
+  localStorage.removeItem(LS_KEY);
+}
+
+export function getSession(){
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    if(!raw) return null;
+    const s = JSON.parse(raw);
+    if(!s || !s.user) return null;
+    // ricalcolo expired ogni volta
+    return { ...s, expired: isExpired(s.expires) };
+  }catch{ return null; }
 }
