@@ -375,5 +375,58 @@
   </div>
 
   <script type="module" src="./assets/app.js"></script>
+  <!-- MODAL: Scheda Macchina -->
+<div class="modal" id="machineModal" style="display:none">
+  <div class="modal-backdrop" data-close="1"></div>
+
+  <div class="modal-card">
+    <div class="modal-hd">
+      <div>
+        <div class="modal-title" id="mmTitle">Scheda macchina</div>
+        <div class="modal-sub" id="mmSub">—</div>
+      </div>
+      <button class="btn small" id="mmClose">Chiudi</button>
+    </div>
+
+    <div class="modal-bd">
+      <div class="kpis" id="mmKpis"></div>
+
+      <div style="height:10px"></div>
+
+      <div class="split">
+        <div>
+          <h3 class="h3">Predizione</h3>
+          <div id="mmPredict" class="panel"></div>
+        </div>
+        <div>
+          <h3 class="h3">Macchine uguali (altri locali)</h3>
+          <div id="mmPeers" class="panel"></div>
+        </div>
+      </div>
+
+      <div style="height:12px"></div>
+
+      <h3 class="h3">Storico (ultime letture)</h3>
+      <div style="max-height:260px; overflow:auto; border-radius:14px; border:1px solid var(--line)">
+        <table class="table" id="mmHist">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>ΔIN</th>
+              <th>ΔOUT</th>
+              <th>%</th>
+              <th>Note</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div style="height:12px"></div>
+      <h3 class="h3">Fingerprint modello (“algoritmo” estratto)</h3>
+      <div id="mmAlgo" class="panel"></div>
+    </div>
+  </div>
+</div>
 </body>
 </html>
