@@ -277,3 +277,148 @@ export function countAllHistoryPoints(){
   for(const arr of S.history.values()) n += arr.length;
   return n;
 }
+// --- Predizione payout (statistica) ---
+// Definizione evento payout: ΔOUT alto (soglia dinamica per modello)
+function payoutThresholdForSeries(deltasOut){
+  // soglia = max( 20€, percentile 85% )
+  const arr = deltasOut.filter(x=>Number.isFinite(x) && x>0).sort((a,b)=>a-b);
+  if(arr.length<6) return 20;
+  const p = arr[Math.floor(arr.length*0.85)];
+  return Math.max(20, p);
+}
+
+export function getModelKey(m){ return (m.modelCode || m.modelName || "UNKNOWN").toString().trim(); }
+
+export function modelProfile(modelKey){
+  // costruisce un profilo usando TUTTE le macchine di quel modello che hanno storico
+  const points = [];
+  for(const m of S.machines.values()){
+    if(getModelKey(m)!==modelKey) continue;
+    const h = S.history.get(m.codeid) || [];
+    for(const p of h){
+      // p: {ts, dIn, dOut, pct}
+      points.push(p);
+    }
+  }
+  const dOuts = points.map(p=>p.dOut||0);
+  const thr = payoutThresholdForSeries(dOuts);
+
+  // costruisco "distanze" tra payout in termini di IN accumulato
+  let inSince = 0;
+  const gaps = [];
+  const payouts = [];
+  for(const p of points.sort((a,b)=>a.ts-b.ts)){
+    inSince += (p.dIn||0);
+    if((p.dOut||0) >= thr){
+      gaps.push(inSince);
+      payouts.push(p.dOut||0);
+      inSince = 0;
+    }
+  }
+
+  const median = (arr)=>{
+    const a = arr.filter(x=>Number.isFinite(x)&&x>0).sort((x,y)=>x-y);
+    if(!a.length) return null;
+    const mid = Math.floor(a.length/2);
+    return a.length%2 ? a[mid] : (a[mid-1]+a[mid])/2;
+  };
+  const avg = (arr)=>{
+    const a = arr.filter(x=>Number.isFinite(x));
+    if(!a.length) return null;
+    return a.reduce((s,x)=>s+x,0)/a.length;
+  };
+
+  const cycleIn = median(gaps);       // €IN tra payout (mediana)
+  const payoutAvg = avg(payouts);     // €OUT payout medio
+  const payoutMed = median(payouts);
+
+  // volatilità: rapporto tra p90 e mediana payout (grezzo ma utile)
+  const p90 = (arr)=>{
+    const a = arr.filter(x=>Number.isFinite(x)&&x>0).sort((x,y)=>x-y);
+    if(!a.length) return null;
+    return a[Math.floor(a.length*0.90)];
+  };
+  const vol = (payoutMed && p90(payouts)) ? (p90(payouts)/payoutMed) : null;
+
+  return {
+    modelKey,
+    payoutThreshold: thr,
+    cycleIn,
+    payoutAvg,
+    payoutMed,
+    volatility: vol,
+    samplePoints: points.length,
+    samplePayouts: payouts.length
+  };
+}
+
+export function estimatePlayRateEuroPerHour(codeid){
+  // stima €/ora da deltaIN/deltaTempo sugli ultimi punti
+  const h = (S.history.get(codeid)||[]).slice().sort((a,b)=>a.ts-b.ts);
+  if(h.length<3) return null;
+  const last = h.slice(-12);
+  let sumIn=0, sumH=0;
+  for(let i=1;i<last.length;i++){
+    const dt = (last[i].ts - last[i-1].ts) / 3600000; // ore
+    if(dt<=0 || dt>48) continue;
+    const din = last[i].dIn || 0;
+    if(din<=0) continue;
+    sumIn += din;
+    sumH  += dt;
+  }
+  if(sumH<=0) return null;
+  return sumIn / sumH;
+}
+
+export function machinePrediction(m){
+  const modelKey = getModelKey(m);
+  const prof = modelProfile(modelKey);
+
+  const h = (S.history.get(m.codeid)||[]).slice().sort((a,b)=>a.ts-b.ts);
+  if(!h.length || !prof.cycleIn){
+    return { ok:false, reason:"Storico insufficiente per stimare ciclo/predizione.", prof };
+  }
+
+  // progress = IN accumulato dall’ultimo payout-event
+  const thr = prof.payoutThreshold ?? 20;
+  let progressIn = 0;
+  for(let i=h.length-1;i>=0;i--){
+    progressIn += (h[i].dIn||0);
+    if((h[i].dOut||0) >= thr) break;
+  }
+
+  const remainingIn = Math.max(0, prof.cycleIn - progressIn);
+  const rate = estimatePlayRateEuroPerHour(m.codeid); // €/ora
+  const hours = (rate && rate>0) ? (remainingIn / rate) : null;
+
+  // “quanto potrebbe pagare”: uso payoutMed e payoutAvg (range)
+  return {
+    ok:true,
+    modelKey,
+    prof,
+    progressIn,
+    remainingIn,
+    rateEuroPerHour: rate,
+    etaHours: hours,
+    expectedPayoutMed: prof.payoutMed,
+    expectedPayoutAvg: prof.payoutAvg
+  };
+}
+
+export function peerMachinesSameModel(m, limit=8){
+  const key = getModelKey(m);
+  const peers = [];
+  for(const x of S.machines.values()){
+    if(x.codeid===m.codeid) continue;
+    if(getModelKey(x)!==key) continue;
+    const pred = machinePrediction(x);
+    peers.push({m:x, pred});
+  }
+  // ordino: più vicine al payout (remainingIn basso) prima
+  peers.sort((a,b)=>{
+    const ra = a.pred.ok ? a.pred.remainingIn : 1e9;
+    const rb = b.pred.ok ? b.pred.remainingIn : 1e9;
+    return ra - rb;
+  });
+  return peers.slice(0,limit);
+}
