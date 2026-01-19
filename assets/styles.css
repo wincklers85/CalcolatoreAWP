@@ -233,3 +233,37 @@ button, input, select{font:inherit}
 .footer-note{color:var(--muted); font-size:12px; margin-top:10px;}
 .linklike{color:var(--brand); cursor:pointer; font-weight:800}
 .linklike:hover{text-decoration:underline}
+.modal{position:fixed; inset:0; z-index:200;}
+.modal-backdrop{position:absolute; inset:0; background:rgba(2,6,23,.55);}
+.modal-card{
+  position:absolute; left:50%; top:50%;
+  transform:translate(-50%,-50%);
+  width:min(980px, calc(100vw - 24px));
+  max-height: calc(100vh - 24px);
+  overflow:auto;
+  background:var(--panel);
+  border:1px solid rgba(255,255,255,.08);
+  border-radius:18px;
+  box-shadow:0 30px 90px rgba(0,0,0,.35);
+}
+.modal-hd{
+  position:sticky; top:0; z-index:1;
+  background:rgba(255,255,255,.92);
+  backdrop-filter:saturate(140%) blur(10px);
+  border-bottom:1px solid var(--line);
+  padding:12px 14px;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+}
+.modal-title{font-weight:900;}
+.modal-sub{font-size:12px; color:var(--muted); margin-top:2px;}
+.modal-bd{padding:14px;}
+.panel{
+  border:1px solid var(--line);
+  border-radius:14px;
+  padding:12px;
+  background:linear-gradient(180deg,#fff,#fbfdff);
+  color:var(--ink);
+  font-size:13px;
+  line-height:1.35;
+}
+.h3{margin:0 0 8px 0; font-size:14px;}
