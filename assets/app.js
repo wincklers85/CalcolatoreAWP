@@ -1,433 +1,313 @@
-// assets/app.js
-import { login } from "./auth.js";
+import { login, logout, getSession, loadUsers } from "./auth.js";
 import {
-  S,
-  loadManifest,
-  bannerStatusForToday,
-  resetAll,
-  analyzeOneFile,
-  finalize
+  createState, loadManifest, pickLatestFromManifest,
+  parseDateFromFilename, fmtItDate,
+  loadCicloSlot, parseSinotticoSheet, mergeState,
+  recencyStatus
 } from "./engine.js";
+import { renderDashboard, bindRowClicks, openSlotModal, showModal } from "./ui.js";
+import { createAssistant } from "./ai.js";
 
-import {
-  toast,
-  setStatus,
-  showView,
-  renderBanner,
-  progressShow,
-  progressUpdate,
-  progressHide,
-  renderMachinesTable,
-  bindMachineRowClicks
-} from "./ui.js";
+const S = createState();
+const assistant = createAssistant();
 
-import { sibillaReply } from "./sibilla.js";
+let selectedCodeId = null;
 
-const $ = (s) => document.querySelector(s);
+function $(id){ return document.getElementById(id); }
 
-let SESSION = null;
-
-// ---------- helpers ----------
-function setDot(id, ok) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.style.background = ok ? "var(--good)" : "var(--bad)";
+function setView(id){
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  $(id).classList.add("active");
+  document.querySelectorAll(".menubtn").forEach(b=>b.classList.toggle("active", b.dataset.view===id));
 }
 
-function safeText(id, txt) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = txt;
+function menu(open){
+  const sm = $("sidemenu");
+  const bd = $("backdrop");
+  if(open){ sm.classList.add("open"); bd.classList.add("show"); sm.setAttribute("aria-hidden","false"); }
+  else { sm.classList.remove("open"); bd.classList.remove("show"); sm.setAttribute("aria-hidden","true"); }
 }
 
-function showLoginError(msg) {
-  const el = $("#loginError");
-  if (!el) return;
-  el.style.display = "block";
-  el.textContent = msg;
+function setBubble(dt){
+  const r = recencyStatus(dt);
+  const dot = $("bubbleDot");
+  const txt = $("bubbleText");
+  if(r.key==="good"){ dot.style.background = "var(--good)"; }
+  else if(r.key==="warn"){ dot.style.background = "var(--warn)"; }
+  else { dot.style.background = "var(--bad)"; }
+
+  txt.textContent = dt ? `Ultimo aggiornamento: ${fmtItDate(dt)}` : `Ultimo aggiornamento: —`;
 }
 
-function hideLoginError() {
-  const el = $("#loginError");
-  if (!el) return;
-  el.style.display = "none";
-  el.textContent = "";
+function setProgress(i, n){
+  const pct = n ? Math.round((i/n)*100) : 0;
+  $("progressFill").style.width = `${pct}%`;
+  $("progressText").textContent = n ? `Caricamento ${i}/${n} (${pct}%)` : "—";
 }
 
-// ---------- chat ----------
-function appendChat(who, text, targetId = "chatlog") {
-  const log = document.getElementById(targetId);
-  if (!log) return;
-
-  const div = document.createElement("div");
-  div.className = "msg " + (who === "user" ? "user" : "ai");
-  div.innerHTML = `
-    <div class="avatar">${who === "user" ? "U" : "S"}</div>
-    <div class="bubble"></div>
-  `;
-  div.querySelector(".bubble").textContent = String(text || "");
-  log.appendChild(div);
-  log.scrollTop = log.scrollHeight;
+async function fetchXlsx(file){
+  const r = await fetch("Dati/" + file, { cache:"no-store" });
+  if(!r.ok) throw new Error(`Errore download: ${file}`);
+  const b = await r.arrayBuffer();
+  const wb = XLSX.read(b, { type:"array" });
+  const sh = wb.Sheets[wb.SheetNames[0]];
+  return sh;
 }
 
-function initChat() {
-  const send = $("#chatSend");
-  const inp = $("#chatInput");
-  if (!send || !inp) return;
-
-  send.addEventListener("click", () => {
-    const text = (inp.value || "").trim();
-    if (!text) return;
-    appendChat("user", text, "chatlog");
-    const ans = sibillaReply(text);
-    appendChat("ai", ans, "chatlog");
-    inp.value = "";
-  });
-
-  inp.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") send.click();
-  });
-
-  appendChat("ai", "Ciao, sono Sibilla. Prova: “top pagamenti”, “cerca <testo>”, “dettagli <CODEID>”, “modello <codice>”.", "chatlog");
+async function loadFiles(files){
+  let i = 0;
+  for(const f of files){
+    i++;
+    setProgress(i, files.length);
+    const sh = await fetchXlsx(f);
+    const machines = parseSinotticoSheet(sh);
+    const dtFile = parseDateFromFilename(f);
+    mergeState(S, machines, dtFile);
+    S.loadedFiles.push(f);
+  }
+  setProgress(0,0);
 }
 
-// ---------- analysis ----------
-async function analyzeFilesWithProgress(fileNames, labelBase) {
-  progressShow(labelBase || "Analisi…");
-  const total = fileNames.length;
-  let done = 0;
+function renderAll(session){
+  // se abbonato scaduto: limita le viste
+  const expiredLimited = session && session.level === "abbonato" && session.expired;
 
-  for (const f of fileNames) {
-    progressUpdate(done, total, `Carico: ${f}`);
-    await analyzeOneFile(f);
-    done++;
-    progressUpdate(done, total, `Analizzato: ${f}`);
-    // lascia respirare il browser (mobile)
-    await new Promise((r) => setTimeout(r, 0));
+  if(expiredLimited){
+    // mostra solo profilo e bubble (dashboard come banner informativo)
+    setView("viewProfile");
+  }else{
+    setView("viewDashboard");
   }
 
-  finalize();
-  progressHide();
+  renderDashboard(S, session);
+  renderModels();
+  renderAdmin(session);
+  renderProfile(session);
+
+  $("menuHint").textContent = expiredLimited
+    ? "Abbonamento scaduto: funzioni limitate."
+    : "Pronto.";
 }
 
-function getHistoryPointsCount() {
-  let pts = 0;
-  for (const h of S.history.values()) pts += h.length;
-  return pts;
-}
-
-// ---------- filters + render ----------
-function getFilteredMachines() {
-  const q = ($("#qSearch")?.value || "").trim().toLowerCase();
-  const filter = $("#qFilter")?.value || "all";
-
-  let list = Array.from(S.machines.values());
-
-  if (q) {
-    list = list.filter((m) => {
-      const hay = [
-        m.locale, m.comune, m.provincia, m.indirizzo,
-        m.modelName, m.modelCode, m.codeid, m.pda
-      ].join(" ").toLowerCase();
-      return hay.includes(q);
-    });
-  }
-
-  if (filter === "active") {
-    list = list.filter((m) => String(m.em || "").toUpperCase().includes("E"));
-  } else if (filter === "stale") {
-    list = list.filter((m) => (m.ggNoLink || 0) >= 7);
-  } else if (filter === "likely") {
-    // ordina per probabilità: qui delego a ui.js quando renderizza,
-    // ma per “likely” la cosa più sensata è: remainingIn più basso.
-    // Non voglio importare engine machinePrediction qui per evitare cicli.
-    // Quindi faccio render normale ma limito la lista: si può raffinare dopo.
-    // (Se vuoi, lo faccio con una cache in engine/ui.)
-    list = list.slice(0, 200);
-  }
-
-  return list;
-}
-
-function renderAll() {
-  const list = getFilteredMachines();
-  renderMachinesTable(list);
-
-  safeText("dataInfo", `Dati: ${S.machines.size} macchine`);
-  safeText("histInfo", `Storico: ${getHistoryPointsCount()}`);
-
-  // dots
-  const pts = getHistoryPointsCount();
-  const hasData = S.machines.size > 0;
-  document.getElementById("dotData") && (document.getElementById("dotData").style.background = hasData ? "var(--good)" : "rgba(255,255,255,.22)");
-  document.getElementById("dotHist") && (document.getElementById("dotHist").style.background = pts ? "var(--good)" : "rgba(255,255,255,.22)");
-}
-
-// ---------- models panel render ----------
-function renderModels() {
-  const tbody = $("#tblModels tbody");
-  if (!tbody) return;
-
+function renderModels(){
+  const tbody = document.querySelector("#tblModels tbody");
   tbody.innerHTML = "";
-  let payouts = 0;
+  const counts = new Map();
+  for(const m of S.machinesById.values()){
+    const k = String(m.modelCode||"");
+    counts.set(k, (counts.get(k)||0)+1);
+  }
 
-  for (const [modelKey, setCodes] of S.models.entries()) {
-    const st = S.modelStats.get(modelKey);
-    if (st) payouts += (st.samplePayouts || 0);
-
+  for(const [k,cfg] of S.cicloMap.entries()){
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td class="mono"></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
-      <td></td>
+      <td class="mono">${k}</td>
+      <td>${cfg.nomeModello || ""}</td>
+      <td>${cfg.ciclo ?? "—"}</td>
+      <td>${cfg.payout ? cfg.payout+"%" : "—"}</td>
+      <td>${counts.get(k)||0}</td>
     `;
-    tr.children[0].textContent = modelKey;
-    tr.children[1].textContent = String(setCodes.size);
-    tr.children[2].textContent = st?.cycleIn != null ? `${Math.round(st.cycleIn)}€` : "N/A";
-    tr.children[3].textContent = st?.payoutMed != null ? `${Math.round(st.payoutMed)}€` : "N/A";
-    tr.children[4].textContent = st?.payoutAvg != null ? `${Math.round(st.payoutAvg)}€` : "N/A";
-    tr.children[5].textContent = st?.volatility != null ? st.volatility.toFixed(2) : "N/A";
-    tr.children[6].textContent = String(st?.samplePayouts || 0);
-
     tbody.appendChild(tr);
   }
-
-  safeText("modelsCount", String(S.models.size));
-  safeText("modelsPayouts", String(payouts));
 }
 
-// ---------- admin panel ----------
-function showAdminPanel(allUsers) {
-  const panel = $("#adminPanel");
-  const box = $("#adminBox");
-  if (!panel || !box) return;
+async function renderAdmin(session){
+  const isAdmin = session && session.level === "admin" && !session.expired;
+  $("btnAdminView").style.display = isAdmin ? "block" : "none";
 
-  panel.style.display = "block";
+  if(!isAdmin) return;
 
-  const pts = getHistoryPointsCount();
-  box.innerHTML = `
-    <div class="row" style="margin-bottom:10px">
-      <span class="badge">Utenti: <b>${allUsers.length}</b></span>
-      <span class="badge">Macchine: <b>${S.machines.size}</b></span>
-      <span class="badge">Punti storico: <b>${pts}</b></span>
-      <span class="badge mono">Ultimo: <b>${S.latestFile || "N/A"}</b></span>
-    </div>
-
-    <div style="max-height:260px; overflow:auto; border-radius:14px; border:1px solid rgba(255,255,255,.12)">
-      <table class="table">
-        <thead><tr><th>Utente</th><th>Ruolo</th><th>Scadenza</th></tr></thead>
-        <tbody>
-          ${allUsers.map(u => `<tr><td>${u.user}</td><td>${u.level}</td><td class="mono">${u.expires}</td></tr>`).join("")}
-        </tbody>
-      </table>
-    </div>
-
-    <div class="footer-note">
-      Nota admin: contatori sono in centesimi → qui l’engine li converte in euro dividendo per 100.
-    </div>
-  `;
-}
-
-function hideAdminPanel() {
-  const panel = $("#adminPanel");
-  if (panel) panel.style.display = "none";
-}
-
-// ---------- expired view ----------
-function showExpiredProfile(session) {
-  const box = $("#expiredBox");
-  if (!box) return;
-
-  box.innerHTML = `
-    <div class="row" style="margin-bottom:10px">
-      <span class="badge">Utente: <b>${session.user}</b></span>
-      <span class="badge">Ruolo: <b>${session.level}</b></span>
-      <span class="badge mono">Scadenza: <b>${session.expires}</b></span>
-    </div>
-
-    <p class="muted">
-      Il profilo è scaduto. Puoi vedere solo lo stato dell’ultimo sinottico e questa pagina profilo.
-      Per riattivare, invia una richiesta via email.
-    </p>
-
-    <a class="btn primary"
-       href="mailto:wincklers85@googlemail.com?subject=Richiesta%20rinnovo%20AWP%20Analyzer&body=Utente:%20${encodeURIComponent(session.user)}%0AScadenza:%20${encodeURIComponent(session.expires)}%0ARichiesta:%20Rinnovo%20abbonamento">
-      Richiedi rinnovo via email
-    </a>
-  `;
-}
-
-// ---------- self test (login screen) ----------
-async function selfTest() {
-  try {
-    hideLoginError();
-
-    // XLSX presence
-    const xlsxOk = typeof XLSX !== "undefined";
-    setDot("dotXLSX", xlsxOk);
-    safeText("xlsxInfo", `XLSX: ${xlsxOk ? "OK" : "MANCANTE"}`);
-
-    // manifest
-    await loadManifest();
-    setDot("dotManifest", true);
-    safeText("manifestInfo", `manifest.json: OK (${S.manifest.sinottici.length} file)`);
-
-    // users fetch check
-    const r = await fetch("./Dati/users.json", { cache: "no-store" });
-    setDot("dotUsers", r.ok);
-    safeText("usersInfo", `users.json: ${r.ok ? "OK" : "ERRORE"}`);
-
-    // banner always
-    renderBanner(S.latestFile, bannerStatusForToday());
-    $("#cardBanner").style.display = "block";
-  } catch (err) {
-    setDot("dotManifest", false);
-    safeText("manifestInfo", "manifest.json: ERRORE");
-    showLoginError(String(err.message || err));
+  // Users table
+  const users = await loadUsers();
+  const tb = document.querySelector("#tblUsers tbody");
+  tb.innerHTML = "";
+  for(const u of users){
+    const exp = u.expires ? new Date(u.expires+"T23:59:59") : null;
+    const ok = exp ? (Date.now() <= exp.getTime()) : false;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${u.user||""}</td>
+      <td>${u.level||""}</td>
+      <td>${u.expires||"—"}</td>
+      <td>${ok ? "ATTIVO" : "SCADUTO"}</td>
+    `;
+    tb.appendChild(tr);
   }
+
+  // Diagnostics
+  $("diagBox").textContent =
+    `Macchine: ${S.machinesById.size}\n` +
+    `Storici: ${S.historyById.size}\n` +
+    `File caricati: ${S.loadedFiles.length}\n` +
+    `Modelli in cicloslot: ${S.cicloMap.size}\n`;
 }
 
-// ---------- post login ----------
-async function afterLogin(session) {
-  SESSION = session;
-
-  // banner always
-  await loadManifest();
-  renderBanner(S.latestFile, bannerStatusForToday());
-
-  // status
-  $("#btnLogout").style.display = "inline-flex";
-  setStatus(`Autenticato: ${session.user} (${session.level})`, true);
-
-  // expired logic
-  if (session.expired) {
-    showExpiredProfile(session);
-    showView("#viewExpired");
+function renderProfile(session){
+  const box = $("profileBox");
+  if(!session){
+    box.innerHTML = `<p>Non autenticato.</p>`;
     return;
   }
 
-  // main view
-  showView("#viewMain");
-  hideAdminPanel();
+  const exp = session.expires || "—";
+  const expired = !!session.expired;
 
-  // bind UI
-  bindMachineRowClicks();
-
-  $("#qSearch")?.addEventListener("input", renderAll);
-  $("#qFilter")?.addEventListener("change", renderAll);
-
-  $("#btnToggleModels")?.addEventListener("click", () => {
-    const p = $("#modelsPanel");
-    if (!p) return;
-    const open = p.style.display !== "none";
-    p.style.display = open ? "none" : "block";
-    $("#btnToggleModels").textContent = open ? "Apri" : "Chiudi";
-    if (!open) renderModels();
-  });
-
-  $("#btnReset")?.addEventListener("click", () => {
-    resetAll();
-    renderAll();
-    safeText("histInfo", "Storico: 0");
-    toast("Reset", "Dati in RAM azzerati.");
-  });
-
-  // chat
-  initChat();
-
-  // load last 3
-  const files = (S.filesSorted || []).map((x) => x.name);
-  const last3 = files.slice(-3);
-
-  safeText("subMain", "Carico gli ultimi 3 sinottici…");
-  resetAll();
-  await analyzeFilesWithProgress(last3, "Carico gli ultimi 3 sinottici…");
-  safeText("subMain", "Pronto (storico parziale: usa 'Analizza tutti' per predizioni migliori)");
-
-  renderAll();
-
-  // admin panel if admin
-  if (session.level === "admin") {
-    showAdminPanel(session.allUsers);
-  }
-
-  // analyze all button (full)
-  $("#btnAnalyzeAll")?.addEventListener("click", async () => {
-    try {
-      resetAll();
-      const all = (S.filesSorted || []).map((x) => x.name);
-      safeText("subMain", "Analisi completa in corso…");
-      await analyzeFilesWithProgress(all, "Analisi completa: tutti i sinottici…");
-      safeText("subMain", "Analisi completa terminata");
-      renderAll();
-      renderModels();
-      toast("OK", "Analisi completa terminata.");
-    } catch (err) {
-      toast("Errore", String(err.message || err));
-    }
-  });
-}
-
-// ---------- login / logout ----------
-async function doLogin() {
-  const user = ($("#loginUser").value || "").trim();
-  const pin = ($("#loginPin").value || "").trim();
-
-  hideLoginError();
-
-  if (!user || !pin) {
-    showLoginError("Inserisci utente e PIN.");
+  if(session.level === "abbonato" && expired){
+    box.innerHTML = `
+      <p><b>Utente:</b> ${session.user}</p>
+      <p><b>Stato:</b> SCADUTO (${exp})</p>
+      <p>Puoi visualizzare solo lo stato dell’ultimo aggiornamento.</p>
+      <p>
+        Per rinnovare:
+        <a href="mailto:wincklers85@googlemail.com?subject=Rinnovo%20abbonamento%20AWP%20Analyzer&body=Ciao,%20vorrei%20rinnovare%20l'abbonamento%20per%20l'utente%20${encodeURIComponent(session.user)}.">
+          invia richiesta email
+        </a>
+      </p>
+    `;
     return;
   }
 
-  try {
-    const session = await login(user, pin);
-
-    // security: clear input fields after any attempt
-    $("#loginUser").value = "";
-    $("#loginPin").value = "";
-
-    await afterLogin(session);
-  } catch {
-    showLoginError("Credenziali non valide.");
-    setStatus("Non autenticato", false);
-  }
+  box.innerHTML = `
+    <p><b>Utente:</b> ${session.user}</p>
+    <p><b>Livello:</b> ${session.level}</p>
+    <p><b>Scadenza:</b> ${exp}</p>
+  `;
 }
 
-function doLogout() {
-  SESSION = null;
-  setStatus("Non autenticato", false);
-  $("#btnLogout").style.display = "none";
-  hideAdminPanel();
-  showView("#viewLogin");
-  toast("Logout", "Sessione terminata.");
+function setupChat(){
+  const log = $("chatLog");
+  const input = $("chatInput");
+
+  const add = (who, text)=>{
+    const div = document.createElement("div");
+    div.className = `msg ${who==="me" ? "me" : "bot"}`;
+    div.innerHTML = `<div class="bub">${text.replace(/\n/g,"<br>")}</div>`;
+    log.appendChild(div);
+    log.scrollTop = log.scrollHeight;
+  };
+
+  $("btnChatSend").onclick = ()=>{
+    const q = input.value.trim();
+    if(!q) return;
+    add("me", q);
+    input.value = "";
+
+    const r = assistant.reply(q, S, selectedCodeId);
+    add("bot", r.text);
+  };
+
+  add("bot", `Sono **${assistant.name}**. Posso aiutarti con: anomalie, confronto modello, spiegazione score, aggiornamento dati.`);
 }
 
-// ---------- init ----------
-window.addEventListener("load", async () => {
-  // ensure no placeholders leak
-  $("#loginUser").value = "";
-  $("#loginPin").value = "";
+async function boot(){
+  // menu bindings
+  $("btnBurger").onclick = ()=>menu(true);
+  $("btnCloseMenu").onclick = ()=>menu(false);
+  $("backdrop").onclick = ()=>menu(false);
 
-  setStatus("Non autenticato", false);
-
-  $("#btnLogin")?.addEventListener("click", doLogin);
-  $("#btnSelfTest")?.addEventListener("click", selfTest);
-  $("#btnLogout")?.addEventListener("click", doLogout);
-
-  $("#btnReload")?.addEventListener("click", async () => {
-    try {
-      await loadManifest();
-      renderBanner(S.latestFile, bannerStatusForToday());
-      toast("Aggiornato", "Manifest ricaricato.");
-    } catch (err) {
-      toast("Errore", String(err.message || err));
-    }
+  document.querySelectorAll(".menubtn").forEach(btn=>{
+    btn.onclick = ()=>{
+      menu(false);
+      setView(btn.dataset.view);
+    };
   });
 
-  // run initial checks
-  await selfTest();
+  // modal bindings
+  $("modalBackdrop").onclick = ()=>showModal(false);
+  $("btnCloseModal").onclick = ()=>showModal(false);
+
+  // filter/sort
+  $("filterText").oninput = ()=>renderDashboard(S, getSession());
+  $("sortBy").onchange = ()=>renderDashboard(S, getSession());
+
+  bindRowClicks(S, (codeid)=>{
+    selectedCodeId = codeid;
+    openSlotModal(S, codeid);
+  });
+
+  setupChat();
+
+  // carica cicloslot subito
+  S.cicloMap = await loadCicloSlot();
+
+  // bubble da manifest
+  const manifest = await loadManifest();
+  const latest = pickLatestFromManifest(manifest);
+  setBubble(latest?.dt || null);
+
+  // session
+  const session = getSession();
+  if(session){
+    $("viewLogin").classList.remove("active");
+    $("userPill").style.display = "flex";
+    $("userName").textContent = session.user;
+    $("userLevel").textContent = session.level + (session.expired ? " (scaduto)" : "");
+    renderAll(session);
+
+    // auto-load ultimi 3 se non scaduto
+    if(!(session.level === "abbonato" && session.expired)){
+      await loadFiles(manifest.slice(-3));
+      renderAll(session);
+    }
+  }else{
+    setView("viewLogin");
+  }
+
+  // login
+  $("btnLogin").onclick = async ()=>{
+    $("loginMsg").textContent = "Accesso…";
+    const u = $("loginUser").value;
+    const p = $("loginPin").value;
+    const res = await login(u,p);
+    if(!res.ok){
+      $("loginMsg").textContent = res.reason;
+      return;
+    }
+
+    const session2 = res.session;
+    $("userPill").style.display = "flex";
+    $("userName").textContent = session2.user;
+    $("userLevel").textContent = session2.level + (session2.expired ? " (scaduto)" : "");
+    $("loginMsg").textContent = "OK";
+
+    // se scaduto: solo profilo/bubble
+    renderAll(session2);
+
+    if(!(session2.level === "abbonato" && session2.expired)){
+      const man = await loadManifest();
+      await loadFiles(man.slice(-3));
+      renderAll(session2);
+    }
+  };
+
+  // logout
+  $("btnLogout").onclick = ()=>{
+    logout();
+    location.reload();
+  };
+
+  // load buttons
+  $("btnLoadLast3").onclick = async ()=>{
+    const s = getSession();
+    if(!s || (s.level==="abbonato" && s.expired)) return;
+    S.machinesById.clear(); S.historyById.clear(); S.loadedFiles = [];
+    const man = await loadManifest();
+    await loadFiles(man.slice(-3));
+    renderAll(s);
+  };
+
+  $("btnLoadAll").onclick = async ()=>{
+    const s = getSession();
+    if(!s || (s.level==="abbonato" && s.expired)) return;
+    S.machinesById.clear(); S.historyById.clear(); S.loadedFiles = [];
+    const man = await loadManifest();
+    await loadFiles(man);
+    renderAll(s);
+  };
+}
+
+boot().catch(err=>{
+  console.error(err);
+  const s = $("bubbleText");
+  if(s) s.textContent = "Errore avvio (console)";
 });
