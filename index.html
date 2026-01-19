@@ -5,354 +5,261 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>AWP Analyzer</title>
 
-  <!-- XLSX in browser -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-
   <link rel="stylesheet" href="./assets/styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
 <body>
-  <!-- TOP BAR -->
-  <div class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <div class="logo">AWP</div>
-        <div>
-          AWP Analyzer
-          <small>Sinottici • Storico • Predizione</small>
-        </div>
-      </div>
+  <!-- Top bar -->
+  <header class="topbar">
+    <button class="iconbtn" id="btnBurger" aria-label="Menu">☰</button>
 
-      <div class="spacer"></div>
-
-      <div class="pill" id="pillStatus">
-        <span class="dot" id="dotStatus"></span>
-        <span id="txtStatus">Non autenticato</span>
-      </div>
-
-      <button class="btn small" id="btnLogout" style="display:none">Esci</button>
-    </div>
-  </div>
-
-  <div class="wrap">
-
-    <!-- BANNER ULTIMO SINOTTICO (visibile anche per utenti scaduti) -->
-    <div class="card" id="cardBanner" style="display:none; margin-bottom:14px">
-      <div class="bd" style="display:flex; align-items:center; gap:10px; justify-content:space-between; flex-wrap:wrap">
-        <div class="row" style="gap:10px">
-          <span class="badge" id="bannerBadge">
-            <span class="dot" id="bannerDot"></span>
-            <b id="bannerTitle">Stato sinottico</b>
-          </span>
-          <span class="muted" id="bannerSub">—</span>
-        </div>
-        <div class="row" style="gap:8px">
-          <span class="badge mono" id="bannerFile">—</span>
-          <button class="btn small" id="btnReload">Ricarica</button>
-        </div>
-      </div>
+    <div class="brand">
+      <div class="brand-title">AWP Analyzer</div>
+      <div class="brand-sub">Sinottici • Cicli • Storico • Diagnostica</div>
     </div>
 
-    <!-- VIEW: LOGIN -->
-    <div class="view active" id="viewLogin">
-      <div class="grid">
+    <div class="spacer"></div>
 
-        <div class="card">
-          <div class="hd">
-            <h2>Accesso</h2>
-            <div class="sub" id="loginStatus">Pronto</div>
-          </div>
-
-          <div class="bd">
-            <div class="split">
-              <div class="field">
-                <label for="loginUser">Utente</label>
-                <input
-                  class="input"
-                  id="loginUser"
-                  type="text"
-                  placeholder="Inserisci nome utente"
-                  autocomplete="username"
-                />
-              </div>
-
-              <div class="field">
-                <label for="loginPin">PIN</label>
-                <input
-                  class="input"
-                  id="loginPin"
-                  type="password"
-                  placeholder="Inserisci PIN (4 cifre)"
-                  inputmode="numeric"
-                  pattern="[0-9]{4}"
-                  autocomplete="current-password"
-                />
-              </div>
-            </div>
-
-            <div class="row" style="margin-top:12px">
-              <button class="btn primary" id="btnLogin">Entra</button>
-              <button class="btn" id="btnSelfTest">Self-test</button>
-
-              <span class="badge"><span class="dot" id="dotUsers"></span><span id="usersInfo">users.json: …</span></span>
-              <span class="badge"><span class="dot" id="dotManifest"></span><span id="manifestInfo">manifest.json: …</span></span>
-              <span class="badge"><span class="dot" id="dotXLSX"></span><span id="xlsxInfo">XLSX: …</span></span>
-            </div>
-
-            <div id="loginError" class="footer-note" style="color:var(--bad); display:none"></div>
-
-            <div class="footer-note">
-              Dati in <b>/Dati/</b>: manifest.json, users.json e i sinottici .xlsx.
-            </div>
-          </div>
-        </div>
-
-        <div class="card">
-          <div class="hd">
-            <h2 id="assistantNameLogin">Sibilla</h2>
-            <div class="sub">si attiva dopo login</div>
-          </div>
-          <div class="bd">
-            <div class="chat" style="height:340px">
-              <div class="chatlog" id="chatlogLogin"></div>
-              <div class="footer-note">
-                Dopo l’accesso: “top pagamenti”, “dettagli 123…”, “cerca Molini”, “modello XYZ”.
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
+    <!-- Bubble ultimo aggiornamento (da manifest + nome file) -->
+    <div class="bubble" id="bubbleUpdate">
+      <span class="dot" id="bubbleDot"></span>
+      <span id="bubbleText">Caricamento…</span>
     </div>
 
-    <!-- VIEW: EXPIRED (utente scaduto) -->
-    <div class="view" id="viewExpired">
-      <div class="card">
-        <div class="hd">
-          <h2>Profilo</h2>
-          <div class="sub">Abbonamento scaduto</div>
-        </div>
-        <div class="bd" id="expiredBox">
-          <!-- riempito da JS -->
-        </div>
-      </div>
+    <div class="userpill" id="userPill" style="display:none">
+      <span id="userName"></span>
+      <span class="sep">•</span>
+      <span id="userLevel"></span>
+      <button class="linkbtn" id="btnLogout" title="Esci">Esci</button>
+    </div>
+  </header>
+
+  <!-- Side menu -->
+  <aside class="sidemenu" id="sidemenu" aria-hidden="true">
+    <div class="menuhd">
+      <div class="menutitle">Menu</div>
+      <button class="iconbtn" id="btnCloseMenu" aria-label="Chiudi">✕</button>
     </div>
 
-    <!-- VIEW: MAIN -->
-    <div class="view" id="viewMain">
+    <nav class="menulinks">
+      <button class="menubtn active" data-view="viewDashboard">Dashboard</button>
+      <button class="menubtn" data-view="viewModels">Modelli</button>
+      <button class="menubtn" data-view="viewAI">Assistente</button>
+      <button class="menubtn" data-view="viewAdmin" id="btnAdminView" style="display:none">Admin</button>
+      <button class="menubtn" data-view="viewProfile">Profilo</button>
+    </nav>
 
-      <div class="grid">
-
-        <!-- LEFT -->
-        <div class="card">
-          <div class="hd">
-            <h2>Dashboard</h2>
-            <div class="sub" id="subMain">Pronto</div>
-          </div>
-
-          <div class="bd">
-
-            <div class="row">
-              <button class="btn primary" id="btnAnalyzeAll">Analizza tutti i sinottici</button>
-              <button class="btn" id="btnReset">Reset (RAM)</button>
-
-              <span class="badge"><span class="dot" id="dotData"></span><span id="dataInfo">Dati: non caricati</span></span>
-              <span class="badge"><span class="dot" id="dotHist"></span><span id="histInfo">Storico: 0</span></span>
-            </div>
-
-            <!-- PROGRESS -->
-            <div id="progressWrap" class="progressWrap" style="display:none; margin-top:10px">
-              <div class="row" style="justify-content:space-between; gap:10px">
-                <div class="muted" id="progressText">Caricamento…</div>
-                <div class="badge mono" id="progressPct">0%</div>
-              </div>
-              <div class="progressBar">
-                <div class="progressFill" id="progressFill" style="width:0%"></div>
-              </div>
-            </div>
-
-            <div style="height:12px"></div>
-
-            <div class="split">
-              <div class="field">
-                <label for="qSearch">Cerca</label>
-                <input class="input" id="qSearch" placeholder="locale, comune, modello, codeid, pda…" />
-              </div>
-              <div class="field">
-                <label for="qFilter">Filtro</label>
-                <select id="qFilter" class="input">
-                  <option value="all">Tutte</option>
-                  <option value="likely">Probabile pagamento (Top)</option>
-                  <option value="active">Solo attive (E)</option>
-                  <option value="stale">Non aggiornate (NoLink alto)</option>
-                </select>
-              </div>
-            </div>
-
-            <div class="row" style="margin-top:10px">
-              <span class="badge">Macchine: <b id="countMachines">0</b></span>
-              <span class="badge">Locali: <b id="countLocals">0</b></span>
-              <span class="badge">Modelli: <b id="countModels">0</b></span>
-              <span class="badge">Sinottici: <b id="countFiles">0</b></span>
-            </div>
-
-            <div style="height:12px"></div>
-
-            <!-- TABLE MACHINES -->
-            <div style="max-height:520px; overflow:auto; border-radius:14px; border:1px solid var(--line)">
-              <table class="table" id="tblMachines">
-                <thead>
-                  <tr>
-                    <th style="min-width:220px">Locale</th>
-                    <th>Comune</th>
-                    <th>Modello</th>
-                    <th class="mono">CODEID</th>
-                    <th>PDA</th>
-                    <th>Stato</th>
-                    <th style="min-width:190px">Predizione</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-
-            <div class="footer-note">
-              Nota: caricamento iniziale = ultimi 3 sinottici (rapido). “Analizza tutti” migliora le predizioni.
-            </div>
-          </div>
-        </div>
-
-        <!-- RIGHT -->
-        <div class="card" id="cardChat">
-          <div class="hd">
-            <h2 id="assistantName">Sibilla</h2>
-            <div class="sub">domande sui tuoi dati</div>
-          </div>
-          <div class="bd">
-            <div class="chat">
-              <div class="chatlog" id="chatlog"></div>
-              <div class="chatbar">
-                <input class="input" id="chatInput" placeholder="Es: top pagamenti • dettagli 123… • cerca Molini • modello X" />
-                <button class="btn primary" id="chatSend">Invia</button>
-              </div>
-              <div class="footer-note">
-                “Sibilla” non è ChatGPT: ragiona sui tuoi sinottici e spiega perché stima una predizione.
-              </div>
-            </div>
-          </div>
-        </div>
-
-      </div>
-
-      <!-- MODELS COLLAPSIBLE -->
-      <div style="height:16px"></div>
-      <div class="card">
-        <div class="hd">
-          <h2>Modelli</h2>
-          <div class="sub">fingerprint statistico</div>
-          <button class="btn small" id="btnToggleModels" style="margin-left:auto">Apri</button>
-        </div>
-        <div class="bd" id="modelsPanel" style="display:none">
-          <div class="row" style="margin-bottom:10px">
-            <span class="badge">Totale modelli: <b id="modelsCount">0</b></span>
-            <span class="badge">Campioni payout: <b id="modelsPayouts">0</b></span>
-          </div>
-
-          <div style="max-height:360px; overflow:auto; border-radius:14px; border:1px solid var(--line)">
-            <table class="table" id="tblModels">
-              <thead>
-                <tr>
-                  <th class="mono">MODELLO</th>
-                  <th>Macchine</th>
-                  <th>Ciclo stimato (IN)</th>
-                  <th>Payout mediano</th>
-                  <th>Payout medio</th>
-                  <th>Volatilità</th>
-                  <th>Campioni</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-
-          <div class="footer-note">
-            Il fingerprint migliora con più storico. I contatori sono in centesimi: qui vengono convertiti in euro.
-          </div>
-        </div>
-      </div>
-
-      <!-- ADMIN PANEL -->
-      <div style="height:16px"></div>
-      <div class="card" id="adminPanel" style="display:none">
-        <div class="hd">
-          <h2>Admin</h2>
-          <div class="sub">diagnostica e utenti</div>
-        </div>
-        <div class="bd" id="adminBox">
-          <!-- riempito da JS -->
-        </div>
-      </div>
-
+    <div class="menuftr">
+      <div class="muted small" id="menuHint">—</div>
     </div>
-  </div>
+  </aside>
 
-  <!-- MODAL: Scheda Macchina -->
-  <div class="modal" id="machineModal" style="display:none">
-    <div class="modal-backdrop" data-close="1"></div>
+  <div class="backdrop" id="backdrop"></div>
 
-    <div class="modal-card">
-      <div class="modal-hd">
-        <div>
-          <div class="modal-title" id="mmTitle">Scheda macchina</div>
-          <div class="modal-sub" id="mmSub">—</div>
-        </div>
-        <button class="btn small" id="mmClose">Chiudi</button>
-      </div>
+  <!-- Main -->
+  <main class="wrap">
+    <!-- LOGIN VIEW -->
+    <section class="view active" id="viewLogin">
+      <div class="card login">
+        <h2>Accesso</h2>
+        <p class="muted">Inserisci username e PIN. Nessun placeholder “pericoloso”.</p>
 
-      <div class="modal-bd">
-        <div class="kpis" id="mmKpis"></div>
-
-        <div style="height:10px"></div>
-
-        <div class="split">
+        <div class="grid2">
           <div>
-            <h3 class="h3">Predizione</h3>
-            <div id="mmPredict" class="panel"></div>
+            <label>Username</label>
+            <input id="loginUser" autocomplete="username" placeholder="Es. Aurelio" />
           </div>
           <div>
-            <h3 class="h3">Macchine uguali (altri locali)</h3>
-            <div id="mmPeers" class="panel"></div>
+            <label>PIN</label>
+            <input id="loginPin" type="password" inputmode="numeric" autocomplete="current-password" placeholder="••••" />
           </div>
         </div>
 
-        <div style="height:12px"></div>
+        <div class="row between wrapgap">
+          <button class="btn" id="btnLogin">Entra</button>
+          <div class="muted" id="loginMsg">—</div>
+        </div>
+      </div>
+    </section>
 
-        <h3 class="h3">Storico (ultime letture)</h3>
-        <div style="max-height:260px; overflow:auto; border-radius:14px; border:1px solid var(--line)">
-          <table class="table" id="mmHist">
+    <!-- DASHBOARD VIEW -->
+    <section class="view" id="viewDashboard">
+      <div class="row between wrapgap">
+        <h2 class="h2">Dashboard</h2>
+        <div class="row wrapgap">
+          <button class="btn" id="btnLoadLast3">Carica ultimi 3</button>
+          <button class="btn secondary" id="btnLoadAll">Carica tutti</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="row between wrapgap">
+          <div class="row wrapgap">
+            <div class="kpi">
+              <div class="kpiLabel">Macchine</div>
+              <div class="kpiValue" id="kpiMachines">—</div>
+            </div>
+            <div class="kpi">
+              <div class="kpiLabel">Locali</div>
+              <div class="kpiValue" id="kpiLocales">—</div>
+            </div>
+            <div class="kpi">
+              <div class="kpiLabel">Match ciclo</div>
+              <div class="kpiValue" id="kpiCycleMatch">—</div>
+            </div>
+          </div>
+
+          <div class="progressWrap">
+            <div class="muted small" id="progressText">—</div>
+            <div class="progressBar"><div class="progressFill" id="progressFill"></div></div>
+          </div>
+        </div>
+
+        <div class="row wrapgap" style="margin-top:10px">
+          <input id="filterText" class="input" placeholder="Filtra per locale, comune, modello, codeid…" />
+          <select id="sortBy" class="input">
+            <option value="activityDesc">Ordina: Attività ↓</option>
+            <option value="phaseDesc">Ordina: Fase ciclo ↓</option>
+            <option value="recency">Ordina: Aggiornamento</option>
+            <option value="locale">Ordina: Locale A→Z</option>
+          </select>
+        </div>
+
+        <div class="tableWrap">
+          <table class="table" id="tblMachines">
             <thead>
               <tr>
-                <th>Data</th>
-                <th>ΔIN</th>
-                <th>ΔOUT</th>
-                <th>%</th>
-                <th>Note</th>
+                <th>Agg</th>
+                <th>Locale</th>
+                <th>Comune</th>
+                <th>Modello</th>
+                <th>CODEID</th>
+                <th>PDA</th>
+                <th>Fase ciclo</th>
+                <th>Attività</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
         </div>
 
-        <div style="height:12px"></div>
-        <h3 class="h3">Fingerprint modello (“algoritmo” estratto)</h3>
-        <div id="mmAlgo" class="panel"></div>
+        <div class="muted small" id="dataHint" style="margin-top:10px">—</div>
+      </div>
+    </section>
+
+    <!-- MODELS VIEW -->
+    <section class="view" id="viewModels">
+      <div class="row between wrapgap">
+        <h2 class="h2">Modelli</h2>
+        <div class="muted">Da <code>cicloslot.json</code></div>
+      </div>
+
+      <div class="card">
+        <div class="tableWrap">
+          <table class="table" id="tblModels">
+            <thead>
+              <tr>
+                <th>Codice Modello</th>
+                <th>Nome</th>
+                <th>Ciclo (€ IN)</th>
+                <th>Payout</th>
+                <th>Macchine viste</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- AI VIEW -->
+    <section class="view" id="viewAI">
+      <div class="row between wrapgap">
+        <h2 class="h2">Assistente</h2>
+        <div class="muted">Risponde solo sui dati caricati.</div>
+      </div>
+
+      <div class="card chat">
+        <div class="chatlog" id="chatLog"></div>
+        <div class="row wrapgap">
+          <input id="chatInput" class="input" placeholder="Es: perché questa slot è arancione? / confronta modello / anomalie…" />
+          <button class="btn" id="btnChatSend">Invia</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ADMIN VIEW -->
+    <section class="view" id="viewAdmin">
+      <div class="row between wrapgap">
+        <h2 class="h2">Admin</h2>
+        <div class="muted">Utenti + diagnostica</div>
+      </div>
+
+      <div class="card">
+        <h3 class="h3">Utenti</h3>
+        <div class="tableWrap">
+          <table class="table" id="tblUsers">
+            <thead>
+              <tr>
+                <th>User</th><th>Level</th><th>Expires</th><th>Stato</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <hr class="hr" />
+
+        <h3 class="h3">Diagnostica</h3>
+        <div class="diag" id="diagBox">—</div>
+      </div>
+    </section>
+
+    <!-- PROFILE VIEW -->
+    <section class="view" id="viewProfile">
+      <div class="row between wrapgap">
+        <h2 class="h2">Profilo</h2>
+        <div class="muted">Gestione abbonamento</div>
+      </div>
+
+      <div class="card">
+        <div id="profileBox">—</div>
+      </div>
+    </section>
+  </main>
+
+  <!-- SLOT MODAL -->
+  <div class="modalBackdrop" id="modalBackdrop"></div>
+  <div class="modal" id="slotModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modalHd">
+      <div>
+        <div class="modalTitle" id="modalTitle">Slot</div>
+        <div class="muted small" id="modalSubtitle">—</div>
+      </div>
+      <button class="iconbtn" id="btnCloseModal" aria-label="Chiudi">✕</button>
+    </div>
+
+    <div class="modalBody">
+      <div class="grid2">
+        <div class="card inner">
+          <h3 class="h3">Scheda tecnica</h3>
+          <div class="kv" id="kvTech">—</div>
+        </div>
+
+        <div class="card inner">
+          <h3 class="h3">Storico (ΔOUT)</h3>
+          <canvas id="chartOut" height="160"></canvas>
+          <div class="muted small" id="chartHint">—</div>
+        </div>
+      </div>
+
+      <div class="card inner" style="margin-top:12px">
+        <h3 class="h3">Analisi</h3>
+        <div class="kv" id="kvAnalysis">—</div>
       </div>
     </div>
-  </div>
-
-  <div class="toast" id="toast" style="display:none">
-    <b id="toastTitle">Info</b>
-    <small id="toastMsg">…</small>
   </div>
 
   <script type="module" src="./assets/app.js"></script>
