@@ -10,5 +10,11 @@
     "pin": "2025",
     "level": "Abbonato",
     "expires": "2027-12-31"
+  },
+    {
+    "user": "seba",
+    "pin": "2026",
+    "level": "Abbonato",
+    "expires": "2027-12-31"
   }
 ]
