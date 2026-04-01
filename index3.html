@@ -7,255 +7,149 @@
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
   <style>
-    :root {
-      --bg: #0b1220;
-      --panel: #121b2e;
-      --panel-2: #19253d;
-      --panel-3: #21314f;
-      --text: #eef4ff;
-      --muted: #9fb0d0;
-      --accent: #5aa9ff;
-      --good: #36c275;
-      --warn: #ffb020;
-      --bad: #ff5f6d;
-      --line: rgba(255,255,255,0.08);
-      --shadow: 0 18px 50px rgba(0,0,0,0.25);
-      --radius: 18px;
+    :root{
+      --bg:#eef4ff;--panel:#ffffff;--panel2:#f6f9ff;--text:#162033;--muted:#61708e;--line:#d9e3f6;
+      --accent:#3c82f6;--good:#1ea463;--warn:#d98a00;--bad:#d9415d;--shadow:0 14px 40px rgba(19,37,76,.08);
     }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; background: linear-gradient(180deg, #08101c 0%, #0d1525 100%); color: var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
-    .app { display: grid; grid-template-columns: 290px 1fr; min-height: 100vh; }
-    .sidebar {
-      padding: 20px;
-      border-right: 1px solid var(--line);
-      background: rgba(10,16,28,0.94);
-      position: sticky;
-      top: 0;
-      height: 100vh;
-      overflow-y: auto;
+    body[data-theme="giorno"]{
+      --bg:#eef4ff;--panel:#ffffff;--panel2:#f6f9ff;--text:#162033;--muted:#61708e;--line:#d9e3f6;--accent:#3c82f6;
     }
-    .brand {
-      padding: 18px;
-      border-radius: 24px;
-      background: linear-gradient(145deg, rgba(90,169,255,0.16), rgba(255,255,255,0.03));
-      border: 1px solid rgba(255,255,255,0.08);
-      box-shadow: var(--shadow);
-      margin-bottom: 18px;
+    body[data-theme="dolce-chiaro"]{
+      --bg:#fff9f5;--panel:#ffffff;--panel2:#fff3eb;--text:#3a2d2a;--muted:#8e776f;--line:#f1d7c9;--accent:#d98f6a;
     }
-    .brand h1 { margin: 0; font-size: 1.35rem; line-height: 1.15; }
-    .brand p, .muted, .small { color: var(--muted); }
-    .brand p { margin: 8px 0 0; }
-    .card {
-      background: rgba(18,27,46,0.96);
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      padding: 18px;
-      box-shadow: var(--shadow);
+    body[data-theme="alto-contrasto"]{
+      --bg:#05070b;--panel:#0d1117;--panel2:#121822;--text:#f7fbff;--muted:#9db0c8;--line:#263446;--accent:#58a6ff;
+      --good:#2fd67b;--warn:#ffbf47;--bad:#ff6b81;--shadow:0 14px 40px rgba(0,0,0,.35);
     }
-    .sidebar .card { margin-bottom: 14px; }
-    .panel-title { font-size: 1.05rem; font-weight: 750; margin: 0 0 12px; }
-    .grid { display: grid; gap: 14px; }
-    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    .grow { flex: 1; }
-    .nav { display: grid; gap: 10px; margin: 18px 0; }
-    .nav button, .btn, input, select {
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 14px;
-      background: var(--panel);
-      color: var(--text);
-      padding: 12px 14px;
-      font: inherit;
-    }
-    input, select { width: 100%; }
-    .btn, .nav button { cursor: pointer; transition: 0.18s ease; }
-    .nav button:hover, .nav button.active, .btn:hover { background: var(--panel-2); border-color: rgba(90,169,255,0.35); transform: translateY(-1px); }
-    .btn.primary { background: linear-gradient(145deg, rgba(90,169,255,0.25), rgba(90,169,255,0.1)); }
-    .btn.good { background: rgba(54,194,117,0.12); border-color: rgba(54,194,117,0.3); }
-    .btn.warn { background: rgba(255,176,32,0.12); border-color: rgba(255,176,32,0.3); }
-    .btn.bad { background: rgba(255,95,109,0.12); border-color: rgba(255,95,109,0.3); }
-    .main { padding: 20px; display: grid; gap: 18px; }
-    .topbar { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: center; }
-    .grid.kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
-    .kpi { background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015)); border-radius: 20px; padding: 16px; border: 1px solid var(--line); }
-    .kpi .label { color: var(--muted); font-size: 0.85rem; }
-    .kpi .value { font-size: 1.6rem; font-weight: 800; margin-top: 6px; }
-    .layout-2 { display: grid; grid-template-columns: 1.25fr 0.75fr; gap: 18px; }
-    .layout-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
-    .split { display: grid; grid-template-columns: 360px 1fr; gap: 18px; min-height: 430px; }
-    .details-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-    .kv { border: 1px solid var(--line); border-radius: 18px; padding: 14px; background: rgba(255,255,255,0.02); }
-    .kv .k { color: var(--muted); font-size: 0.84rem; margin-bottom: 6px; }
-    .kv .v { font-size: 1.05rem; font-weight: 720; }
-    .table-wrap { overflow: auto; border-radius: 18px; border: 1px solid var(--line); }
-    table { width: 100%; border-collapse: collapse; min-width: 1100px; }
-    th, td { padding: 12px; border-bottom: 1px solid var(--line); text-align: left; font-size: 0.93rem; white-space: nowrap; }
-    th { color: var(--muted); background: rgba(255,255,255,0.025); position: sticky; top: 0; z-index: 1; }
-    .badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 6px 10px; font-size: 0.82rem; border: 1px solid transparent; }
-    .badge.good { background: rgba(54,194,117,0.14); color: #9df0be; border-color: rgba(54,194,117,0.25); }
-    .badge.warn { background: rgba(255,176,32,0.14); color: #ffd37b; border-color: rgba(255,176,32,0.25); }
-    .badge.bad { background: rgba(255,95,109,0.14); color: #ff9eaa; border-color: rgba(255,95,109,0.25); }
-    .badge.neutral { background: rgba(255,255,255,0.06); color: #dbe6ff; border-color: rgba(255,255,255,0.1); }
-    .dot { width: 9px; height: 9px; border-radius: 999px; display: inline-block; }
-    .dot.good { background: var(--good); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); } .dot.neutral { background: #90a4c7; }
-    .list { display: grid; gap: 10px; max-height: 760px; overflow: auto; padding-right: 4px; }
-    .slot-item {
-      border: 1px solid var(--line); border-radius: 18px; padding: 14px; cursor: pointer;
-      background: rgba(255,255,255,0.02); transition: 0.16s ease;
-    }
-    .slot-item:hover, .slot-item.active { transform: translateY(-1px); border-color: rgba(90,169,255,0.35); background: rgba(90,169,255,0.08); }
-    .slot-item h4 { margin: 0 0 8px; font-size: 1rem; }
-    .slot-item .mini { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 0.85rem; }
-    .hidden { display: none !important; }
-    .footer-note { color: var(--muted); font-size: 0.88rem; line-height: 1.5; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .status-line { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); padding: 6px 0; }
-    .status-line:last-child { border-bottom: none; }
-    canvas { width: 100% !important; }
-    @media (max-width: 1300px) {
-      .grid.kpis, .layout-2, .layout-3, .split, .details-grid, .topbar { grid-template-columns: 1fr; }
-      .app { grid-template-columns: 1fr; }
-      .sidebar { position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--line); }
-    }
+    *{box-sizing:border-box} html,body{margin:0;padding:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    .hidden{display:none!important}.app{display:grid;grid-template-columns:290px 1fr;min-height:100vh}
+    .sidebar{background:var(--panel);border-right:1px solid var(--line);padding:18px;position:sticky;top:0;height:100vh;overflow:auto}
+    .main{padding:18px;display:grid;gap:16px}.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:var(--shadow)}
+    .brand{padding:16px;border-radius:18px;background:linear-gradient(135deg,var(--panel2),var(--panel));border:1px solid var(--line);margin-bottom:14px}
+    .brand h1{margin:0;font-size:1.3rem}.brand p,.muted,.small{color:var(--muted)} .small{font-size:.88rem}
+    .nav,.stack{display:grid;gap:10px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.grow{flex:1}
+    button,input,select{font:inherit} input,select,button{border-radius:12px;border:1px solid var(--line);padding:11px 12px;background:var(--panel2);color:var(--text)}
+    button{cursor:pointer}.btn-primary{background:var(--accent);color:#fff;border-color:transparent}.btn-soft{background:var(--panel2)}
+    .nav button{text-align:left}.nav button.active{outline:2px solid color-mix(in oklab, var(--accent) 65%, transparent)}
+    .topbar{display:grid;grid-template-columns:1.1fr auto auto;gap:12px}.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+    .kpi{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px}.kpi .label{font-size:.84rem;color:var(--muted)}.kpi .value{font-size:1.45rem;font-weight:800;margin-top:6px}
+    .layout-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.layout-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}.split{display:grid;grid-template-columns:320px 1fr;gap:16px}
+    .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px}.table-wrap table{width:100%;border-collapse:collapse;min-width:1100px}.table-wrap th,.table-wrap td{padding:11px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;font-size:.92rem}.table-wrap th{position:sticky;top:0;background:var(--panel2);z-index:1;color:var(--muted)}
+    .slot-list{display:grid;gap:10px;max-height:74vh;overflow:auto}.slot-item{padding:12px;border:1px solid var(--line);border-radius:16px;background:var(--panel2);cursor:pointer}.slot-item.active{outline:2px solid color-mix(in oklab, var(--accent) 65%, transparent)}
+    .mini{display:flex;justify-content:space-between;gap:10px;font-size:.86rem;color:var(--muted)}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;font-size:.8rem;border:1px solid transparent}.dot{width:8px;height:8px;border-radius:50%}
+    .good{background:color-mix(in oklab,var(--good) 12%, transparent);border-color:color-mix(in oklab,var(--good) 28%, transparent)} .good .dot{background:var(--good)}
+    .warn{background:color-mix(in oklab,var(--warn) 12%, transparent);border-color:color-mix(in oklab,var(--warn) 28%, transparent)} .warn .dot{background:var(--warn)}
+    .bad{background:color-mix(in oklab,var(--bad) 12%, transparent);border-color:color-mix(in oklab,var(--bad) 28%, transparent)} .bad .dot{background:var(--bad)}
+    .neutral{background:var(--panel2);border-color:var(--line)} .neutral .dot{background:var(--muted)}
+    .details{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.detail{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--panel2)}.detail .k{font-size:.82rem;color:var(--muted)}.detail .v{font-weight:800;margin-top:6px}
+    .progress{height:12px;border-radius:999px;background:var(--panel2);overflow:hidden;border:1px solid var(--line)}.progress > div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent) 60%, white));transition:width .2s ease}
+    canvas{width:100%!important;height:280px!important;max-height:280px!important}.chart-small canvas{height:230px!important;max-height:230px!important}
+    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.section-title{font-size:1.05rem;font-weight:800;margin:0 0 10px}.status-line{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}.status-line:last-child{border-bottom:none}
+    .login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px}
+    @media (max-width:1280px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto;border-right:none;border-bottom:1px solid var(--line)}.topbar,.kpis,.layout-2,.layout-3,.split,.details{grid-template-columns:1fr}}
   </style>
 </head>
-<body>
-  <div id="loginScreen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
-    <div class="card" style="width:min(560px,100%);">
-      <div class="brand" style="margin-bottom:0;">
-        <h1>AWP Analyzer Ultra V4</h1>
-        <p>Login con PIN • Utenti da users.json • Monitoraggio professionale AWP</p>
-      </div>
-      <div class="grid" style="margin-top:16px;">
-        <div>
-          <label class="small">Utente</label>
-          <input id="loginUser" placeholder="Es. Admin" />
-        </div>
-        <div>
-          <label class="small">PIN</label>
-          <input id="loginPin" type="password" inputmode="numeric" placeholder="••••" />
-        </div>
-        <div class="row">
-          <button class="btn primary" id="btnLogin">Entra</button>
-          <div id="loginMsg" class="muted">Carica users.json dalla stessa cartella del file principale.</div>
-        </div>
+<body data-theme="giorno">
+  <div class="login" id="loginScreen">
+    <div class="card" style="width:min(520px,100%)">
+      <div class="brand"><h1>AWP Analyzer Ultra V4</h1><p>Login da users.json • analisi slot • anomalie • predizioni</p></div>
+      <div class="stack">
+        <div><div class="small">Utente</div><input id="loginUser" placeholder="Es. Admin"></div>
+        <div><div class="small">PIN</div><input id="loginPin" type="password" inputmode="numeric" placeholder="••••"></div>
+        <div class="row"><button class="btn-primary" id="btnLogin">Entra</button><div class="muted" id="loginMsg">Caricamento utenti…</div></div>
       </div>
     </div>
   </div>
 
   <div class="app hidden" id="appRoot">
     <aside class="sidebar">
-      <div class="brand">
-        <h1>AWP Analyzer Ultra V4</h1>
-        <p>Predizione seria • correlazioni IN/OUT • anomalie • lettura ciclo</p>
-      </div>
-
+      <div class="brand"><h1>AWP Analyzer Ultra V4</h1><p>Più pulita, più leggibile, più utile sul serio.</p></div>
       <div class="card">
-        <div class="panel-title">Utente</div>
-        <div class="status-line"><span class="muted">Nome</span><strong id="userInfoName">—</strong></div>
-        <div class="status-line"><span class="muted">Livello</span><strong id="userInfoLevel">—</strong></div>
-        <div class="status-line"><span class="muted">Scadenza</span><strong id="userInfoExpires">—</strong></div>
-        <div class="row" style="margin-top:12px;"><button class="btn" id="btnLogout">Esci</button></div>
+        <div class="section-title">Utente</div>
+        <div class="status-line"><span class="muted">Nome</span><strong id="userName">—</strong></div>
+        <div class="status-line"><span class="muted">Livello</span><strong id="userLevel">—</strong></div>
+        <div class="status-line"><span class="muted">Scadenza</span><strong id="userExpires">—</strong></div>
+        <div class="row" style="margin-top:12px"><button id="btnLogout">Esci</button></div>
       </div>
-
+      <div class="card stack">
+        <div class="section-title">Caricamento dati</div>
+        <button class="btn-primary" id="btnLoadLast">Carica ultimi 8 sinottici</button>
+        <button id="btnLoadAll">Carica tutti i sinottici</button>
+        <button id="btnReload">Rileggi manifest</button>
+        <div class="small mono">./manifest.json</div>
+        <div class="small mono">./cicloslot.json</div>
+        <div class="small mono">./users.json</div>
+        <div class="small mono">./Dati/*.xlsx</div>
+      </div>
       <div class="card">
-        <div class="panel-title">Caricamento dati</div>
-        <div class="grid">
-          <button class="btn primary" id="btnBootstrap5">Carica ultimi 5 sinottici</button>
-          <button class="btn" id="btnBootstrapAll">Carica tutti i sinottici</button>
-          <button class="btn" id="btnReloadManifest">Rileggi manifest</button>
-          <div class="small">Percorsi attesi:</div>
-          <div class="mono small">./manifest.json</div>
-          <div class="mono small">./cicloslot.json</div>
-          <div class="mono small">./users.json</div>
-          <div class="mono small">./Dati/NOMEFILE.xlsx</div>
-        </div>
+        <div class="section-title">Avanzamento</div>
+        <div class="small" id="progressLabel">Pronto.</div>
+        <div class="progress" style="margin-top:10px"><div id="progressBar"></div></div>
       </div>
-
       <div class="nav">
         <button class="active" data-view="dashboardView">Dashboard</button>
-        <button data-view="monitorView">Monitor slot</button>
-        <button data-view="alertsView">Anomalie</button>
+        <button data-view="machineView">Macchine</button>
+        <button data-view="anomaliesView">Anomalie</button>
         <button data-view="modelsView">Modelli</button>
-        <button data-view="adminView">Admin</button>
+        <button data-view="settingsView">Temi e impostazioni</button>
       </div>
-
       <div class="card">
-        <div class="panel-title">Stato</div>
-        <div class="status-line"><span class="muted">Manifest</span><strong id="manifestStatus">non letto</strong></div>
-        <div class="status-line"><span class="muted">Cicli</span><strong id="cyclesStatus">non letti</strong></div>
-        <div class="status-line"><span class="muted">Sinottici letti</span><strong id="filesStatus">0</strong></div>
+        <div class="section-title">Stato</div>
+        <div class="status-line"><span class="muted">Manifest</span><strong id="manifestCount">0</strong></div>
+        <div class="status-line"><span class="muted">Sinottici caricati</span><strong id="snapCount">0</strong></div>
+        <div class="status-line"><span class="muted">Modelli</span><strong id="modelCount">0</strong></div>
         <div class="status-line"><span class="muted">Ultimo file</span><strong id="latestFile">—</strong></div>
-      </div>
-
-      <div class="card">
-        <div class="panel-title">Metodo V4</div>
-        <div class="footer-note">
-          V4 usa storico ordinato per timestamp, delta IN/OUT, velocità oraria, correlazione, confronto col payout atteso, squilibrio di ciclo e indice di stabilità. Il rischio cresce quando la macchina si comporta fuori dal profilo previsto.
-        </div>
       </div>
     </aside>
 
     <main class="main">
       <section id="dashboardView">
         <div class="topbar">
-          <div class="card">
-            <div class="panel-title">Riepilogo</div>
-            <div class="muted" id="summaryText">Nessun dato caricato.</div>
-          </div>
+          <div class="card"><div class="section-title">Riepilogo</div><div class="muted" id="summaryText">Nessun dato caricato.</div></div>
           <div class="card"><strong id="manifestBubble">Manifest: —</strong></div>
           <div class="card"><strong id="dateBubble">Ultimo aggiornamento: —</strong></div>
         </div>
-
-        <div class="grid kpis">
-          <div class="kpi"><div class="label">Macchine</div><div class="value" id="kpiMachines">0</div></div>
-          <div class="kpi"><div class="label">Match ciclo</div><div class="value" id="kpiMatched">0</div></div>
-          <div class="kpi"><div class="label">Anomalie alte</div><div class="value" id="kpiHighAlerts">0</div></div>
-          <div class="kpi"><div class="label">Pred. IN 24h</div><div class="value" id="kpiPredIn">€0</div></div>
-          <div class="kpi"><div class="label">Pred. OUT 24h</div><div class="value" id="kpiPredOut">€0</div></div>
-          <div class="kpi"><div class="label">Correlazione media</div><div class="value" id="kpiCorrAvg">—</div></div>
+        <div class="kpis">
+          <div class="kpi"><div class="label">Slot monitorate</div><div class="value" id="kpiMachines">0</div></div>
+          <div class="kpi"><div class="label">Anomalie alte</div><div class="value" id="kpiAnHigh">0</div></div>
+          <div class="kpi"><div class="label">Pred. incasso 24h</div><div class="value" id="kpiPredIn">€0</div></div>
+          <div class="kpi"><div class="label">Pred. pagamento 24h</div><div class="value" id="kpiPredOut">€0</div></div>
+          <div class="kpi"><div class="label">Slot calde</div><div class="value" id="kpiHot">0</div></div>
+          <div class="kpi"><div class="label">Slot ferme</div><div class="value" id="kpiStill">0</div></div>
         </div>
-
         <div class="layout-2">
-          <div class="card">
-            <div class="row" style="justify-content:space-between;">
-              <div class="panel-title">Andamento aggregato</div>
-              <div class="row" style="min-width:min(560px,100%); justify-content:flex-end;">
-                <input id="filterSearch" class="grow" placeholder="Filtra per locale, comune, modello, codeid, pda" />
-                <select id="sortMode" style="max-width:220px;">
-                  <option value="risk">Ordina per rischio</option>
-                  <option value="imbalance">Ordina per squilibrio</option>
-                  <option value="activity">Ordina per attività</option>
-                  <option value="phase">Ordina per fase ciclo</option>
-                </select>
-              </div>
-            </div>
-            <canvas id="aggregateChart" height="120"></canvas>
-          </div>
-          <div class="card">
-            <div class="panel-title">Rischio complessivo</div>
-            <canvas id="riskChart" height="180"></canvas>
-          </div>
+          <div class="card chart-small"><div class="section-title">Predizioni aggregate top 12</div><canvas id="aggregateChart"></canvas></div>
+          <div class="card chart-small"><div class="section-title">Distribuzione calda / neutra / fredda</div><canvas id="temperatureChart"></canvas></div>
         </div>
-
         <div class="card">
-          <div class="panel-title">Tabella operativa</div>
+          <div class="row" style="justify-content:space-between">
+            <div class="section-title">Situazione macchina per macchina</div>
+            <div class="row" style="min-width:min(560px,100%);justify-content:flex-end">
+              <input id="searchBox" class="grow" placeholder="Cerca per locale, comune, modello, codeid, pda">
+              <select id="sortBox" style="max-width:220px">
+                <option value="risk">Ordina per rischio</option>
+                <option value="temperature">Ordina per slot calda/fredda</option>
+                <option value="activity">Ordina per attività</option>
+                <option value="payment">Ordina per probabilità di pagamento</option>
+              </select>
+            </div>
+          </div>
           <div class="table-wrap">
-            <table id="mainTable">
+            <table id="machinesTable">
               <thead>
                 <tr>
-                  <th>Rischio</th>
+                  <th>Apri</th>
                   <th>Locale</th>
-                  <th>Comune</th>
                   <th>Modello</th>
                   <th>CODEID</th>
-                  <th>PDA</th>
+                  <th>Attività</th>
+                  <th>Temperatura</th>
                   <th>Fase ciclo</th>
-                  <th>Δ IN medio</th>
-                  <th>Δ OUT medio</th>
-                  <th>Correlazione</th>
-                  <th>Pred. IN 24h</th>
-                  <th>Pred. OUT 24h</th>
-                  <th>Squilibrio</th>
+                  <th>Prob. pagamento</th>
+                  <th>Pred. incasso</th>
+                  <th>Pred. pagamento</th>
+                  <th>Residuo ciclo</th>
                   <th>Anomalia</th>
                 </tr>
               </thead>
@@ -265,122 +159,62 @@
         </div>
       </section>
 
-      <section id="monitorView" class="hidden">
-        <div class="card split">
-          <div>
-            <div class="panel-title">Lista slot</div>
-            <div class="list" id="slotList"></div>
+      <section id="machineView" class="hidden">
+        <div class="split">
+          <div class="card">
+            <div class="section-title">Macchine</div>
+            <div class="slot-list" id="slotList"></div>
           </div>
-          <div class="grid">
+          <div class="stack">
             <div class="card">
-              <div class="panel-title" id="slotTitle">Seleziona una slot</div>
-              <div class="muted" id="slotSubtitle">—</div>
-              <canvas id="slotChart" height="120"></canvas>
+              <div class="section-title" id="machineTitle">Seleziona una macchina</div>
+              <div class="muted" id="machineSubtitle">—</div>
+              <div class="details" id="machineDetails" style="margin-top:12px"></div>
             </div>
-            <div class="details-grid" id="slotDetails"></div>
-            <div class="card">
-              <div class="panel-title">Lettura operativa</div>
-              <div id="slotNarrative" class="footer-note">Carica i dati per ottenere una lettura dettagliata della slot selezionata.</div>
+            <div class="card"><div class="section-title">Andamento e predizione</div><canvas id="machineChart"></canvas></div>
+            <div class="layout-2">
+              <div class="card"><div class="section-title">Storico ubicazioni e contatori</div><div class="table-wrap"><table id="locationTable"><thead><tr><th>Data</th><th>Locale</th><th>PDA</th><th>IN</th><th>OUT</th></tr></thead><tbody></tbody></table></div></div>
+              <div class="card"><div class="section-title">Altre macchine nel locale</div><div class="table-wrap"><table id="peerTable"><thead><tr><th>CODEID</th><th>Modello</th><th>PDA</th><th>Attività</th></tr></thead><tbody></tbody></table></div></div>
             </div>
+            <div class="card"><div class="section-title">Lettura operativa</div><div id="machineNarrative" class="muted">Carica i sinottici e clicca su una macchina.</div></div>
           </div>
         </div>
       </section>
 
-      <section id="alertsView" class="hidden">
+      <section id="anomaliesView" class="hidden">
         <div class="card">
-          <div class="row" style="justify-content:space-between;">
-            <div class="panel-title">Anomalie prioritarie</div>
-            <select id="riskThreshold" style="max-width:220px;">
-              <option value="60">Rischio alto da 60</option>
-              <option value="70" selected>Rischio alto da 70</option>
-              <option value="80">Rischio alto da 80</option>
-            </select>
-          </div>
+          <div class="section-title">Anomalie rilevate</div>
+          <div class="small" style="margin-bottom:10px">Flag se la slot normalmente si muove ma rimane ferma, oppure se l'introdotto giornaliero scende sotto il 10% della sua media.</div>
           <div class="table-wrap">
-            <table id="alertsTable">
-              <thead>
-                <tr>
-                  <th>Priorità</th>
-                  <th>Locale</th>
-                  <th>Comune</th>
-                  <th>Modello</th>
-                  <th>CODEID</th>
-                  <th>Motivo principale</th>
-                  <th>Dettaglio</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
+            <table id="anomaliesTable"><thead><tr><th>Priorità</th><th>Locale</th><th>Modello</th><th>CODEID</th><th>Tipo</th><th>Dettaglio</th></tr></thead><tbody></tbody></table>
           </div>
         </div>
       </section>
 
       <section id="modelsView" class="hidden">
         <div class="layout-2">
-          <div class="card">
-            <div class="panel-title">Modelli da cicloslot.json</div>
-            <div class="table-wrap">
-              <table id="modelsTable">
-                <thead>
-                  <tr>
-                    <th>Codice modello</th>
-                    <th>Nome modello</th>
-                    <th>Ciclo</th>
-                    <th>Payout</th>
-                    <th>Macchine viste</th>
-                  </tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
-          </div>
-          <div class="card">
-            <div class="panel-title">Colonne attese</div>
-            <div class="footer-note">
-              CODEID • CODICE MODELLO • MODELLO • MACADDRESS PDA • DENOMIN. SEDE • COMUNE • PROVINCIA • INDIRIZZO • DATA ULTIMA LETTURA VAL. • DATA ULTIMO COLLEGAMENTO • GG MANCATO COLLEGAMENTO • CNTTOTIN • CNTTOTOT • DESCR. STATO • WARNING
-            </div>
-          </div>
+          <div class="card"><div class="section-title">Modelli e cicli</div><div class="table-wrap"><table id="modelsTable"><thead><tr><th>Codice modello</th><th>Nome</th><th>Ciclo</th><th>Payout</th><th>Macchine viste</th></tr></thead><tbody></tbody></table></div></div>
+          <div class="card"><div class="section-title">Note metodo</div><div class="muted">I sinottici vengono letti e ordinati in base al nome file del manifest, compresi quelli del 2026. La barra mostra l'avanzamento reale. Le predizioni lavorano per macchina, non su grafici enormi e inutili.</div></div>
         </div>
       </section>
 
-      <section id="adminView" class="hidden">
+      <section id="settingsView" class="hidden">
         <div class="layout-3">
-          <div class="card">
-            <div class="panel-title">Utenti</div>
-            <div class="table-wrap">
-              <table id="usersTable">
-                <thead>
-                  <tr><th>User</th><th>Level</th><th>Expires</th><th>Stato</th></tr>
-                </thead>
-                <tbody></tbody>
-              </table>
-            </div>
+          <div class="card stack">
+            <div class="section-title">Tema</div>
+            <button data-theme-btn="giorno">Giorno</button>
+            <button data-theme-btn="dolce-chiaro">Dolce chiaro</button>
+            <button data-theme-btn="alto-contrasto">Alto contrasto</button>
           </div>
-          <div class="card">
-            <div class="panel-title">Impostazioni analisi</div>
-            <div class="grid">
-              <div>
-                <label class="small">Finestra storico</label>
-                <select id="historyWindow">
-                  <option value="5">Ultimi 5 rilevamenti</option>
-                  <option value="8" selected>Ultimi 8 rilevamenti</option>
-                  <option value="12">Ultimi 12 rilevamenti</option>
-                  <option value="20">Ultimi 20 rilevamenti</option>
-                </select>
-              </div>
-              <div>
-                <label class="small">Peso predizione</label>
-                <select id="predictionMode">
-                  <option value="weighted" selected>Media pesata</option>
-                  <option value="recent">Più peso agli ultimi delta</option>
-                </select>
-              </div>
-              <button class="btn primary" id="btnReanalyze">Ricalcola analisi</button>
-            </div>
+          <div class="card stack">
+            <div class="section-title">Finestra storica</div>
+            <select id="historyWindow"><option value="5">Ultimi 5</option><option value="8" selected>Ultimi 8</option><option value="12">Ultimi 12</option><option value="20">Ultimi 20</option></select>
+            <div class="small">Usata per predizione, probabilità e stato caldo/freddo.</div>
           </div>
-          <div class="card">
-            <div class="panel-title">Diagnostica</div>
-            <div id="diagBox" class="footer-note">Nessuna diagnostica disponibile.</div>
+          <div class="card stack">
+            <div class="section-title">Soglia slot ferma</div>
+            <select id="stallDays"><option value="1" selected>1 giorno</option><option value="2">2 giorni</option><option value="3">3 giorni</option></select>
+            <div class="small">Segnala come anomalia se si blocca oltre la soglia e di solito gioca.</div>
           </div>
         </div>
       </section>
@@ -388,585 +222,103 @@
   </div>
 
   <script>
-    const state = {
-      users: [],
-      currentUser: null,
-      manifest: [],
-      cicloslot: [],
-      rawSnapshots: [],
-      seriesMap: new Map(),
-      analyzed: [],
-      selectedCodeId: null,
-      charts: {}
-    };
+    const state={users:[],currentUser:null,manifest:[],cicloslot:[],snapshots:[],series:new Map(),machines:[],selected:null,charts:{}};
+    const aliases={codeId:['CODEID'],codiceModello:['CODICE MODELLO'],modello:['MODELLO'],pda:['MACADDRESS PDA','PDA'],sede:['DENOMIN. SEDE','DENOMIN SEDE'],comune:['COMUNE'],provincia:['PROVINCIA'],indirizzo:['INDIRIZZO'],inTot:['CNTTOTIN'],outTot:['CNTTOTOT'],stato:['DESCR. STATO','STATO'],warning:['WARNING']};
+    const $=id=>document.getElementById(id);
 
-    const aliases = {
-      codeId: ['CODEID', 'Codeid', 'codeid'],
-      codiceModello: ['CODICE MODELLO', 'Codice Modello', 'codice modello'],
-      modello: ['MODELLO', 'Modello', 'modello'],
-      pda: ['MACADDRESS PDA', 'PDA', 'Macaddress Pda'],
-      sede: ['DENOMIN. SEDE', 'DENOMIN SEDE', 'Sede', 'Locale'],
-      comune: ['COMUNE', 'Comune'],
-      provincia: ['PROVINCIA', 'Provincia'],
-      indirizzo: ['INDIRIZZO', 'Indirizzo'],
-      lastRead: ['DATA ULTIMA LETTURA VAL.', 'DATA ULTIMA LETTURA', 'Ultima Lettura'],
-      lastConn: ['DATA ULTIMO COLLEGAMENTO', 'Ultimo Collegamento'],
-      noConnDays: ['GG MANCATO COLLEGAMENTO', 'Mancato Collegamento'],
-      inTot: ['CNTTOTIN', 'IN_TOT', 'TOT IN'],
-      outTot: ['CNTTOTOT', 'OUT_TOT', 'TOT OUT'],
-      stato: ['DESCR. STATO', 'STATO'],
-      warning: ['WARNING', 'Warning']
-    };
-
-    const $ = id => document.getElementById(id);
-
-    document.querySelectorAll('.nav button').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        ['dashboardView','monitorView','alertsView','modelsView','adminView'].forEach(id => $(id).classList.toggle('hidden', id !== btn.dataset.view));
-      });
-    });
-
-    $('btnLogin').addEventListener('click', doLogin);
-    $('loginPin').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-    $('btnLogout').addEventListener('click', logout);
-    $('btnBootstrap5').addEventListener('click', () => bootstrap(5));
-    $('btnBootstrapAll').addEventListener('click', () => bootstrap(null));
-    $('btnReloadManifest').addEventListener('click', async () => { await loadReferenceFiles(); await loadManifestOnly(); });
-    $('btnReanalyze').addEventListener('click', () => { analyzeAll(); renderAll(); });
-    $('filterSearch').addEventListener('input', renderAll);
-    $('sortMode').addEventListener('change', renderAll);
-    $('riskThreshold').addEventListener('change', renderAll);
-    $('historyWindow').addEventListener('change', () => { analyzeAll(); renderAll(); });
-    $('predictionMode').addEventListener('change', () => { analyzeAll(); renderAll(); });
+    document.querySelectorAll('.nav button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');['dashboardView','machineView','anomaliesView','modelsView','settingsView'].forEach(id=>$(id).classList.toggle('hidden',id!==btn.dataset.view));}));
+    document.querySelectorAll('[data-theme-btn]').forEach(btn=>btn.addEventListener('click',()=>setTheme(btn.dataset.themeBtn)));
+    $('btnLogin').addEventListener('click',login); $('loginPin').addEventListener('keydown',e=>{if(e.key==='Enter')login()}); $('btnLogout').addEventListener('click',logout);
+    $('btnLoadLast').addEventListener('click',()=>bootstrap(8)); $('btnLoadAll').addEventListener('click',()=>bootstrap(null)); $('btnReload').addEventListener('click',async()=>{await loadRefs();await loadManifest();});
+    $('searchBox').addEventListener('input',renderAll); $('sortBox').addEventListener('change',renderAll); $('historyWindow').addEventListener('change',()=>{analyze();renderAll()}); $('stallDays').addEventListener('change',()=>{analyze();renderAll()});
 
     init();
+    async function init(){try{state.users=await getJson('./users.json');$('loginMsg').textContent='Inserisci utente e PIN.';renderUsersMaybe();}catch{ $('loginMsg').textContent='Errore caricamento users.json'; }}
 
-    async function init() {
-      try {
-        state.users = await fetchJson('./users.json');
-        renderUsersTable();
-        $('loginMsg').textContent = 'Inserisci utente e PIN.';
-      } catch (err) {
-        $('loginMsg').textContent = 'Errore caricamento users.json';
+    async function login(){const u=$('loginUser').value.trim();const p=$('loginPin').value.trim();const found=state.users.find(x=>String(x.user).toLowerCase()===u.toLowerCase()&&String(x.pin)===p);if(!found){$('loginMsg').textContent='Credenziali non valide.';return;} if(isExpired(found.expires)){$('loginMsg').textContent='Utente scaduto.';return;} state.currentUser=found;$('userName').textContent=found.user;$('userLevel').textContent=found.level;$('userExpires').textContent=fmtDate(found.expires);$('loginScreen').classList.add('hidden');$('appRoot').classList.remove('hidden');}
+    function logout(){state.currentUser=null;$('appRoot').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('loginPin').value='';}
+
+    async function bootstrap(limit){resetProgress('Preparazione...');await loadRefs();await loadManifest();await loadSnapshots(limit);analyze();renderAll();setProgress(100,'Caricamento completato.');}
+    async function loadRefs(){state.cicloslot=await getJson('./cicloslot.json');$('modelCount').textContent=state.cicloslot.length;}
+    async function loadManifest(){const m=await getJson('./manifest.json');state.manifest=(Array.isArray(m.sinottici)?m.sinottici:[]).map(f=>({filename:f,meta:parseManifestName(f)})).filter(x=>x.meta).sort((a,b)=>a.meta.ts-b.meta.ts);$('manifestCount').textContent=state.manifest.length;$('manifestBubble').textContent=`Manifest: ${state.manifest.length} file`;const last=state.manifest.at(-1);$('latestFile').textContent=last?.filename||'—';$('dateBubble').textContent=`Ultimo aggiornamento: ${last?.meta.label||'—'}`;}
+
+    async function loadSnapshots(limit){state.snapshots=[];const list=limit?state.manifest.slice(-limit):state.manifest;const total=Math.max(1,list.length);for(let i=0;i<list.length;i++){const item=list[i];setProgress(Math.round((i/total)*100),`Caricamento ${i+1}/${list.length}: ${item.filename}`);try{const ab=await getBuffer(`./Dati/${item.filename}`);const wb=XLSX.read(ab,{type:'array',cellDates:true});const sheet=wb.Sheets[wb.SheetNames[0]];const rows=XLSX.utils.sheet_to_json(sheet,{defval:null,raw:false});state.snapshots.push({filename:item.filename,meta:item.meta,rows});}catch(err){console.warn('Errore',item.filename,err);}}$('snapCount').textContent=state.snapshots.length;$('summaryText').textContent=`Sinottici caricati: ${state.snapshots.length}. Manifest valido fino al ${state.manifest.at(-1)?.meta?.label||'—'}.`;}
+
+    function analyze(){state.series=new Map();const normalized=[];for(const snap of state.snapshots){for(const row of snap.rows){const n=normalizeRow(row,snap);if(n)normalized.push(n);}}
+      normalized.forEach(r=>{if(!state.series.has(r.codeId))state.series.set(r.codeId,[]);state.series.get(r.codeId).push(r)});
+      const historyN=Number($('historyWindow').value||8);const stallDays=Number($('stallDays').value||1);const machines=[];
+      for(const [codeId,arr] of state.series.entries()){
+        const series=arr.sort((a,b)=>a.snapshotTs-b.snapshotTs);const recent=series.slice(-historyN);const latest=series.at(-1);const deltas=[];
+        for(let i=1;i<recent.length;i++){const a=recent[i-1],b=recent[i];const h=Math.max(.001,(b.snapshotTs-a.snapshotTs)/36e5);const dIn=Math.max(0,b.inTot-a.inTot);const dOut=Math.max(0,b.outTot-a.outTot);deltas.push({h,dIn,dOut,rateIn:dIn/h,rateOut:dOut/h,from:a,to:b});}
+        const avgRateIn=wAvg(deltas.map(x=>x.rateIn)); const avgRateOut=wAvg(deltas.map(x=>x.rateOut));
+        const predIn24=avgRateIn*24; const predOut24=avgRateOut*24;
+        const phasePct=latest.ciclo?((latest.inTot%latest.ciclo)/latest.ciclo)*100:null; const cycleResidual=latest.ciclo?(latest.ciclo-(latest.inTot%latest.ciclo)):null;
+        const payoutTarget=latest.payoutPct??null; const payoutReal=latest.inTot>0?(latest.outTot/latest.inTot)*100:0; const payoutGap=payoutTarget!=null?(payoutReal-payoutTarget):null;
+        const paymentProb=computePaymentProbability(phasePct,payoutGap,avgRateOut,avgRateIn); const temperature=computeTemperature(phasePct,payoutGap,paymentProb); const activity=computeActivity(avgRateIn);
+        const dailyInSeries=buildDailySeries(series,'inTot'); const dailyOutSeries=buildDailySeries(series,'outTot');
+        const avgDailyIn=mean(dailyInSeries.map(x=>x.delta)); const lastDailyIn=dailyInSeries.at(-1)?.delta||0; const stillDays=countStillDays(series); const anomalies=[];
+        if(avgDailyIn>0&&lastDailyIn<avgDailyIn*0.1) anomalies.push({severity:'Alta',type:'Introduzione molto bassa',detail:`Ultimo introdotto ${fmtEuro(lastDailyIn)} sotto il 10% della media ${fmtEuro(avgDailyIn)}`});
+        if(stillDays>=stallDays&&avgDailyIn>30) anomalies.push({severity:'Alta',type:'Slot ferma',detail:`Ferma da ${stillDays} giorno/i ma normalmente gioca`});
+        if(String(latest.warning||'').trim()) anomalies.push({severity:'Media',type:'Warning sinottico',detail:latest.warning});
+        const risk=computeRisk({paymentProb,temperature,activity,payoutGap,anomalies,stillDays});
+        const narrative=buildNarrative({latest,activity,temperature,paymentProb,predIn24,predOut24,cycleResidual,phasePct,payoutReal,payoutTarget,payoutGap,anomalies});
+        machines.push({codeId,latest,series,deltas,dailyInSeries,dailyOutSeries,avgRateIn,avgRateOut,predIn24,predOut24,phasePct,cycleResidual,paymentProb,temperature,activity,payoutReal,payoutTarget,payoutGap,anomalies,risk,narrative});
       }
+      state.machines=machines; if(!state.selected&&machines.length)state.selected=machines[0].codeId;
     }
 
-    async function doLogin() {
-      const user = $('loginUser').value.trim();
-      const pin = $('loginPin').value.trim();
-      if (!user || !pin) {
-        $('loginMsg').textContent = 'Inserisci utente e PIN.';
-        return;
-      }
-      if (!state.users.length) {
-        $('loginMsg').textContent = 'users.json non disponibile.';
-        return;
-      }
-      const found = state.users.find(u => String(u.user).toLowerCase() === user.toLowerCase() && String(u.pin) === pin);
-      if (!found) {
-        $('loginMsg').textContent = 'Credenziali non valide.';
-        return;
-      }
-      if (isExpired(found.expires)) {
-        $('loginMsg').textContent = 'Abbonamento scaduto.';
-        return;
-      }
-      state.currentUser = found;
-      $('userInfoName').textContent = found.user;
-      $('userInfoLevel').textContent = found.level;
-      $('userInfoExpires').textContent = formatEuropeanDate(found.expires);
-      $('loginScreen').classList.add('hidden');
-      $('appRoot').classList.remove('hidden');
-      $('diagBox').textContent = 'Login riuscito. Carica i sinottici per avviare l’analisi.';
+    function renderAll(){const q=$('searchBox').value.trim().toLowerCase();const sort=$('sortBox').value;let rows=[...state.machines].filter(m=>!q||`${m.latest.sede} ${m.latest.comune} ${m.latest.modello} ${m.codeId} ${m.latest.pda}`.toLowerCase().includes(q));
+      rows.sort((a,b)=>sort==='temperature'?tempRank(b.temperature)-tempRank(a.temperature):sort==='activity'?activityRank(b.activity)-activityRank(a.activity):sort==='payment'?b.paymentProb-a.paymentProb:b.risk-a.risk);
+      $('kpiMachines').textContent=rows.length; $('kpiAnHigh').textContent=rows.filter(x=>x.anomalies.some(a=>a.severity==='Alta')).length; $('kpiPredIn').textContent=fmtEuro(sum(rows.map(x=>x.predIn24))); $('kpiPredOut').textContent=fmtEuro(sum(rows.map(x=>x.predOut24))); $('kpiHot').textContent=rows.filter(x=>x.temperature==='Calda').length; $('kpiStill').textContent=rows.filter(x=>x.activity==='Non gioca').length;
+      renderMachinesTable(rows); renderSlotList(rows); renderMachineDetail(rows.find(x=>x.codeId===state.selected)||rows[0]); renderAnomalies(rows); renderModels(rows); renderAggCharts(rows);
     }
 
-    function logout() {
-      state.currentUser = null;
-      $('loginPin').value = '';
-      $('appRoot').classList.add('hidden');
-      $('loginScreen').classList.remove('hidden');
+    function renderMachinesTable(rows){$('machinesTable').querySelector('tbody').innerHTML=rows.map(m=>`<tr>
+      <td><button data-open="${esc(m.codeId)}">Apri</button></td>
+      <td>${h(m.latest.sede||'—')}</td><td>${h(m.latest.modello||'—')}</td><td>${h(m.codeId)}</td><td>${badgeText(m.activity)}</td><td>${badgeText(m.temperature)}</td>
+      <td>${m.phasePct!=null?m.phasePct.toFixed(1)+'%':'—'}</td><td>${m.paymentProb.toFixed(0)}%</td><td>${fmtEuro(m.predIn24)}</td><td>${fmtEuro(m.predOut24)}</td><td>${m.cycleResidual!=null?fmtEuro(m.cycleResidual):'—'}</td><td>${m.anomalies.length?riskBadge('bad',m.anomalies[0].type):riskBadge('good','OK')}</td></tr>`).join('');
+      $('machinesTable').querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>{state.selected=b.dataset.open;document.querySelector('.nav button[data-view="machineView"]').click();renderAll();}));}
+
+    function renderSlotList(rows){$('slotList').innerHTML=rows.map(m=>`<div class="slot-item ${state.selected===m.codeId?'active':''}" data-sel="${esc(m.codeId)}"><div style="font-weight:800">${h(m.latest.sede||'Locale')}</div><div class="mini"><span>${h(m.latest.modello||'—')}</span><span>${m.paymentProb.toFixed(0)}%</span></div><div class="mini" style="margin-top:6px"><span>${h(m.codeId)}</span><span>${m.temperature} · ${m.activity}</span></div></div>`).join(''); $('slotList').querySelectorAll('[data-sel]').forEach(x=>x.addEventListener('click',()=>{state.selected=x.dataset.sel;renderAll();}));}
+
+    function renderMachineDetail(m){if(!m)return; state.selected=m.codeId; $('machineTitle').textContent=`${m.latest.sede||'Locale'} · ${m.latest.modello||'Modello'}`; $('machineSubtitle').textContent=`CODEID ${m.codeId} • PDA ${m.latest.pda||'—'} • Comune ${m.latest.comune||'—'}`;
+      $('machineDetails').innerHTML=[['Attività',m.activity],['Temperatura',m.temperature],['Probabilità pagamento',m.paymentProb.toFixed(0)+'%'],['Fase ciclo',m.phasePct!=null?m.phasePct.toFixed(1)+'%':'—'],['Residuo ciclo',m.cycleResidual!=null?fmtEuro(m.cycleResidual):'—'],['Pred. incasso 24h',fmtEuro(m.predIn24)],['Pred. pagamento 24h',fmtEuro(m.predOut24)],['Payout reale',m.payoutReal.toFixed(1)+'%'],['Target payout',m.payoutTarget!=null?m.payoutTarget.toFixed(1)+'%':'—'],['Scarto payout',m.payoutGap!=null?signed(m.payoutGap,'%'):'—'],['Stato',m.latest.stato||'—'],['Warning',m.latest.warning||'—']].map(([k,v])=>`<div class="detail"><div class="k">${h(k)}</div><div class="v">${h(v)}</div></div>`).join('');
+      makeChart('machineChart',{type:'line',data:{labels:m.series.map(x=>x.snapshotLabel),datasets:[{label:'IN totale',data:m.series.map(x=>x.inTot),borderWidth:2,tension:.25},{label:'OUT totale',data:m.series.map(x=>x.outTot),borderWidth:2,tension:.25},{label:'Pred. IN prossimo giorno',data:m.series.map((x,i,a)=>i===a.length-1?x.inTot+m.predIn24:null),borderWidth:2,tension:.2,borderDash:[5,5]},{label:'Pred. OUT prossimo giorno',data:m.series.map((x,i,a)=>i===a.length-1?x.outTot+m.predOut24:null),borderWidth:2,tension:.2,borderDash:[5,5]}]},options:chartOpts()});
+      $('locationTable').querySelector('tbody').innerHTML=m.series.map(x=>`<tr><td>${h(x.snapshotLabel)}</td><td>${h(x.sede||'—')}</td><td>${h(x.pda||'—')}</td><td>${fmtEuro(x.inTot)}</td><td>${fmtEuro(x.outTot)}</td></tr>`).join('');
+      const peers=state.machines.filter(x=>x.latest.sede===m.latest.sede&&x.codeId!==m.codeId); $('peerTable').querySelector('tbody').innerHTML=peers.length?peers.map(x=>`<tr><td>${h(x.codeId)}</td><td>${h(x.latest.modello||'—')}</td><td>${h(x.latest.pda||'—')}</td><td>${h(x.activity)}</td></tr>`).join(''):'<tr><td colspan="4">Nessun’altra macchina nello stesso locale.</td></tr>';
+      $('machineNarrative').textContent=m.narrative;
     }
 
-    async function bootstrap(limit) {
-      try {
-        await loadReferenceFiles();
-        await loadManifestOnly();
-        await loadSinottici(limit);
-        analyzeAll();
-        renderAll();
-      } catch (err) {
-        console.error(err);
-        $('summaryText').textContent = 'Errore durante il caricamento dei dati.';
-        $('diagBox').textContent = String(err?.message || err);
-      }
-    }
+    function renderAnomalies(rows){const flat=[];rows.forEach(m=>m.anomalies.forEach(a=>flat.push({m,a})));$('anomaliesTable').querySelector('tbody').innerHTML=flat.length?flat.map(({m,a})=>`<tr><td>${riskBadge(a.severity==='Alta'?'bad':'warn',a.severity)}</td><td>${h(m.latest.sede||'—')}</td><td>${h(m.latest.modello||'—')}</td><td>${h(m.codeId)}</td><td>${h(a.type)}</td><td>${h(a.detail)}</td></tr>`).join(''):'<tr><td colspan="6">Nessuna anomalia rilevata.</td></tr>';}
+    function renderModels(rows){const seen=new Map();rows.forEach(m=>seen.set(String(m.latest.codiceModello||'—'),(seen.get(String(m.latest.codiceModello||'—'))||0)+1));$('modelsTable').querySelector('tbody').innerHTML=state.cicloslot.map(c=>`<tr><td>${h(String(c.codiceModello))}</td><td>${h(c.nomeModello)}</td><td>${fmtEuro(c.ciclo)}</td><td>${h(String(c.payout))}%</td><td>${seen.get(String(c.codiceModello))||0}</td></tr>`).join('');}
+    function renderAggCharts(rows){const top=rows.slice(0,12);makeChart('aggregateChart',{type:'bar',data:{labels:top.map(x=>x.latest.sede||x.codeId),datasets:[{label:'Pred. incasso 24h',data:top.map(x=>Math.round(x.predIn24))},{label:'Pred. pagamento 24h',data:top.map(x=>Math.round(x.predOut24))}]},options:chartOpts()});const temp={Calda:0,Neutra:0,Fredda:0};rows.forEach(x=>temp[x.temperature]++);makeChart('temperatureChart',{type:'doughnut',data:{labels:Object.keys(temp),datasets:[{data:Object.values(temp)}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:getComputedStyle(document.body).getPropertyValue('--text')}}}}});}
 
-    async function loadReferenceFiles() {
-      const [cycles] = await Promise.all([fetchJson('./cicloslot.json')]);
-      state.cicloslot = Array.isArray(cycles) ? cycles : [];
-      $('cyclesStatus').textContent = `${state.cicloslot.length} modelli`;
-    }
+    function normalizeRow(row,snap){const codeId=String(getAlias(row,aliases.codeId)||'').trim(); if(!codeId)return null; const codiceModello=String(getAlias(row,aliases.codiceModello)||'').trim(); const ref=state.cicloslot.find(x=>String(x.codiceModello).trim()===codiceModello);
+      return {snapshotTs:snap.meta.ts,snapshotLabel:snap.meta.label,filename:snap.filename,codeId,codiceModello,modello:String(getAlias(row,aliases.modello)||ref?.nomeModello||'—').trim(),pda:String(getAlias(row,aliases.pda)||'').trim(),sede:String(getAlias(row,aliases.sede)||'').trim(),comune:String(getAlias(row,aliases.comune)||'').trim(),provincia:String(getAlias(row,aliases.provincia)||'').trim(),indirizzo:String(getAlias(row,aliases.indirizzo)||'').trim(),stato:String(getAlias(row,aliases.stato)||'').trim(),warning:String(getAlias(row,aliases.warning)||'').trim(),inTot:num(getAlias(row,aliases.inTot)),outTot:num(getAlias(row,aliases.outTot)),ciclo:ref?.ciclo??null,payoutPct:ref?.payout??null};}
 
-    async function loadManifestOnly() {
-      const manifest = await fetchJson('./manifest.json');
-      const files = Array.isArray(manifest.sinottici) ? manifest.sinottici : [];
-      state.manifest = files
-        .map(filename => ({ filename, parsed: parseManifestFilename(filename) }))
-        .filter(x => x.parsed)
-        .sort((a, b) => a.parsed.ts - b.parsed.ts);
-
-      $('manifestStatus').textContent = `${state.manifest.length} file`;
-      $('manifestBubble').textContent = `Manifest: ${state.manifest.length} file`;
-      $('latestFile').textContent = state.manifest.at(-1)?.filename || '—';
-      $('dateBubble').textContent = `Ultimo aggiornamento: ${state.manifest.at(-1)?.parsed?.label || '—'}`;
-      $('diagBox').textContent = `Manifest letto correttamente. File validi: ${state.manifest.length}.`;
-    }
-
-    async function loadSinottici(limit) {
-      const target = limit ? state.manifest.slice(-limit) : state.manifest;
-      state.rawSnapshots = [];
-      $('summaryText').textContent = 'Caricamento sinottici in corso...';
-      for (const item of target) {
-        try {
-          const buffer = await fetchArrayBuffer(`./Dati/${item.filename}`);
-          const wb = XLSX.read(buffer, { type: 'array', cellDates: true });
-          const firstSheet = wb.Sheets[wb.SheetNames[0]];
-          const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: null, raw: false });
-          state.rawSnapshots.push({ filename: item.filename, parsed: item.parsed, rows });
-        } catch (err) {
-          console.warn('Errore lettura sinottico', item.filename, err);
-        }
-      }
-      $('filesStatus').textContent = String(state.rawSnapshots.length);
-      $('summaryText').textContent = `${state.rawSnapshots.length} sinottici caricati.`;
-      $('diagBox').textContent = `Sinottici letti: ${state.rawSnapshots.length}. Ultimo: ${state.rawSnapshots.at(-1)?.filename || '—'}.`;
-    }
-
-    function analyzeAll() {
-      state.seriesMap = new Map();
-      const normalized = [];
-      for (const snap of state.rawSnapshots) {
-        for (const row of snap.rows) {
-          const nr = normalizeRow(row, snap);
-          if (nr) normalized.push(nr);
-        }
-      }
-      normalized.forEach(r => {
-        if (!state.seriesMap.has(r.codeId)) state.seriesMap.set(r.codeId, []);
-        state.seriesMap.get(r.codeId).push(r);
-      });
-
-      const results = [];
-      const win = Number($('historyWindow').value || 8);
-      const mode = $('predictionMode').value;
-
-      for (const [codeId, rawSeries] of state.seriesMap.entries()) {
-        const series = rawSeries.sort((a,b) => a.snapshotTs - b.snapshotTs);
-        const meta = series.at(-1);
-        const recent = series.slice(-win);
-        const deltas = [];
-        for (let i = 1; i < recent.length; i++) {
-          const prev = recent[i-1];
-          const cur = recent[i];
-          const h = Math.max(0.0001, (cur.snapshotTs - prev.snapshotTs) / 3600000);
-          const dIn = Math.max(0, cur.inTot - prev.inTot);
-          const dOut = Math.max(0, cur.outTot - prev.outTot);
-          deltas.push({
-            hours: h,
-            dIn,
-            dOut,
-            rateIn: dIn / h,
-            rateOut: dOut / h,
-            from: prev.snapshotLabel,
-            to: cur.snapshotLabel
-          });
-        }
-
-        const ratesIn = deltas.map(x => x.rateIn);
-        const ratesOut = deltas.map(x => x.rateOut);
-        const avgRateIn = predictionAverage(ratesIn, mode);
-        const avgRateOut = predictionAverage(ratesOut, mode);
-        const corr = pearson(deltas.map(x => x.dIn), deltas.map(x => x.dOut));
-        const predIn24 = avgRateIn * 24;
-        const predOut24 = avgRateOut * 24;
-        const payoutRatioReal = meta.inTot > 0 ? (meta.outTot / meta.inTot) * 100 : 0;
-        const payoutTarget = meta.payoutPct;
-        const payoutGap = payoutTarget != null ? payoutRatioReal - payoutTarget : null;
-        const phasePct = meta.ciclo ? ((meta.inTot % meta.ciclo) / meta.ciclo) * 100 : null;
-        const currentCycleIn = meta.ciclo ? (meta.inTot % meta.ciclo) : null;
-        const expectedCycleOut = (currentCycleIn != null && payoutTarget != null) ? currentCycleIn * (payoutTarget / 100) : null;
-        const realCycleOutApprox = deltas.reduce((a,b)=>a+b.dOut,0);
-        const imbalance = expectedCycleOut != null ? (realCycleOutApprox - expectedCycleOut) : null;
-        const stability = ratesIn.length > 1 ? Math.max(0, 100 - ((stdDev(ratesIn) / Math.max(1, avgRateIn)) * 100)) : 50;
-
-        let risk = 0;
-        const reasons = [];
-        if (corr == null) {
-          risk += 8;
-          reasons.push('storico insufficiente');
-        } else if (corr < 0.05 && avgRateIn > 20) {
-          risk += 25;
-          reasons.push('correlazione IN/OUT molto bassa');
-        } else if (corr < 0.25) {
-          risk += 14;
-          reasons.push('correlazione debole');
-        }
-        if (payoutGap != null) {
-          if (Math.abs(payoutGap) > 18) { risk += 30; reasons.push('payout reale molto distante dal target'); }
-          else if (Math.abs(payoutGap) > 10) { risk += 18; reasons.push('payout reale distante dal target'); }
-        }
-        if (imbalance != null) {
-          if (Math.abs(imbalance) > 1800) { risk += 22; reasons.push('squilibrio di ciclo molto alto'); }
-          else if (Math.abs(imbalance) > 900) { risk += 12; reasons.push('squilibrio di ciclo sensibile'); }
-        }
-        if (stability < 35) { risk += 12; reasons.push('comportamento instabile'); }
-        if (String(meta.warning || '').trim()) { risk += 10; reasons.push('warning presente'); }
-        if (String(meta.stato || '').toLowerCase().includes('mancato')) { risk += 10; reasons.push('collegamento problematico'); }
-        risk = Math.min(100, Math.round(risk));
-        const anomalyLevel = risk >= 70 ? 'Alta' : risk >= 40 ? 'Media' : 'Bassa';
-        const narrative = buildNarrative({ meta, corr, avgRateIn, avgRateOut, predIn24, predOut24, payoutRatioReal, payoutTarget, payoutGap, phasePct, imbalance, risk, reasons, stability });
-
-        results.push({
-          codeId, meta, series, deltas,
-          avgRateIn, avgRateOut, predIn24, predOut24,
-          corr, payoutRatioReal, payoutTarget, payoutGap,
-          phasePct, imbalance, stability, risk, anomalyLevel, reasons, narrative
-        });
-      }
-
-      state.analyzed = results;
-      if (!state.selectedCodeId && results.length) state.selectedCodeId = results[0].codeId;
-    }
-
-    function renderAll() {
-      const q = $('filterSearch').value.trim().toLowerCase();
-      const sortMode = $('sortMode').value;
-      const riskThreshold = Number($('riskThreshold').value || 70);
-      let rows = [...state.analyzed];
-      if (q) {
-        rows = rows.filter(r => (`${r.meta.sede} ${r.meta.comune} ${r.meta.modello} ${r.meta.codeId} ${r.meta.pda}`).toLowerCase().includes(q));
-      }
-      rows.sort((a, b) => {
-        if (sortMode === 'imbalance') return Math.abs(b.imbalance || 0) - Math.abs(a.imbalance || 0);
-        if (sortMode === 'activity') return (b.avgRateIn + b.avgRateOut) - (a.avgRateIn + a.avgRateOut);
-        if (sortMode === 'phase') return (b.phasePct || 0) - (a.phasePct || 0);
-        return b.risk - a.risk;
-      });
-
-      $('kpiMachines').textContent = rows.length;
-      $('kpiMatched').textContent = rows.filter(r => r.meta.ciclo).length;
-      $('kpiHighAlerts').textContent = rows.filter(r => r.risk >= riskThreshold).length;
-      $('kpiPredIn').textContent = fmtEuro(rows.reduce((a,b)=>a+b.predIn24,0));
-      $('kpiPredOut').textContent = fmtEuro(rows.reduce((a,b)=>a+b.predOut24,0));
-      const corrVals = rows.map(r => r.corr).filter(v => typeof v === 'number');
-      $('kpiCorrAvg').textContent = corrVals.length ? (corrVals.reduce((a,b)=>a+b,0)/corrVals.length).toFixed(2) : '—';
-      $('summaryText').textContent = rows.length ? `${rows.length} slot elaborate su ${state.rawSnapshots.length} sinottici.` : 'Nessun dato disponibile.';
-
-      renderMainTable(rows);
-      renderSlotList(rows);
-      renderSelectedSlot(rows);
-      renderAlertsTable(rows, riskThreshold);
-      renderModelsTable(rows);
-      renderAggregateChart(rows);
-      renderRiskChart(rows);
-      renderUsersTable();
-    }
-
-    function renderMainTable(rows) {
-      $('mainTable').querySelector('tbody').innerHTML = rows.map(r => `
-        <tr>
-          <td>${riskBadge(r.risk)}</td>
-          <td>${h(r.meta.sede || '—')}</td>
-          <td>${h(r.meta.comune || '—')}</td>
-          <td>${h(r.meta.modello || '—')}</td>
-          <td>${h(r.meta.codeId)}</td>
-          <td>${h(r.meta.pda || '—')}</td>
-          <td>${r.phasePct != null ? r.phasePct.toFixed(1) + '%' : '—'}</td>
-          <td>${fmtEuro(r.avgRateIn)}/h</td>
-          <td>${fmtEuro(r.avgRateOut)}/h</td>
-          <td>${r.corr != null ? r.corr.toFixed(2) : '—'}</td>
-          <td>${fmtEuro(r.predIn24)}</td>
-          <td>${fmtEuro(r.predOut24)}</td>
-          <td>${r.imbalance != null ? signed(r.imbalance, '€') : '—'}</td>
-          <td>${anomalyBadge(r.anomalyLevel)}</td>
-        </tr>
-      `).join('');
-    }
-
-    function renderSlotList(rows) {
-      $('slotList').innerHTML = rows.map(r => `
-        <div class="slot-item ${state.selectedCodeId === r.codeId ? 'active' : ''}" data-codeid="${ha(r.codeId)}">
-          <h4>${h(r.meta.sede || 'Sede sconosciuta')}</h4>
-          <div class="mini"><span>${h(r.meta.modello || '—')}</span><span>${stripHtml(riskBadge(r.risk))}</span></div>
-          <div class="mini" style="margin-top:6px;"><span>CODEID ${h(r.meta.codeId)}</span><span>${fmtEuro(r.predIn24)} / ${fmtEuro(r.predOut24)}</span></div>
-        </div>
-      `).join('');
-      $('slotList').querySelectorAll('.slot-item').forEach(item => item.addEventListener('click', () => { state.selectedCodeId = item.dataset.codeid; renderAll(); }));
-    }
-
-    function renderSelectedSlot(rows) {
-      const slot = rows.find(r => r.codeId === state.selectedCodeId) || rows[0];
-      if (!slot) return;
-      state.selectedCodeId = slot.codeId;
-      $('slotTitle').textContent = `${slot.meta.sede || 'Locale'} · ${slot.meta.modello || 'Modello sconosciuto'}`;
-      $('slotSubtitle').textContent = `CODEID ${slot.meta.codeId} • Comune ${slot.meta.comune || '—'} • Ultimo snapshot ${slot.meta.snapshotLabel}`;
-      $('slotNarrative').textContent = slot.narrative;
-      $('slotDetails').innerHTML = [
-        ['Rischio', `${slot.risk}/100`],
-        ['Correlazione', slot.corr != null ? slot.corr.toFixed(2) : '—'],
-        ['Pred. IN 24h', fmtEuro(slot.predIn24)],
-        ['Pred. OUT 24h', fmtEuro(slot.predOut24)],
-        ['Payout reale', `${slot.payoutRatioReal.toFixed(1)}%`],
-        ['Target modello', slot.payoutTarget != null ? `${slot.payoutTarget.toFixed(1)}%` : '—'],
-        ['Scarto payout', slot.payoutGap != null ? signed(slot.payoutGap, '%') : '—'],
-        ['Fase ciclo', slot.phasePct != null ? `${slot.phasePct.toFixed(1)}%` : '—'],
-        ['Squilibrio', slot.imbalance != null ? signed(slot.imbalance, '€') : '—'],
-        ['Stabilità', `${slot.stability.toFixed(0)}/100`],
-        ['Stato', slot.meta.stato || '—'],
-        ['Warning', slot.meta.warning || '—']
-      ].map(([k,v]) => `<div class="kv"><div class="k">${h(k)}</div><div class="v">${h(v)}</div></div>`).join('');
-
-      const labels = slot.series.map(x => x.snapshotLabel);
-      const inVals = slot.series.map(x => x.inTot);
-      const outVals = slot.series.map(x => x.outTot);
-      const dIn = [0, ...slot.series.slice(1).map((x,i) => Math.max(0, x.inTot - slot.series[i].inTot))];
-      const dOut = [0, ...slot.series.slice(1).map((x,i) => Math.max(0, x.outTot - slot.series[i].outTot))];
-      makeChart('slotChart', {
-        type: 'line',
-        data: {
-          labels,
-          datasets: [
-            { label: 'IN totale', data: inVals, borderWidth: 2, tension: 0.25 },
-            { label: 'OUT totale', data: outVals, borderWidth: 2, tension: 0.25 },
-            { label: 'Δ IN', data: dIn, borderWidth: 2, tension: 0.25 },
-            { label: 'Δ OUT', data: dOut, borderWidth: 2, tension: 0.25 }
-          ]
-        },
-        options: chartOptions()
-      });
-    }
-
-    function renderAlertsTable(rows, riskThreshold) {
-      const data = rows.filter(r => r.risk >= riskThreshold || r.reasons.length);
-      $('alertsTable').querySelector('tbody').innerHTML = data.map(r => `
-        <tr>
-          <td>${riskBadge(r.risk)}</td>
-          <td>${h(r.meta.sede || '—')}</td>
-          <td>${h(r.meta.comune || '—')}</td>
-          <td>${h(r.meta.modello || '—')}</td>
-          <td>${h(r.meta.codeId)}</td>
-          <td>${h(r.reasons[0] || 'monitorare')}</td>
-          <td>${h(r.reasons.join(' • ') || 'nessun dettaglio')}</td>
-        </tr>
-      `).join('');
-    }
-
-    function renderModelsTable(rows) {
-      const seen = new Map();
-      rows.forEach(r => seen.set(String(r.meta.codiceModello || '—'), (seen.get(String(r.meta.codiceModello || '—')) || 0) + 1));
-      $('modelsTable').querySelector('tbody').innerHTML = state.cicloslot.map(m => `
-        <tr>
-          <td>${h(String(m.codiceModello))}</td>
-          <td>${h(m.nomeModello)}</td>
-          <td>${fmtEuro(m.ciclo)}</td>
-          <td>${h(String(m.payout))}%</td>
-          <td>${seen.get(String(m.codiceModello)) || 0}</td>
-        </tr>
-      `).join('');
-    }
-
-    function renderUsersTable() {
-      $('usersTable').querySelector('tbody').innerHTML = state.users.map(u => `
-        <tr>
-          <td>${h(u.user)}</td>
-          <td>${h(u.level)}</td>
-          <td>${h(formatEuropeanDate(u.expires))}</td>
-          <td>${isExpired(u.expires) ? '<span class="badge bad">Scaduto</span>' : '<span class="badge good">Attivo</span>'}</td>
-        </tr>
-      `).join('');
-    }
-
-    function renderAggregateChart(rows) {
-      const top = rows.slice(0, 12);
-      makeChart('aggregateChart', {
-        type: 'bar',
-        data: {
-          labels: top.map(r => r.meta.sede || r.meta.codeId),
-          datasets: [
-            { label: 'Pred. IN 24h', data: top.map(r => Math.round(r.predIn24)) },
-            { label: 'Pred. OUT 24h', data: top.map(r => Math.round(r.predOut24)) }
-          ]
-        },
-        options: chartOptions()
-      });
-    }
-
-    function renderRiskChart(rows) {
-      const bands = { Bassa: 0, Media: 0, Alta: 0 };
-      rows.forEach(r => bands[r.anomalyLevel]++);
-      makeChart('riskChart', {
-        type: 'doughnut',
-        data: { labels: Object.keys(bands), datasets: [{ data: Object.values(bands) }] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#eef4ff' } } } }
-      });
-    }
-
-    function normalizeRow(row, snapshot) {
-      const codeId = String(getAliasValue(row, aliases.codeId) || '').trim();
-      if (!codeId) return null;
-      const codiceModello = String(getAliasValue(row, aliases.codiceModello) || '').trim();
-      const modelRef = state.cicloslot.find(x => String(x.codiceModello).trim() === codiceModello);
-      return {
-        snapshotTs: snapshot.parsed.ts,
-        snapshotLabel: snapshot.parsed.label,
-        filename: snapshot.filename,
-        codeId,
-        codiceModello,
-        modello: String(getAliasValue(row, aliases.modello) || modelRef?.nomeModello || '—').trim(),
-        pda: String(getAliasValue(row, aliases.pda) || '').trim(),
-        sede: String(getAliasValue(row, aliases.sede) || '').trim(),
-        comune: String(getAliasValue(row, aliases.comune) || '').trim(),
-        provincia: String(getAliasValue(row, aliases.provincia) || '').trim(),
-        indirizzo: String(getAliasValue(row, aliases.indirizzo) || '').trim(),
-        stato: String(getAliasValue(row, aliases.stato) || '').trim(),
-        warning: String(getAliasValue(row, aliases.warning) || '').trim(),
-        inTot: parseNumeric(getAliasValue(row, aliases.inTot)),
-        outTot: parseNumeric(getAliasValue(row, aliases.outTot)),
-        ciclo: modelRef?.ciclo ?? null,
-        payoutPct: modelRef?.payout ?? null
-      };
-    }
-
-    function buildNarrative({ meta, corr, avgRateIn, avgRateOut, predIn24, predOut24, payoutRatioReal, payoutTarget, payoutGap, phasePct, imbalance, risk, reasons, stability }) {
-      const p = [];
-      p.push(`La macchina ${meta.codeId} nel locale ${meta.sede || '—'} ha una velocità media di incasso di ${fmtEuro(avgRateIn)}/h e una velocità media di pagamento di ${fmtEuro(avgRateOut)}/h.`);
-      if (corr != null) p.push(`La correlazione tra crescita IN e crescita OUT è ${corr.toFixed(2)}.`);
-      if (phasePct != null) p.push(`La fase del ciclo attuale è ${phasePct.toFixed(1)}%.`);
-      if (payoutTarget != null) p.push(`Il payout reale è ${payoutRatioReal.toFixed(1)}% rispetto a un target del ${payoutTarget.toFixed(1)}%, con scarto ${signed(payoutGap, '%')}.`);
-      if (imbalance != null) p.push(`Lo squilibrio di ciclo stimato è ${signed(imbalance, '€')}.`);
-      p.push(`Previsione prossime 24 ore: incasso ${fmtEuro(predIn24)}, pagamento ${fmtEuro(predOut24)}.`);
-      p.push(`Indice di rischio ${risk}/100 e stabilità ${stability.toFixed(0)}/100.`);
-      if (reasons.length) p.push(`Fattori principali: ${reasons.join(', ')}.`);
-      return p.join(' ');
-    }
-
-    function predictionAverage(values, mode) {
-      if (!values.length) return 0;
-      if (mode === 'recent') {
-        return values.reduce((acc, v, i) => acc + v * (i + 2), 0) / values.reduce((acc, _, i) => acc + (i + 2), 0);
-      }
-      return values.reduce((acc, v, i) => acc + v * (i + 1), 0) / values.reduce((acc, _, i) => acc + (i + 1), 0);
-    }
-
-    function pearson(xs, ys) {
-      if (xs.length < 2 || ys.length < 2 || xs.length !== ys.length) return null;
-      const n = xs.length;
-      const mx = xs.reduce((a,b)=>a+b,0)/n;
-      const my = ys.reduce((a,b)=>a+b,0)/n;
-      let num = 0, dx = 0, dy = 0;
-      for (let i = 0; i < n; i++) {
-        const a = xs[i] - mx, b = ys[i] - my;
-        num += a * b; dx += a * a; dy += b * b;
-      }
-      const den = Math.sqrt(dx * dy);
-      return den ? num / den : null;
-    }
-
-    function stdDev(arr) {
-      if (arr.length < 2) return 0;
-      const mean = arr.reduce((a,b)=>a+b,0) / arr.length;
-      return Math.sqrt(arr.reduce((a,b)=>a + (b - mean) ** 2, 0) / arr.length);
-    }
-
-    function getAliasValue(row, names) {
-      for (const n of names) if (row[n] !== undefined && row[n] !== null && row[n] !== '') return row[n];
-      return null;
-    }
-
-    function parseManifestFilename(filename) {
-      const m = String(filename).match(/^Sinottico-?(\d{4})-(\d{2})-(\d{2})-(\d{4})\.xlsx$/i);
-      if (!m) return null;
-      const [, y, mo, d, hm] = m;
-      const hh = hm.slice(0,2), mm = hm.slice(2,4);
-      const ts = new Date(`${y}-${mo}-${d}T${hh}:${mm}:00`).getTime();
-      return { y, mo, d, hh, mm, ts, label: `${d}/${mo}/${y} ${hh}:${mm}` };
-    }
-
-    function parseNumeric(value) {
-      if (value == null || value === '') return 0;
-      if (typeof value === 'number') return value;
-      let s = String(value).trim().replace(/\s/g, '');
-      s = s.replace(/\.(?=\d{3}(\D|$))/g, '');
-      s = s.replace(/,(\d{1,2})$/, '.$1');
-      const n = Number(s.replace(/[^0-9.-]/g, ''));
-      return Number.isFinite(n) ? n : 0;
-    }
-
-    function isExpired(dateStr) {
-      if (!dateStr) return false;
-      const d = new Date(`${dateStr}T23:59:59`);
-      return Number.isFinite(d.getTime()) ? Date.now() > d.getTime() : false;
-    }
-
-    function formatEuropeanDate(dateStr) {
-      if (!dateStr) return '—';
-      const d = new Date(`${dateStr}T00:00:00`);
-      if (!Number.isFinite(d.getTime())) return String(dateStr);
-      return new Intl.DateTimeFormat('it-IT').format(d);
-    }
-
-    function makeChart(id, config) {
-      if (state.charts[id]) state.charts[id].destroy();
-      state.charts[id] = new Chart($(id).getContext('2d'), config);
-    }
-
-    function chartOptions() {
-      return {
-        responsive: true,
-        maintainAspectRatio: false,
-        scales: {
-          x: { ticks: { color: '#bfd0ef' }, grid: { color: 'rgba(255,255,255,0.06)' } },
-          y: { ticks: { color: '#bfd0ef' }, grid: { color: 'rgba(255,255,255,0.06)' } }
-        },
-        plugins: { legend: { labels: { color: '#eef4ff' } } }
-      };
-    }
-
-    async function fetchJson(path) {
-      const r = await fetch(path);
-      if (!r.ok) throw new Error(`Errore caricamento ${path}`);
-      return r.json();
-    }
-
-    async function fetchArrayBuffer(path) {
-      const r = await fetch(path);
-      if (!r.ok) throw new Error(`Errore caricamento ${path}`);
-      return r.arrayBuffer();
-    }
-
-    function riskBadge(v) {
-      const cls = v >= 70 ? 'bad' : v >= 40 ? 'warn' : 'good';
-      return `<span class="badge ${cls}"><span class="dot ${cls}"></span>${v}/100</span>`;
-    }
-    function anomalyBadge(v) {
-      const cls = v === 'Alta' ? 'bad' : v === 'Media' ? 'warn' : 'good';
-      return `<span class="badge ${cls}">${h(v)}</span>`;
-    }
-    function fmtEuro(v) {
-      return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(Number(v || 0));
-    }
-    function signed(v, suffix) {
-      const n = Number(v || 0);
-      const p = n > 0 ? '+' : '';
-      return suffix === '€' ? `${p}${fmtEuro(n)}` : `${p}${n.toFixed(1)}${suffix}`;
-    }
-    function h(s) {
-      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-    }
-    function ha(s) { return h(s).replace(/"/g, '&quot;'); }
-    function stripHtml(html) { const d = document.createElement('div'); d.innerHTML = html; return d.textContent || ''; }
+    function parseManifestName(filename){const m=String(filename).match(/^Sinottico-?(\d{4})-(\d{2})-(\d{2})-(\d{4})\.xlsx$/i); if(!m)return null; const [,y,mo,d,hm]=m; const hh=hm.slice(0,2),mm=hm.slice(2,4); const ts=new Date(`${y}-${mo}-${d}T${hh}:${mm}:00`).getTime(); return {ts,label:`${d}/${mo}/${y} ${hh}:${mm}`};}
+    function getAlias(row,list){for(const k of list){if(row[k]!==undefined&&row[k]!==null&&row[k]!=='')return row[k]} return null}
+    function num(v){if(v==null||v==='')return 0;if(typeof v==='number')return v;let s=String(v).trim().replace(/\s/g,'');s=s.replace(/\.(?=\d{3}(\D|$))/g,'');s=s.replace(/,(\d{1,2})$/,'.$1');const n=Number(s.replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0}
+    function buildDailySeries(series,key){const out=[];for(let i=1;i<series.length;i++){const cur=series[i],prev=series[i-1];out.push({label:cur.snapshotLabel,delta:Math.max(0,cur[key]-prev[key]),ts:cur.snapshotTs});}return out}
+    function countStillDays(series){let count=0;for(let i=series.length-1;i>0;i--){const cur=series[i],prev=series[i-1];if(cur.inTot===prev.inTot&&cur.outTot===prev.outTot)count++;else break;}return count}
+    function computePaymentProbability(phasePct,payoutGap,avgRateOut,avgRateIn){let p=10; if(phasePct!=null)p+=phasePct*.55; if(payoutGap!=null&&payoutGap<0)p+=Math.min(20,Math.abs(payoutGap)); if(avgRateOut>avgRateIn*.45)p+=10; return Math.max(1,Math.min(99,p))}
+    function computeTemperature(phasePct,payoutGap,paymentProb){if(paymentProb>=70||(phasePct!=null&&phasePct>=75)||(payoutGap!=null&&payoutGap<-10))return 'Calda'; if(paymentProb<=35||(phasePct!=null&&phasePct<30))return 'Fredda'; return 'Neutra'}
+    function computeActivity(avgRateIn){if(avgRateIn<1)return 'Non gioca'; if(avgRateIn<20)return 'Gioca poco'; return 'Gioca tanto'}
+    function computeRisk({paymentProb,temperature,activity,payoutGap,anomalies,stillDays}){let r=0; if(activity==='Non gioca')r+=20; if(temperature==='Calda')r+=18; if(payoutGap!=null&&Math.abs(payoutGap)>12)r+=18; r+=anomalies.length*22; r+=stillDays*10; r+=paymentProb*.15; return Math.min(100,Math.round(r))}
+    function buildNarrative({latest,activity,temperature,paymentProb,predIn24,predOut24,cycleResidual,phasePct,payoutReal,payoutTarget,payoutGap,anomalies}){const a=[];a.push(`La slot ${latest.codeId} nel locale ${latest.sede||'—'} attualmente ${activity.toLowerCase()} ed è classificata come ${temperature.toLowerCase()}.`);a.push(`Probabilità stimata di pagamento ${paymentProb.toFixed(0)}%. Predizione 24 ore: incasso ${fmtEuro(predIn24)}, pagamento ${fmtEuro(predOut24)}.`);if(phasePct!=null)a.push(`Fase ciclo ${phasePct.toFixed(1)}% con residuo ${cycleResidual!=null?fmtEuro(cycleResidual):'—'}.`);if(payoutTarget!=null)a.push(`Payout reale ${payoutReal.toFixed(1)}% contro target ${payoutTarget.toFixed(1)}%, scarto ${signed(payoutGap,'%')}.`);if(anomalies.length)a.push(`Anomalie: ${anomalies.map(x=>x.type).join(', ')}.`);return a.join(' ')}
+    function wAvg(arr){if(!arr.length)return 0;let n=0,d=0;arr.forEach((v,i)=>{const w=i+1;n+=v*w;d+=w});return d?n/d:0}
+    function mean(arr){return arr.length?sum(arr)/arr.length:0} function sum(arr){return arr.reduce((a,b)=>a+(Number(b)||0),0)}
+    function tempRank(t){return t==='Calda'?3:t==='Neutra'?2:1} function activityRank(a){return a==='Gioca tanto'?3:a==='Gioca poco'?2:1}
+    function badgeText(t){if(t==='Calda'||t==='Gioca tanto')return riskBadge('good',t); if(t==='Fredda'||t==='Gioca poco')return riskBadge('warn',t); if(t==='Non gioca')return riskBadge('bad',t); return riskBadge('neutral',t)}
+    function riskBadge(kind,text){return `<span class="badge ${kind}"><span class="dot"></span>${h(text)}</span>`}
+    function makeChart(id,cfg){if(state.charts[id])state.charts[id].destroy();state.charts[id]=new Chart($(id).getContext('2d'),cfg)}
+    function chartOpts(){const c=getComputedStyle(document.body);return {responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:c.getPropertyValue('--text')},grid:{color:c.getPropertyValue('--line')}},y:{ticks:{color:c.getPropertyValue('--text')},grid:{color:c.getPropertyValue('--line')}}},plugins:{legend:{labels:{color:c.getPropertyValue('--text')}}}}}
+    function setTheme(theme){document.body.dataset.theme=theme;localStorage.setItem('awp-theme',theme); if(state.machines.length)renderAll()}
+    (function(){const saved=localStorage.getItem('awp-theme'); if(saved)document.body.dataset.theme=saved})();
+    function setProgress(p,msg){$('progressBar').style.width=`${p}%`; $('progressLabel').textContent=msg} function resetProgress(msg){setProgress(0,msg)}
+    async function getJson(path){const r=await fetch(path); if(!r.ok)throw new Error(`Errore caricamento ${path}`); return r.json()} async function getBuffer(path){const r=await fetch(path); if(!r.ok)throw new Error(`Errore caricamento ${path}`); return r.arrayBuffer()}
+    function fmtEuro(v){return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number(v||0))} function fmtDate(v){const d=new Date(`${v}T00:00:00`); return Number.isFinite(d.getTime())?new Intl.DateTimeFormat('it-IT').format(d):String(v)} function isExpired(v){const d=new Date(`${v}T23:59:59`); return Number.isFinite(d.getTime())&&Date.now()>d.getTime()} function signed(v,s){const n=Number(v||0); const p=n>0?'+':''; return s==='€'?`${p}${fmtEuro(n)}`:`${p}${n.toFixed(1)}${s}`}
+    function h(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')} function esc(s){return h(s)} function renderUsersMaybe(){}
   </script>
 </body>
 </html>
