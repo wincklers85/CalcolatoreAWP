@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>AWP Analyzer Ultra V4</title>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -11,314 +11,94 @@
       --bg:#eef4ff;--panel:#ffffff;--panel2:#f6f9ff;--text:#162033;--muted:#61708e;--line:#d9e3f6;
       --accent:#3c82f6;--good:#1ea463;--warn:#d98a00;--bad:#d9415d;--shadow:0 14px 40px rgba(19,37,76,.08);
     }
-    body[data-theme="giorno"]{
-      --bg:#eef4ff;--panel:#ffffff;--panel2:#f6f9ff;--text:#162033;--muted:#61708e;--line:#d9e3f6;--accent:#3c82f6;
-    }
-    body[data-theme="dolce-chiaro"]{
-      --bg:#fff9f5;--panel:#ffffff;--panel2:#fff3eb;--text:#3a2d2a;--muted:#8e776f;--line:#f1d7c9;--accent:#d98f6a;
-    }
-    body[data-theme="alto-contrasto"]{
-      --bg:#05070b;--panel:#0d1117;--panel2:#121822;--text:#f7fbff;--muted:#9db0c8;--line:#263446;--accent:#58a6ff;
-      --good:#2fd67b;--warn:#ffbf47;--bad:#ff6b81;--shadow:0 14px 40px rgba(0,0,0,.35);
-    }
+    body[data-theme="giorno"]{--bg:#eef4ff;--panel:#ffffff;--panel2:#f6f9ff;--text:#162033;--muted:#61708e;--line:#d9e3f6;--accent:#3c82f6}
+    body[data-theme="dolce-chiaro"]{--bg:#fff9f5;--panel:#ffffff;--panel2:#fff3eb;--text:#3a2d2a;--muted:#8e776f;--line:#f1d7c9;--accent:#d98f6a}
+    body[data-theme="alto-contrasto"]{--bg:#05070b;--panel:#0d1117;--panel2:#121822;--text:#f7fbff;--muted:#9db0c8;--line:#263446;--accent:#58a6ff;--good:#2fd67b;--warn:#ffbf47;--bad:#ff6b81;--shadow:0 14px 40px rgba(0,0,0,.35)}
     *{box-sizing:border-box} html,body{margin:0;padding:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)}
-    .hidden{display:none!important}.app{display:grid;grid-template-columns:290px 1fr;min-height:100vh}
-    .sidebar{background:var(--panel);border-right:1px solid var(--line);padding:18px;position:sticky;top:0;height:100vh;overflow:auto}
-    .main{padding:18px;display:grid;gap:16px}.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:var(--shadow)}
-    .brand{padding:16px;border-radius:18px;background:linear-gradient(135deg,var(--panel2),var(--panel));border:1px solid var(--line);margin-bottom:14px}
-    .brand h1{margin:0;font-size:1.3rem}.brand p,.muted,.small{color:var(--muted)} .small{font-size:.88rem}
-    .nav,.stack{display:grid;gap:10px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.grow{flex:1}
-    button,input,select{font:inherit} input,select,button{border-radius:12px;border:1px solid var(--line);padding:11px 12px;background:var(--panel2);color:var(--text)}
-    button{cursor:pointer}.btn-primary{background:var(--accent);color:#fff;border-color:transparent}.btn-soft{background:var(--panel2)}
-    .nav button{text-align:left}.nav button.active{outline:2px solid color-mix(in oklab, var(--accent) 65%, transparent)}
-    .topbar{display:grid;grid-template-columns:1.1fr auto auto;gap:12px}.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
-    .kpi{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px}.kpi .label{font-size:.84rem;color:var(--muted)}.kpi .value{font-size:1.45rem;font-weight:800;margin-top:6px}
-    .layout-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.layout-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}.split{display:grid;grid-template-columns:320px 1fr;gap:16px}
+    .hidden{display:none!important}.app{display:grid;grid-template-columns:290px 1fr;min-height:100vh}.sidebar{background:var(--panel);border-right:1px solid var(--line);padding:18px;position:sticky;top:0;height:100vh;overflow:auto}
+    .main{padding:18px;display:grid;gap:16px}.card{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:16px;box-shadow:var(--shadow)}.brand{padding:16px;border-radius:18px;background:linear-gradient(135deg,var(--panel2),var(--panel));border:1px solid var(--line);margin-bottom:14px}
+    .brand h1{margin:0;font-size:1.3rem}.brand p,.muted,.small{color:var(--muted)} .small{font-size:.88rem}.nav,.stack{display:grid;gap:10px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.grow{flex:1}
+    button,input,select{font:inherit} input,select,button{border-radius:12px;border:1px solid var(--line);padding:11px 12px;background:var(--panel2);color:var(--text)} button{cursor:pointer}.btn-primary{background:var(--accent);color:#fff;border-color:transparent}
+    .nav button{text-align:left}.nav button.active{outline:2px solid color-mix(in oklab, var(--accent) 65%, transparent)}.topbar{display:grid;grid-template-columns:1.1fr auto auto;gap:12px}.kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+    .kpi{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px}.kpi .label{font-size:.84rem;color:var(--muted)}.kpi .value{font-size:1.45rem;font-weight:800;margin-top:6px}.layout-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}.layout-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}.split{display:grid;grid-template-columns:320px 1fr;gap:16px}
     .table-wrap{overflow:auto;border:1px solid var(--line);border-radius:16px}.table-wrap table{width:100%;border-collapse:collapse;min-width:1100px}.table-wrap th,.table-wrap td{padding:11px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap;font-size:.92rem}.table-wrap th{position:sticky;top:0;background:var(--panel2);z-index:1;color:var(--muted)}
-    .slot-list{display:grid;gap:10px;max-height:74vh;overflow:auto}.slot-item{padding:12px;border:1px solid var(--line);border-radius:16px;background:var(--panel2);cursor:pointer}.slot-item.active{outline:2px solid color-mix(in oklab, var(--accent) 65%, transparent)}
-    .mini{display:flex;justify-content:space-between;gap:10px;font-size:.86rem;color:var(--muted)}
-    .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;font-size:.8rem;border:1px solid transparent}.dot{width:8px;height:8px;border-radius:50%}
-    .good{background:color-mix(in oklab,var(--good) 12%, transparent);border-color:color-mix(in oklab,var(--good) 28%, transparent)} .good .dot{background:var(--good)}
-    .warn{background:color-mix(in oklab,var(--warn) 12%, transparent);border-color:color-mix(in oklab,var(--warn) 28%, transparent)} .warn .dot{background:var(--warn)}
-    .bad{background:color-mix(in oklab,var(--bad) 12%, transparent);border-color:color-mix(in oklab,var(--bad) 28%, transparent)} .bad .dot{background:var(--bad)}
-    .neutral{background:var(--panel2);border-color:var(--line)} .neutral .dot{background:var(--muted)}
+    .slot-list{display:grid;gap:10px;max-height:74vh;overflow:auto}.slot-item{padding:12px;border:1px solid var(--line);border-radius:16px;background:var(--panel2);cursor:pointer}.slot-item.active{outline:2px solid color-mix(in oklab, var(--accent) 65%, transparent)}.mini{display:flex;justify-content:space-between;gap:10px;font-size:.86rem;color:var(--muted)}
+    .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;font-size:.8rem;border:1px solid transparent}.dot{width:8px;height:8px;border-radius:50%}.good{background:color-mix(in oklab,var(--good) 12%, transparent);border-color:color-mix(in oklab,var(--good) 28%, transparent)} .good .dot{background:var(--good)} .warn{background:color-mix(in oklab,var(--warn) 12%, transparent);border-color:color-mix(in oklab,var(--warn) 28%, transparent)} .warn .dot{background:var(--warn)} .bad{background:color-mix(in oklab,var(--bad) 12%, transparent);border-color:color-mix(in oklab,var(--bad) 28%, transparent)} .bad .dot{background:var(--bad)} .neutral{background:var(--panel2);border-color:var(--line)} .neutral .dot{background:var(--muted)}
     .details{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}.detail{border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--panel2)}.detail .k{font-size:.82rem;color:var(--muted)}.detail .v{font-weight:800;margin-top:6px}
-    .progress{height:12px;border-radius:999px;background:var(--panel2);overflow:hidden;border:1px solid var(--line)}.progress > div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent) 60%, white));transition:width .2s ease}
-    canvas{width:100%!important;height:280px!important;max-height:280px!important}.chart-small canvas{height:230px!important;max-height:230px!important}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.section-title{font-size:1.05rem;font-weight:800;margin:0 0 10px}.status-line{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}.status-line:last-child{border-bottom:none}
-    .login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px}
+    .progress{height:12px;border-radius:999px;background:var(--panel2);overflow:hidden;border:1px solid var(--line)}.progress>div{height:100%;width:0;background:linear-gradient(90deg,var(--accent),color-mix(in oklab,var(--accent) 60%, white));transition:width .2s ease}
+    canvas{width:100%!important;height:280px!important;max-height:280px!important}.chart-small canvas{height:230px!important;max-height:230px!important}.mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}.section-title{font-size:1.05rem;font-weight:800;margin:0 0 10px}.status-line{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}.status-line:last-child{border-bottom:none}.login{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:22px}
     @media (max-width:1280px){.app{grid-template-columns:1fr}.sidebar{position:relative;height:auto;border-right:none;border-bottom:1px solid var(--line)}.topbar,.kpis,.layout-2,.layout-3,.split,.details{grid-template-columns:1fr}}
+    @media (max-width:900px){.main{padding:12px}.sidebar{padding:12px}.card{padding:12px;border-radius:16px}.brand{padding:12px}.kpi .value{font-size:1.2rem}.table-wrap table{min-width:760px}canvas{height:220px!important;max-height:220px!important}}
+    @media (max-width:640px){body{font-size:15px}.main{padding:10px;gap:10px}.sidebar{padding:10px}.topbar{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.layout-2,.layout-3,.split,.details{grid-template-columns:1fr}.row{gap:8px}.section-title{font-size:1rem}.brand h1{font-size:1.08rem}.small{font-size:.82rem}input,select,button{padding:10px 11px;font-size:15px}.slot-list{max-height:none}.table-wrap table{min-width:680px}.card{padding:10px;border-radius:14px}canvas{height:200px!important;max-height:200px!important}}
+    @media (max-width:420px){.kpis{grid-template-columns:1fr}.details{grid-template-columns:1fr}.table-wrap table{min-width:620px}body{font-size:14px}}
   </style>
 </head>
 <body data-theme="giorno">
-  <div class="login" id="loginScreen">
-    <div class="card" style="width:min(520px,100%)">
-      <div class="brand"><h1>AWP Analyzer Ultra V4</h1><p>Login da users.json • analisi slot • anomalie • predizioni</p></div>
-      <div class="stack">
-        <div><div class="small">Utente</div><input id="loginUser" placeholder="Es. Admin"></div>
-        <div><div class="small">PIN</div><input id="loginPin" type="password" inputmode="numeric" placeholder="••••"></div>
-        <div class="row"><button class="btn-primary" id="btnLogin">Entra</button><div class="muted" id="loginMsg">Caricamento utenti…</div></div>
-      </div>
-    </div>
-  </div>
-
+  <div class="login" id="loginScreen"><div class="card" style="width:min(520px,100%)"><div class="brand"><h1>AWP Analyzer Ultra V4</h1><p>Login da users.json • analisi slot • anomalie • predizioni</p></div><div class="stack"><div><div class="small">Utente</div><input id="loginUser" placeholder="Es. Admin"></div><div><div class="small">PIN</div><input id="loginPin" type="password" inputmode="numeric" placeholder="••••"></div><div class="row"><button class="btn-primary" id="btnLogin">Entra</button><div class="muted" id="loginMsg">Caricamento utenti…</div></div></div></div></div>
   <div class="app hidden" id="appRoot">
     <aside class="sidebar">
       <div class="brand"><h1>AWP Analyzer Ultra V4</h1><p>Più pulita, più leggibile, più utile sul serio.</p></div>
-      <div class="card">
-        <div class="section-title">Utente</div>
-        <div class="status-line"><span class="muted">Nome</span><strong id="userName">—</strong></div>
-        <div class="status-line"><span class="muted">Livello</span><strong id="userLevel">—</strong></div>
-        <div class="status-line"><span class="muted">Scadenza</span><strong id="userExpires">—</strong></div>
-        <div class="row" style="margin-top:12px"><button id="btnLogout">Esci</button></div>
-      </div>
-      <div class="card stack">
-        <div class="section-title">Caricamento dati</div>
-        <button class="btn-primary" id="btnLoadLast">Carica ultimi 8 sinottici</button>
-        <button id="btnLoadAll">Carica tutti i sinottici</button>
-        <button id="btnReload">Rileggi manifest</button>
-        <div class="small mono">./manifest.json</div>
-        <div class="small mono">./cicloslot.json</div>
-        <div class="small mono">./users.json</div>
-        <div class="small mono">./Dati/*.xlsx</div>
-      </div>
-      <div class="card">
-        <div class="section-title">Avanzamento</div>
-        <div class="small" id="progressLabel">Pronto.</div>
-        <div class="progress" style="margin-top:10px"><div id="progressBar"></div></div>
-      </div>
-      <div class="nav">
-        <button class="active" data-view="dashboardView">Dashboard</button>
-        <button data-view="machineView">Macchine</button>
-        <button data-view="anomaliesView">Anomalie</button>
-        <button data-view="modelsView">Modelli</button>
-        <button data-view="settingsView">Temi e impostazioni</button>
-      </div>
-      <div class="card">
-        <div class="section-title">Stato</div>
-        <div class="status-line"><span class="muted">Manifest</span><strong id="manifestCount">0</strong></div>
-        <div class="status-line"><span class="muted">Sinottici caricati</span><strong id="snapCount">0</strong></div>
-        <div class="status-line"><span class="muted">Modelli</span><strong id="modelCount">0</strong></div>
-        <div class="status-line"><span class="muted">Ultimo file</span><strong id="latestFile">—</strong></div>
-      </div>
+      <div class="card"><div class="section-title">Utente</div><div class="status-line"><span class="muted">Nome</span><strong id="userName">—</strong></div><div class="status-line"><span class="muted">Livello</span><strong id="userLevel">—</strong></div><div class="status-line"><span class="muted">Scadenza</span><strong id="userExpires">—</strong></div><div class="row" style="margin-top:12px"><button id="btnLogout">Esci</button></div></div>
+      <div class="card stack"><div class="section-title">Caricamento dati</div><button class="btn-primary" id="btnLoadLast">Carica ultimi 8 sinottici</button><button id="btnLoadAll">Carica tutti i sinottici</button><button id="btnReload">Rileggi manifest</button><div class="small mono">./manifest.json</div><div class="small mono">./cicloslot.json</div><div class="small mono">./users.json</div><div class="small mono">./Dati/*.xlsx</div></div>
+      <div class="card"><div class="section-title">Avanzamento</div><div class="small" id="progressLabel">Pronto.</div><div class="progress" style="margin-top:10px"><div id="progressBar"></div></div></div>
+      <div class="nav"><button class="active" data-view="dashboardView">Dashboard</button><button data-view="machineView">Macchine</button><button data-view="anomaliesView">Anomalie</button><button data-view="modelsView">Modelli</button><button data-view="settingsView">Temi e impostazioni</button></div>
+      <div class="card"><div class="section-title">Stato</div><div class="status-line"><span class="muted">Manifest</span><strong id="manifestCount">0</strong></div><div class="status-line"><span class="muted">Sinottici caricati</span><strong id="snapCount">0</strong></div><div class="status-line"><span class="muted">Modelli</span><strong id="modelCount">0</strong></div><div class="status-line"><span class="muted">Ultimo file</span><strong id="latestFile">—</strong></div></div>
     </aside>
-
     <main class="main">
-      <section id="dashboardView">
-        <div class="topbar">
-          <div class="card"><div class="section-title">Riepilogo</div><div class="muted" id="summaryText">Nessun dato caricato.</div></div>
-          <div class="card"><strong id="manifestBubble">Manifest: —</strong></div>
-          <div class="card"><strong id="dateBubble">Ultimo aggiornamento: —</strong></div>
-        </div>
-        <div class="kpis">
-          <div class="kpi"><div class="label">Slot monitorate</div><div class="value" id="kpiMachines">0</div></div>
-          <div class="kpi"><div class="label">Anomalie alte</div><div class="value" id="kpiAnHigh">0</div></div>
-          <div class="kpi"><div class="label">Pred. incasso 24h</div><div class="value" id="kpiPredIn">€0</div></div>
-          <div class="kpi"><div class="label">Pred. pagamento 24h</div><div class="value" id="kpiPredOut">€0</div></div>
-          <div class="kpi"><div class="label">Slot calde</div><div class="value" id="kpiHot">0</div></div>
-          <div class="kpi"><div class="label">Slot ferme</div><div class="value" id="kpiStill">0</div></div>
-        </div>
-        <div class="layout-2">
-          <div class="card chart-small"><div class="section-title">Predizioni aggregate top 12</div><canvas id="aggregateChart"></canvas></div>
-          <div class="card chart-small"><div class="section-title">Distribuzione calda / neutra / fredda</div><canvas id="temperatureChart"></canvas></div>
-        </div>
-        <div class="card">
-          <div class="row" style="justify-content:space-between">
-            <div class="section-title">Situazione macchina per macchina</div>
-            <div class="row" style="min-width:min(560px,100%);justify-content:flex-end">
-              <input id="searchBox" class="grow" placeholder="Cerca per locale, comune, modello, codeid, pda">
-              <select id="sortBox" style="max-width:220px">
-                <option value="risk">Ordina per rischio</option>
-                <option value="temperature">Ordina per slot calda/fredda</option>
-                <option value="activity">Ordina per attività</option>
-                <option value="payment">Ordina per probabilità di pagamento</option>
-              </select>
-            </div>
-          </div>
-          <div class="table-wrap">
-            <table id="machinesTable">
-              <thead>
-                <tr>
-                  <th>Apri</th>
-                  <th>Locale</th>
-                  <th>Modello</th>
-                  <th>CODEID</th>
-                  <th>Attività</th>
-                  <th>Temperatura</th>
-                  <th>Fase ciclo</th>
-                  <th>Prob. pagamento</th>
-                  <th>Pred. incasso</th>
-                  <th>Pred. pagamento</th>
-                  <th>Residuo ciclo</th>
-                  <th>Anomalia</th>
-                </tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
+      <section id="dashboardView"><div class="topbar"><div class="card"><div class="section-title">Riepilogo</div><div class="muted" id="summaryText">Nessun dato caricato.</div></div><div class="card"><strong id="manifestBubble">Manifest: —</strong></div><div class="card"><strong id="dateBubble">Ultimo aggiornamento: —</strong></div></div>
+        <div class="kpis"><div class="kpi"><div class="label">Slot monitorate</div><div class="value" id="kpiMachines">0</div></div><div class="kpi"><div class="label">Anomalie alte</div><div class="value" id="kpiAnHigh">0</div></div><div class="kpi"><div class="label">Pred. incasso 24h</div><div class="value" id="kpiPredIn">€0</div></div><div class="kpi"><div class="label">Pred. pagamento 24h</div><div class="value" id="kpiPredOut">€0</div></div><div class="kpi"><div class="label">Slot calde</div><div class="value" id="kpiHot">0</div></div><div class="kpi"><div class="label">Slot ferme</div><div class="value" id="kpiStill">0</div></div></div>
+        <div class="layout-2"><div class="card chart-small"><div class="section-title">Predizioni aggregate top 12</div><canvas id="aggregateChart"></canvas></div><div class="card chart-small"><div class="section-title">Distribuzione calda / neutra / fredda</div><canvas id="temperatureChart"></canvas></div></div>
+        <div class="card"><div class="row" style="justify-content:space-between"><div class="section-title">Situazione macchina per macchina</div><div class="row" style="min-width:min(560px,100%);justify-content:flex-end"><input id="searchBox" class="grow" placeholder="Cerca per locale, comune, modello, codeid, pda"><select id="sortBox" style="max-width:220px"><option value="risk">Ordina per rischio</option><option value="temperature">Ordina per slot calda/fredda</option><option value="activity">Ordina per attività</option><option value="payment">Ordina per probabilità di pagamento</option></select></div></div><div class="table-wrap"><table id="machinesTable"><thead><tr><th>Apri</th><th>Locale</th><th>Modello</th><th>CODEID</th><th>Attività</th><th>Temperatura</th><th>Fase ciclo</th><th>Prob. pagamento</th><th>Pred. incasso</th><th>Pred. pagamento</th><th>Residuo ciclo</th><th>Anomalia</th></tr></thead><tbody></tbody></table></div></div>
       </section>
-
-      <section id="machineView" class="hidden">
-        <div class="split">
-          <div class="card">
-            <div class="section-title">Macchine</div>
-            <div class="slot-list" id="slotList"></div>
-          </div>
-          <div class="stack">
-            <div class="card">
-              <div class="section-title" id="machineTitle">Seleziona una macchina</div>
-              <div class="muted" id="machineSubtitle">—</div>
-              <div class="details" id="machineDetails" style="margin-top:12px"></div>
-            </div>
-            <div class="card"><div class="section-title">Andamento e predizione</div><canvas id="machineChart"></canvas></div>
-            <div class="layout-2">
-              <div class="card"><div class="section-title">Storico ubicazioni e contatori</div><div class="table-wrap"><table id="locationTable"><thead><tr><th>Data</th><th>Locale</th><th>PDA</th><th>IN</th><th>OUT</th></tr></thead><tbody></tbody></table></div></div>
-              <div class="card"><div class="section-title">Altre macchine nel locale</div><div class="table-wrap"><table id="peerTable"><thead><tr><th>CODEID</th><th>Modello</th><th>PDA</th><th>Attività</th></tr></thead><tbody></tbody></table></div></div>
-            </div>
-            <div class="card"><div class="section-title">Lettura operativa</div><div id="machineNarrative" class="muted">Carica i sinottici e clicca su una macchina.</div></div>
-          </div>
-        </div>
-      </section>
-
-      <section id="anomaliesView" class="hidden">
-        <div class="card">
-          <div class="section-title">Anomalie rilevate</div>
-          <div class="small" style="margin-bottom:10px">Flag se la slot normalmente si muove ma rimane ferma, oppure se l'introdotto giornaliero scende sotto il 10% della sua media.</div>
-          <div class="table-wrap">
-            <table id="anomaliesTable"><thead><tr><th>Priorità</th><th>Locale</th><th>Modello</th><th>CODEID</th><th>Tipo</th><th>Dettaglio</th></tr></thead><tbody></tbody></table>
-          </div>
-        </div>
-      </section>
-
-      <section id="modelsView" class="hidden">
-        <div class="layout-2">
-          <div class="card"><div class="section-title">Modelli e cicli</div><div class="table-wrap"><table id="modelsTable"><thead><tr><th>Codice modello</th><th>Nome</th><th>Ciclo</th><th>Payout</th><th>Macchine viste</th></tr></thead><tbody></tbody></table></div></div>
-          <div class="card"><div class="section-title">Note metodo</div><div class="muted">I sinottici vengono letti e ordinati in base al nome file del manifest, compresi quelli del 2026. La barra mostra l'avanzamento reale. Le predizioni lavorano per macchina, non su grafici enormi e inutili.</div></div>
-        </div>
-      </section>
-
-      <section id="settingsView" class="hidden">
-        <div class="layout-3">
-          <div class="card stack">
-            <div class="section-title">Tema</div>
-            <button data-theme-btn="giorno">Giorno</button>
-            <button data-theme-btn="dolce-chiaro">Dolce chiaro</button>
-            <button data-theme-btn="alto-contrasto">Alto contrasto</button>
-          </div>
-          <div class="card stack">
-            <div class="section-title">Finestra storica</div>
-            <select id="historyWindow"><option value="5">Ultimi 5</option><option value="8" selected>Ultimi 8</option><option value="12">Ultimi 12</option><option value="20">Ultimi 20</option></select>
-            <div class="small">Usata per predizione, probabilità e stato caldo/freddo.</div>
-          </div>
-          <div class="card stack">
-            <div class="section-title">Soglia slot ferma</div>
-            <select id="stallDays"><option value="1" selected>1 giorno</option><option value="2">2 giorni</option><option value="3">3 giorni</option></select>
-            <div class="small">Segnala come anomalia se si blocca oltre la soglia e di solito gioca.</div>
-          </div>
-        </div>
-      </section>
+      <section id="machineView" class="hidden"><div class="split"><div class="card"><div class="section-title">Macchine</div><div class="slot-list" id="slotList"></div></div><div class="stack"><div class="card"><div class="section-title" id="machineTitle">Seleziona una macchina</div><div class="muted" id="machineSubtitle">—</div><div class="details" id="machineDetails" style="margin-top:12px"></div></div><div class="card"><div class="section-title">Andamento e predizione</div><canvas id="machineChart"></canvas></div><div class="layout-2"><div class="card"><div class="section-title">Storico ubicazioni e contatori</div><div class="table-wrap"><table id="locationTable"><thead><tr><th>Data</th><th>Locale</th><th>PDA</th><th>IN</th><th>OUT</th></tr></thead><tbody></tbody></table></div></div><div class="card"><div class="section-title">Altre macchine nel locale</div><div class="table-wrap"><table id="peerTable"><thead><tr><th>CODEID</th><th>Modello</th><th>PDA</th><th>Attività</th></tr></thead><tbody></tbody></table></div></div></div><div class="card"><div class="section-title">Lettura operativa</div><div id="machineNarrative" class="muted">Carica i sinottici e clicca su una macchina.</div></div></div></div></section>
+      <section id="anomaliesView" class="hidden"><div class="card"><div class="section-title">Anomalie rilevate</div><div class="small" style="margin-bottom:10px">Flag se la slot normalmente si muove ma rimane ferma, oppure se l'introdotto giornaliero scende sotto il 10% della sua media.</div><div class="table-wrap"><table id="anomaliesTable"><thead><tr><th>Priorità</th><th>Locale</th><th>Modello</th><th>CODEID</th><th>Tipo</th><th>Dettaglio</th></tr></thead><tbody></tbody></table></div></div></section>
+      <section id="modelsView" class="hidden"><div class="layout-2"><div class="card"><div class="section-title">Modelli e cicli</div><div class="table-wrap"><table id="modelsTable"><thead><tr><th>Codice modello</th><th>Nome</th><th>Ciclo</th><th>Payout</th><th>Macchine viste</th></tr></thead><tbody></tbody></table></div></div><div class="card"><div class="section-title">Note metodo</div><div class="muted">I sinottici vengono ordinati dal nome file del manifest, compresi quelli del 2026. La barra mostra l'avanzamento reale. Il dettaglio è per macchina.</div></div></div></section>
+      <section id="settingsView" class="hidden"><div class="layout-3"><div class="card stack"><div class="section-title">Tema</div><button data-theme-btn="giorno">Giorno</button><button data-theme-btn="dolce-chiaro">Dolce chiaro</button><button data-theme-btn="alto-contrasto">Alto contrasto</button></div><div class="card stack"><div class="section-title">Finestra storica</div><select id="historyWindow"><option value="5">Ultimi 5</option><option value="8" selected>Ultimi 8</option><option value="12">Ultimi 12</option><option value="20">Ultimi 20</option></select><div class="small">Usata per predizione, probabilità e stato caldo/freddo.</div></div><div class="card stack"><div class="section-title">Soglia slot ferma</div><select id="stallDays"><option value="1" selected>1 giorno</option><option value="2">2 giorni</option><option value="3">3 giorni</option></select><div class="small">Segnala come anomalia se si blocca oltre la soglia e di solito gioca.</div></div></div></section>
     </main>
   </div>
-
   <script>
     const state={users:[],currentUser:null,manifest:[],cicloslot:[],snapshots:[],series:new Map(),machines:[],selected:null,charts:{}};
     const aliases={codeId:['CODEID'],codiceModello:['CODICE MODELLO'],modello:['MODELLO'],pda:['MACADDRESS PDA','PDA'],sede:['DENOMIN. SEDE','DENOMIN SEDE'],comune:['COMUNE'],provincia:['PROVINCIA'],indirizzo:['INDIRIZZO'],inTot:['CNTTOTIN'],outTot:['CNTTOTOT'],stato:['DESCR. STATO','STATO'],warning:['WARNING']};
     const $=id=>document.getElementById(id);
-
     document.querySelectorAll('.nav button').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));btn.classList.add('active');['dashboardView','machineView','anomaliesView','modelsView','settingsView'].forEach(id=>$(id).classList.toggle('hidden',id!==btn.dataset.view));}));
     document.querySelectorAll('[data-theme-btn]').forEach(btn=>btn.addEventListener('click',()=>setTheme(btn.dataset.themeBtn)));
     $('btnLogin').addEventListener('click',login); $('loginPin').addEventListener('keydown',e=>{if(e.key==='Enter')login()}); $('btnLogout').addEventListener('click',logout);
     $('btnLoadLast').addEventListener('click',()=>bootstrap(8)); $('btnLoadAll').addEventListener('click',()=>bootstrap(null)); $('btnReload').addEventListener('click',async()=>{await loadRefs();await loadManifest();});
     $('searchBox').addEventListener('input',renderAll); $('sortBox').addEventListener('change',renderAll); $('historyWindow').addEventListener('change',()=>{analyze();renderAll()}); $('stallDays').addEventListener('change',()=>{analyze();renderAll()});
-
     init();
-    async function init(){try{state.users=await getJson('./users.json');$('loginMsg').textContent='Inserisci utente e PIN.';renderUsersMaybe();}catch{ $('loginMsg').textContent='Errore caricamento users.json'; }}
-
+    async function init(){try{state.users=await getJson('./users.json');$('loginMsg').textContent='Inserisci utente e PIN.';}catch{ $('loginMsg').textContent='Errore caricamento users.json'; }}
     async function login(){const u=$('loginUser').value.trim();const p=$('loginPin').value.trim();const found=state.users.find(x=>String(x.user).toLowerCase()===u.toLowerCase()&&String(x.pin)===p);if(!found){$('loginMsg').textContent='Credenziali non valide.';return;} if(isExpired(found.expires)){$('loginMsg').textContent='Utente scaduto.';return;} state.currentUser=found;$('userName').textContent=found.user;$('userLevel').textContent=found.level;$('userExpires').textContent=fmtDate(found.expires);$('loginScreen').classList.add('hidden');$('appRoot').classList.remove('hidden');}
     function logout(){state.currentUser=null;$('appRoot').classList.add('hidden');$('loginScreen').classList.remove('hidden');$('loginPin').value='';}
-
     async function bootstrap(limit){resetProgress('Preparazione...');await loadRefs();await loadManifest();await loadSnapshots(limit);analyze();renderAll();setProgress(100,'Caricamento completato.');}
     async function loadRefs(){state.cicloslot=await getJson('./cicloslot.json');$('modelCount').textContent=state.cicloslot.length;}
-    async function loadManifest(){const m=await getJson('./manifest.json');state.manifest=(Array.isArray(m.sinottici)?m.sinottici:[]).map(f=>({filename:f,meta:parseManifestName(f)})).filter(x=>x.meta).sort((a,b)=>a.meta.ts-b.meta.ts);$('manifestCount').textContent=state.manifest.length;$('manifestBubble').textContent=`Manifest: ${state.manifest.length} file`;const last=state.manifest.at(-1);$('latestFile').textContent=last?.filename||'—';$('dateBubble').textContent=`Ultimo aggiornamento: ${last?.meta.label||'—'}`;}
-
+    async function loadManifest(){const m=await getJson('./manifest.json');state.manifest=(Array.isArray(m.sinottici)?m.sinottici:[]).map(f=>({filename:f,meta:parseManifestName(f)})).filter(x=>x.meta).sort((a,b)=>a.meta.ts-b.meta.ts);$('manifestCount').textContent=state.manifest.length;$('manifestBubble').textContent=`Manifest: ${state.manifest.length} file`;const last=state.manifest.at(-1);$('latestFile').textContent=last?.filename||'—';$('dateBubble').textContent=`Ultimo aggiornamento: ${last?.meta?.label||'—'}`;$('summaryText').textContent=state.manifest.length?`Manifest aggiornato fino a ${last?.meta?.label||'—'}.`:'Nessun dato caricato.';}
     async function loadSnapshots(limit){state.snapshots=[];const list=limit?state.manifest.slice(-limit):state.manifest;const total=Math.max(1,list.length);for(let i=0;i<list.length;i++){const item=list[i];setProgress(Math.round((i/total)*100),`Caricamento ${i+1}/${list.length}: ${item.filename}`);try{const ab=await getBuffer(`./Dati/${item.filename}`);const wb=XLSX.read(ab,{type:'array',cellDates:true});const sheet=wb.Sheets[wb.SheetNames[0]];const rows=XLSX.utils.sheet_to_json(sheet,{defval:null,raw:false});state.snapshots.push({filename:item.filename,meta:item.meta,rows});}catch(err){console.warn('Errore',item.filename,err);}}$('snapCount').textContent=state.snapshots.length;$('summaryText').textContent=`Sinottici caricati: ${state.snapshots.length}. Manifest valido fino al ${state.manifest.at(-1)?.meta?.label||'—'}.`;}
-
-    function analyze(){state.series=new Map();const normalized=[];for(const snap of state.snapshots){for(const row of snap.rows){const n=normalizeRow(row,snap);if(n)normalized.push(n);}}
-      normalized.forEach(r=>{if(!state.series.has(r.codeId))state.series.set(r.codeId,[]);state.series.get(r.codeId).push(r)});
-      const historyN=Number($('historyWindow').value||8);const stallDays=Number($('stallDays').value||1);const machines=[];
-      for(const [codeId,arr] of state.series.entries()){
-        const series=arr.sort((a,b)=>a.snapshotTs-b.snapshotTs);const recent=series.slice(-historyN);const latest=series.at(-1);const deltas=[];
-        for(let i=1;i<recent.length;i++){const a=recent[i-1],b=recent[i];const h=Math.max(.001,(b.snapshotTs-a.snapshotTs)/36e5);const dIn=Math.max(0,b.inTot-a.inTot);const dOut=Math.max(0,b.outTot-a.outTot);deltas.push({h,dIn,dOut,rateIn:dIn/h,rateOut:dOut/h,from:a,to:b});}
-        const avgRateIn=wAvg(deltas.map(x=>x.rateIn)); const avgRateOut=wAvg(deltas.map(x=>x.rateOut));
-        const predIn24=avgRateIn*24; const predOut24=avgRateOut*24;
-        const phasePct=latest.ciclo?((latest.inTot%latest.ciclo)/latest.ciclo)*100:null; const cycleResidual=latest.ciclo?(latest.ciclo-(latest.inTot%latest.ciclo)):null;
-        const payoutTarget=latest.payoutPct??null; const payoutReal=latest.inTot>0?(latest.outTot/latest.inTot)*100:0; const payoutGap=payoutTarget!=null?(payoutReal-payoutTarget):null;
-        const paymentProb=computePaymentProbability(phasePct,payoutGap,avgRateOut,avgRateIn); const temperature=computeTemperature(phasePct,payoutGap,paymentProb); const activity=computeActivity(avgRateIn);
-        const dailyInSeries=buildDailySeries(series,'inTot'); const dailyOutSeries=buildDailySeries(series,'outTot');
-        const avgDailyIn=mean(dailyInSeries.map(x=>x.delta)); const lastDailyIn=dailyInSeries.at(-1)?.delta||0; const stillDays=countStillDays(series); const anomalies=[];
-        if(avgDailyIn>0&&lastDailyIn<avgDailyIn*0.1) anomalies.push({severity:'Alta',type:'Introduzione molto bassa',detail:`Ultimo introdotto ${fmtEuro(lastDailyIn)} sotto il 10% della media ${fmtEuro(avgDailyIn)}`});
-        if(stillDays>=stallDays&&avgDailyIn>30) anomalies.push({severity:'Alta',type:'Slot ferma',detail:`Ferma da ${stillDays} giorno/i ma normalmente gioca`});
-        if(String(latest.warning||'').trim()) anomalies.push({severity:'Media',type:'Warning sinottico',detail:latest.warning});
-        const risk=computeRisk({paymentProb,temperature,activity,payoutGap,anomalies,stillDays});
-        const narrative=buildNarrative({latest,activity,temperature,paymentProb,predIn24,predOut24,cycleResidual,phasePct,payoutReal,payoutTarget,payoutGap,anomalies});
-        machines.push({codeId,latest,series,deltas,dailyInSeries,dailyOutSeries,avgRateIn,avgRateOut,predIn24,predOut24,phasePct,cycleResidual,paymentProb,temperature,activity,payoutReal,payoutTarget,payoutGap,anomalies,risk,narrative});
-      }
-      state.machines=machines; if(!state.selected&&machines.length)state.selected=machines[0].codeId;
-    }
-
-    function renderAll(){const q=$('searchBox').value.trim().toLowerCase();const sort=$('sortBox').value;let rows=[...state.machines].filter(m=>!q||`${m.latest.sede} ${m.latest.comune} ${m.latest.modello} ${m.codeId} ${m.latest.pda}`.toLowerCase().includes(q));
-      rows.sort((a,b)=>sort==='temperature'?tempRank(b.temperature)-tempRank(a.temperature):sort==='activity'?activityRank(b.activity)-activityRank(a.activity):sort==='payment'?b.paymentProb-a.paymentProb:b.risk-a.risk);
-      $('kpiMachines').textContent=rows.length; $('kpiAnHigh').textContent=rows.filter(x=>x.anomalies.some(a=>a.severity==='Alta')).length; $('kpiPredIn').textContent=fmtEuro(sum(rows.map(x=>x.predIn24))); $('kpiPredOut').textContent=fmtEuro(sum(rows.map(x=>x.predOut24))); $('kpiHot').textContent=rows.filter(x=>x.temperature==='Calda').length; $('kpiStill').textContent=rows.filter(x=>x.activity==='Non gioca').length;
-      renderMachinesTable(rows); renderSlotList(rows); renderMachineDetail(rows.find(x=>x.codeId===state.selected)||rows[0]); renderAnomalies(rows); renderModels(rows); renderAggCharts(rows);
-    }
-
-    function renderMachinesTable(rows){$('machinesTable').querySelector('tbody').innerHTML=rows.map(m=>`<tr>
-      <td><button data-open="${esc(m.codeId)}">Apri</button></td>
-      <td>${h(m.latest.sede||'—')}</td><td>${h(m.latest.modello||'—')}</td><td>${h(m.codeId)}</td><td>${badgeText(m.activity)}</td><td>${badgeText(m.temperature)}</td>
-      <td>${m.phasePct!=null?m.phasePct.toFixed(1)+'%':'—'}</td><td>${m.paymentProb.toFixed(0)}%</td><td>${fmtEuro(m.predIn24)}</td><td>${fmtEuro(m.predOut24)}</td><td>${m.cycleResidual!=null?fmtEuro(m.cycleResidual):'—'}</td><td>${m.anomalies.length?riskBadge('bad',m.anomalies[0].type):riskBadge('good','OK')}</td></tr>`).join('');
-      $('machinesTable').querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>{state.selected=b.dataset.open;document.querySelector('.nav button[data-view="machineView"]').click();renderAll();}));}
-
-    function renderSlotList(rows){$('slotList').innerHTML=rows.map(m=>`<div class="slot-item ${state.selected===m.codeId?'active':''}" data-sel="${esc(m.codeId)}"><div style="font-weight:800">${h(m.latest.sede||'Locale')}</div><div class="mini"><span>${h(m.latest.modello||'—')}</span><span>${m.paymentProb.toFixed(0)}%</span></div><div class="mini" style="margin-top:6px"><span>${h(m.codeId)}</span><span>${m.temperature} · ${m.activity}</span></div></div>`).join(''); $('slotList').querySelectorAll('[data-sel]').forEach(x=>x.addEventListener('click',()=>{state.selected=x.dataset.sel;renderAll();}));}
-
-    function renderMachineDetail(m){if(!m)return; state.selected=m.codeId; $('machineTitle').textContent=`${m.latest.sede||'Locale'} · ${m.latest.modello||'Modello'}`; $('machineSubtitle').textContent=`CODEID ${m.codeId} • PDA ${m.latest.pda||'—'} • Comune ${m.latest.comune||'—'}`;
-      $('machineDetails').innerHTML=[['Attività',m.activity],['Temperatura',m.temperature],['Probabilità pagamento',m.paymentProb.toFixed(0)+'%'],['Fase ciclo',m.phasePct!=null?m.phasePct.toFixed(1)+'%':'—'],['Residuo ciclo',m.cycleResidual!=null?fmtEuro(m.cycleResidual):'—'],['Pred. incasso 24h',fmtEuro(m.predIn24)],['Pred. pagamento 24h',fmtEuro(m.predOut24)],['Payout reale',m.payoutReal.toFixed(1)+'%'],['Target payout',m.payoutTarget!=null?m.payoutTarget.toFixed(1)+'%':'—'],['Scarto payout',m.payoutGap!=null?signed(m.payoutGap,'%'):'—'],['Stato',m.latest.stato||'—'],['Warning',m.latest.warning||'—']].map(([k,v])=>`<div class="detail"><div class="k">${h(k)}</div><div class="v">${h(v)}</div></div>`).join('');
-      makeChart('machineChart',{type:'line',data:{labels:m.series.map(x=>x.snapshotLabel),datasets:[{label:'IN totale',data:m.series.map(x=>x.inTot),borderWidth:2,tension:.25},{label:'OUT totale',data:m.series.map(x=>x.outTot),borderWidth:2,tension:.25},{label:'Pred. IN prossimo giorno',data:m.series.map((x,i,a)=>i===a.length-1?x.inTot+m.predIn24:null),borderWidth:2,tension:.2,borderDash:[5,5]},{label:'Pred. OUT prossimo giorno',data:m.series.map((x,i,a)=>i===a.length-1?x.outTot+m.predOut24:null),borderWidth:2,tension:.2,borderDash:[5,5]}]},options:chartOpts()});
-      $('locationTable').querySelector('tbody').innerHTML=m.series.map(x=>`<tr><td>${h(x.snapshotLabel)}</td><td>${h(x.sede||'—')}</td><td>${h(x.pda||'—')}</td><td>${fmtEuro(x.inTot)}</td><td>${fmtEuro(x.outTot)}</td></tr>`).join('');
-      const peers=state.machines.filter(x=>x.latest.sede===m.latest.sede&&x.codeId!==m.codeId); $('peerTable').querySelector('tbody').innerHTML=peers.length?peers.map(x=>`<tr><td>${h(x.codeId)}</td><td>${h(x.latest.modello||'—')}</td><td>${h(x.latest.pda||'—')}</td><td>${h(x.activity)}</td></tr>`).join(''):'<tr><td colspan="4">Nessun’altra macchina nello stesso locale.</td></tr>';
-      $('machineNarrative').textContent=m.narrative;
-    }
-
+    function analyze(){state.series=new Map();const normalized=[];for(const snap of state.snapshots){for(const row of snap.rows){const n=normalizeRow(row,snap);if(n)normalized.push(n);}} normalized.forEach(r=>{if(!state.series.has(r.codeId))state.series.set(r.codeId,[]);state.series.get(r.codeId).push(r)});const historyN=Number($('historyWindow').value||8);const stallDays=Number($('stallDays').value||1);const machines=[];for(const [codeId,arr] of state.series.entries()){const series=arr.sort((a,b)=>a.snapshotTs-b.snapshotTs);const recent=series.slice(-historyN);const latest=series.at(-1);const deltas=[];for(let i=1;i<recent.length;i++){const a=recent[i-1],b=recent[i];const h=Math.max(.001,(b.snapshotTs-a.snapshotTs)/36e5);const dIn=Math.max(0,b.inTot-a.inTot);const dOut=Math.max(0,b.outTot-a.outTot);deltas.push({h,dIn,dOut,rateIn:dIn/h,rateOut:dOut/h,from:a,to:b});}const avgRateIn=wAvg(deltas.map(x=>x.rateIn)); const avgRateOut=wAvg(deltas.map(x=>x.rateOut));const predIn24=avgRateIn*24; const predOut24=avgRateOut*24;const phasePct=latest.ciclo?((latest.inTot%latest.ciclo)/latest.ciclo)*100:null; const cycleResidual=latest.ciclo?(latest.ciclo-(latest.inTot%latest.ciclo)):null;const payoutTarget=latest.payoutPct??null; const payoutReal=latest.inTot>0?(latest.outTot/latest.inTot)*100:0; const payoutGap=payoutTarget!=null?(payoutReal-payoutTarget):null;const paymentProb=computePaymentProbability(phasePct,payoutGap,avgRateOut,avgRateIn); const temperature=computeTemperature(phasePct,payoutGap,paymentProb); const activity=computeActivity(avgRateIn);const dailyInSeries=buildDailySeries(series,'inTot'); const avgDailyIn=mean(dailyInSeries.map(x=>x.delta)); const lastDailyIn=dailyInSeries.at(-1)?.delta||0; const stillDays=countStillDays(series); const anomalies=[];if(avgDailyIn>0&&lastDailyIn<avgDailyIn*0.1) anomalies.push({severity:'Alta',type:'Introduzione molto bassa',detail:`Ultimo introdotto ${fmtEuro(lastDailyIn)} sotto il 10% della media ${fmtEuro(avgDailyIn)}`});if(stillDays>=stallDays&&avgDailyIn>30) anomalies.push({severity:'Alta',type:'Slot ferma',detail:`Ferma da ${stillDays} giorno/i ma normalmente gioca`});if(String(latest.warning||'').trim()) anomalies.push({severity:'Media',type:'Warning sinottico',detail:latest.warning});const risk=computeRisk({paymentProb,temperature,activity,payoutGap,anomalies,stillDays});const narrative=buildNarrative({latest,activity,temperature,paymentProb,predIn24,predOut24,cycleResidual,phasePct,payoutReal,payoutTarget,payoutGap,anomalies});machines.push({codeId,latest,series,deltas,avgRateIn,avgRateOut,predIn24,predOut24,phasePct,cycleResidual,paymentProb,temperature,activity,payoutReal,payoutTarget,payoutGap,anomalies,risk,narrative});}state.machines=machines; if(!state.selected&&machines.length)state.selected=machines[0].codeId;}
+    function renderAll(){const q=$('searchBox').value.trim().toLowerCase();const sort=$('sortBox').value;let rows=[...state.machines].filter(m=>!q||`${m.latest.sede} ${m.latest.comune} ${m.latest.modello} ${m.codeId} ${m.latest.pda}`.toLowerCase().includes(q));rows.sort((a,b)=>sort==='temperature'?tempRank(b.temperature)-tempRank(a.temperature):sort==='activity'?activityRank(b.activity)-activityRank(a.activity):sort==='payment'?b.paymentProb-a.paymentProb:b.risk-a.risk);$('kpiMachines').textContent=rows.length; $('kpiAnHigh').textContent=rows.filter(x=>x.anomalies.some(a=>a.severity==='Alta')).length; $('kpiPredIn').textContent=fmtEuro(sum(rows.map(x=>x.predIn24))); $('kpiPredOut').textContent=fmtEuro(sum(rows.map(x=>x.predOut24))); $('kpiHot').textContent=rows.filter(x=>x.temperature==='Calda').length; $('kpiStill').textContent=rows.filter(x=>x.activity==='Non gioca').length;renderMachinesTable(rows); renderSlotList(rows); renderMachineDetail(rows.find(x=>x.codeId===state.selected)||rows[0]); renderAnomalies(rows); renderModels(rows); renderAggCharts(rows);}
+    function renderMachinesTable(rows){$('machinesTable').querySelector('tbody').innerHTML=rows.map(m=>`<tr><td><button data-open="${esc(m.codeId)}">Apri</button></td><td>${h(m.latest.sede||'—')}</td><td>${h(m.latest.modello||'—')}</td><td>${h(m.codeId)}</td><td>${badgeText(m.activity)}</td><td>${badgeText(m.temperature)}</td><td>${m.phasePct!=null?m.phasePct.toFixed(1)+'%':'—'}</td><td>${m.paymentProb.toFixed(0)}%</td><td>${fmtEuro(m.predIn24)}</td><td>${fmtEuro(m.predOut24)}</td><td>${m.cycleResidual!=null?fmtEuro(m.cycleResidual):'—'}</td><td>${m.anomalies.length?riskBadge('bad',m.anomalies[0].type):riskBadge('good','OK')}</td></tr>`).join('');$('machinesTable').querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>{state.selected=b.dataset.open;document.querySelector('.nav button[data-view="machineView"]').click();renderAll();}));}
+    function renderSlotList(rows){$('slotList').innerHTML=rows.map(m=>`<div class="slot-item ${state.selected===m.codeId?'active':''}" data-sel="${esc(m.codeId)}"><div style="font-weight:800">${h(m.latest.sede||'Locale')}</div><div class="mini"><span>${h(m.latest.modello||'—')}</span><span>${m.paymentProb.toFixed(0)}%</span></div><div class="mini" style="margin-top:6px"><span>${h(m.codeId)}</span><span>${m.temperature} · ${m.activity}</span></div></div>`).join('');$('slotList').querySelectorAll('[data-sel]').forEach(x=>x.addEventListener('click',()=>{state.selected=x.dataset.sel;renderAll();}));}
+    function renderMachineDetail(m){if(!m)return; state.selected=m.codeId; $('machineTitle').textContent=`${m.latest.sede||'Locale'} · ${m.latest.modello||'Modello'}`; $('machineSubtitle').textContent=`CODEID ${m.codeId} • PDA ${m.latest.pda||'—'} • Comune ${m.latest.comune||'—'}`;$('machineDetails').innerHTML=[['Attività',m.activity],['Temperatura',m.temperature],['Probabilità pagamento',m.paymentProb.toFixed(0)+'%'],['Fase ciclo',m.phasePct!=null?m.phasePct.toFixed(1)+'%':'—'],['Residuo ciclo',m.cycleResidual!=null?fmtEuro(m.cycleResidual):'—'],['Pred. incasso 24h',fmtEuro(m.predIn24)],['Pred. pagamento 24h',fmtEuro(m.predOut24)],['Payout reale',m.payoutReal.toFixed(1)+'%'],['Target payout',m.payoutTarget!=null?m.payoutTarget.toFixed(1)+'%':'—'],['Scarto payout',m.payoutGap!=null?signed(m.payoutGap,'%'):'—'],['Stato',m.latest.stato||'—'],['Warning',m.latest.warning||'—']].map(([k,v])=>`<div class="detail"><div class="k">${h(k)}</div><div class="v">${h(v)}</div></div>`).join('');makeChart('machineChart',{type:'line',data:{labels:m.series.map(x=>x.snapshotLabel),datasets:[{label:'IN totale',data:m.series.map(x=>x.inTot),borderWidth:2,tension:.25},{label:'OUT totale',data:m.series.map(x=>x.outTot),borderWidth:2,tension:.25},{label:'Pred. IN prossimo giorno',data:m.series.map((x,i,a)=>i===a.length-1?x.inTot+m.predIn24:null),borderWidth:2,tension:.2,borderDash:[5,5]},{label:'Pred. OUT prossimo giorno',data:m.series.map((x,i,a)=>i===a.length-1?x.outTot+m.predOut24:null),borderWidth:2,tension:.2,borderDash:[5,5]}]},options:chartOpts()});$('locationTable').querySelector('tbody').innerHTML=m.series.map(x=>`<tr><td>${h(x.snapshotLabel)}</td><td>${h(x.sede||'—')}</td><td>${h(x.pda||'—')}</td><td>${fmtEuro(x.inTot)}</td><td>${fmtEuro(x.outTot)}</td></tr>`).join('');const peers=state.machines.filter(x=>x.latest.sede===m.latest.sede&&x.codeId!==m.codeId); $('peerTable').querySelector('tbody').innerHTML=peers.length?peers.map(x=>`<tr><td>${h(x.codeId)}</td><td>${h(x.latest.modello||'—')}</td><td>${h(x.latest.pda||'—')}</td><td>${h(x.activity)}</td></tr>`).join(''):'<tr><td colspan="4">Nessun’altra macchina nello stesso locale.</td></tr>';$('machineNarrative').textContent=m.narrative;}
     function renderAnomalies(rows){const flat=[];rows.forEach(m=>m.anomalies.forEach(a=>flat.push({m,a})));$('anomaliesTable').querySelector('tbody').innerHTML=flat.length?flat.map(({m,a})=>`<tr><td>${riskBadge(a.severity==='Alta'?'bad':'warn',a.severity)}</td><td>${h(m.latest.sede||'—')}</td><td>${h(m.latest.modello||'—')}</td><td>${h(m.codeId)}</td><td>${h(a.type)}</td><td>${h(a.detail)}</td></tr>`).join(''):'<tr><td colspan="6">Nessuna anomalia rilevata.</td></tr>';}
     function renderModels(rows){const seen=new Map();rows.forEach(m=>seen.set(String(m.latest.codiceModello||'—'),(seen.get(String(m.latest.codiceModello||'—'))||0)+1));$('modelsTable').querySelector('tbody').innerHTML=state.cicloslot.map(c=>`<tr><td>${h(String(c.codiceModello))}</td><td>${h(c.nomeModello)}</td><td>${fmtEuro(c.ciclo)}</td><td>${h(String(c.payout))}%</td><td>${seen.get(String(c.codiceModello))||0}</td></tr>`).join('');}
     function renderAggCharts(rows){const top=rows.slice(0,12);makeChart('aggregateChart',{type:'bar',data:{labels:top.map(x=>x.latest.sede||x.codeId),datasets:[{label:'Pred. incasso 24h',data:top.map(x=>Math.round(x.predIn24))},{label:'Pred. pagamento 24h',data:top.map(x=>Math.round(x.predOut24))}]},options:chartOpts()});const temp={Calda:0,Neutra:0,Fredda:0};rows.forEach(x=>temp[x.temperature]++);makeChart('temperatureChart',{type:'doughnut',data:{labels:Object.keys(temp),datasets:[{data:Object.values(temp)}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:getComputedStyle(document.body).getPropertyValue('--text')}}}}});}
-
-    function normalizeRow(row,snap){const codeId=String(getAlias(row,aliases.codeId)||'').trim(); if(!codeId)return null; const codiceModello=String(getAlias(row,aliases.codiceModello)||'').trim(); const ref=state.cicloslot.find(x=>String(x.codiceModello).trim()===codiceModello);
-      return {snapshotTs:snap.meta.ts,snapshotLabel:snap.meta.label,filename:snap.filename,codeId,codiceModello,modello:String(getAlias(row,aliases.modello)||ref?.nomeModello||'—').trim(),pda:String(getAlias(row,aliases.pda)||'').trim(),sede:String(getAlias(row,aliases.sede)||'').trim(),comune:String(getAlias(row,aliases.comune)||'').trim(),provincia:String(getAlias(row,aliases.provincia)||'').trim(),indirizzo:String(getAlias(row,aliases.indirizzo)||'').trim(),stato:String(getAlias(row,aliases.stato)||'').trim(),warning:String(getAlias(row,aliases.warning)||'').trim(),inTot:num(getAlias(row,aliases.inTot)),outTot:num(getAlias(row,aliases.outTot)),ciclo:ref?.ciclo??null,payoutPct:ref?.payout??null};}
-
-    function parseManifestName(filename){const m=String(filename).match(/^Sinottico-?(\d{4})-(\d{2})-(\d{2})-(\d{4})\.xlsx$/i); if(!m)return null; const [,y,mo,d,hm]=m; const hh=hm.slice(0,2),mm=hm.slice(2,4); const ts=new Date(`${y}-${mo}-${d}T${hh}:${mm}:00`).getTime(); return {ts,label:`${d}/${mo}/${y} ${hh}:${mm}`};}
-    function getAlias(row,list){for(const k of list){if(row[k]!==undefined&&row[k]!==null&&row[k]!=='')return row[k]} return null}
-    function num(v){if(v==null||v==='')return 0;if(typeof v==='number')return v;let s=String(v).trim().replace(/\s/g,'');s=s.replace(/\.(?=\d{3}(\D|$))/g,'');s=s.replace(/,(\d{1,2})$/,'.$1');const n=Number(s.replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0}
-    function buildDailySeries(series,key){const out=[];for(let i=1;i<series.length;i++){const cur=series[i],prev=series[i-1];out.push({label:cur.snapshotLabel,delta:Math.max(0,cur[key]-prev[key]),ts:cur.snapshotTs});}return out}
-    function countStillDays(series){let count=0;for(let i=series.length-1;i>0;i--){const cur=series[i],prev=series[i-1];if(cur.inTot===prev.inTot&&cur.outTot===prev.outTot)count++;else break;}return count}
+    function normalizeRow(row,snap){const codeId=String(getAlias(row,aliases.codeId)||'').trim(); if(!codeId)return null; const codiceModello=String(getAlias(row,aliases.codiceModello)||'').trim(); const ref=state.cicloslot.find(x=>String(x.codiceModello).trim()===codiceModello); return {snapshotTs:snap.meta.ts,snapshotLabel:snap.meta.label,filename:snap.filename,codeId,codiceModello,modello:String(getAlias(row,aliases.modello)||ref?.nomeModello||'—').trim(),pda:String(getAlias(row,aliases.pda)||'').trim(),sede:String(getAlias(row,aliases.sede)||'').trim(),comune:String(getAlias(row,aliases.comune)||'').trim(),provincia:String(getAlias(row,aliases.provincia)||'').trim(),indirizzo:String(getAlias(row,aliases.indirizzo)||'').trim(),stato:String(getAlias(row,aliases.stato)||'').trim(),warning:String(getAlias(row,aliases.warning)||'').trim(),inTot:num(getAlias(row,aliases.inTot)),outTot:num(getAlias(row,aliases.outTot)),ciclo:ref?.ciclo??null,payoutPct:ref?.payout??null};}
+    function parseManifestName(filename){const m=String(filename).match(/^Sinottico-?(\d{4})-(\d{2})-(\d{2})-(\d{4})\.xlsx$/i); if(!m)return null; const [,y,mo,d,hm]=m; const hh=hm.slice(0,2),mm=hm.slice(2,4); const ts=Date.UTC(Number(y),Number(mo)-1,Number(d),Number(hh),Number(mm),0); return {ts,label:`${d}/${mo}/${y} ${hh}:${mm}`};}
+    function getAlias(row,list){for(const k of list){if(row[k]!==undefined&&row[k]!==null&&row[k]!=='')return row[k]} return null} function num(v){if(v==null||v==='')return 0;if(typeof v==='number')return v;let s=String(v).trim().replace(/\s/g,'');s=s.replace(/\.(?=\d{3}(\D|$))/g,'');s=s.replace(/,(\d{1,2})$/,'.$1');const n=Number(s.replace(/[^0-9.-]/g,''));return Number.isFinite(n)?n:0}
+    function buildDailySeries(series,key){const out=[];for(let i=1;i<series.length;i++){const cur=series[i],prev=series[i-1];out.push({label:cur.snapshotLabel,delta:Math.max(0,cur[key]-prev[key]),ts:cur.snapshotTs});}return out} function countStillDays(series){let count=0;for(let i=series.length-1;i>0;i--){const cur=series[i],prev=series[i-1];if(cur.inTot===prev.inTot&&cur.outTot===prev.outTot)count++;else break;}return count}
     function computePaymentProbability(phasePct,payoutGap,avgRateOut,avgRateIn){let p=10; if(phasePct!=null)p+=phasePct*.55; if(payoutGap!=null&&payoutGap<0)p+=Math.min(20,Math.abs(payoutGap)); if(avgRateOut>avgRateIn*.45)p+=10; return Math.max(1,Math.min(99,p))}
     function computeTemperature(phasePct,payoutGap,paymentProb){if(paymentProb>=70||(phasePct!=null&&phasePct>=75)||(payoutGap!=null&&payoutGap<-10))return 'Calda'; if(paymentProb<=35||(phasePct!=null&&phasePct<30))return 'Fredda'; return 'Neutra'}
     function computeActivity(avgRateIn){if(avgRateIn<1)return 'Non gioca'; if(avgRateIn<20)return 'Gioca poco'; return 'Gioca tanto'}
     function computeRisk({paymentProb,temperature,activity,payoutGap,anomalies,stillDays}){let r=0; if(activity==='Non gioca')r+=20; if(temperature==='Calda')r+=18; if(payoutGap!=null&&Math.abs(payoutGap)>12)r+=18; r+=anomalies.length*22; r+=stillDays*10; r+=paymentProb*.15; return Math.min(100,Math.round(r))}
     function buildNarrative({latest,activity,temperature,paymentProb,predIn24,predOut24,cycleResidual,phasePct,payoutReal,payoutTarget,payoutGap,anomalies}){const a=[];a.push(`La slot ${latest.codeId} nel locale ${latest.sede||'—'} attualmente ${activity.toLowerCase()} ed è classificata come ${temperature.toLowerCase()}.`);a.push(`Probabilità stimata di pagamento ${paymentProb.toFixed(0)}%. Predizione 24 ore: incasso ${fmtEuro(predIn24)}, pagamento ${fmtEuro(predOut24)}.`);if(phasePct!=null)a.push(`Fase ciclo ${phasePct.toFixed(1)}% con residuo ${cycleResidual!=null?fmtEuro(cycleResidual):'—'}.`);if(payoutTarget!=null)a.push(`Payout reale ${payoutReal.toFixed(1)}% contro target ${payoutTarget.toFixed(1)}%, scarto ${signed(payoutGap,'%')}.`);if(anomalies.length)a.push(`Anomalie: ${anomalies.map(x=>x.type).join(', ')}.`);return a.join(' ')}
-    function wAvg(arr){if(!arr.length)return 0;let n=0,d=0;arr.forEach((v,i)=>{const w=i+1;n+=v*w;d+=w});return d?n/d:0}
-    function mean(arr){return arr.length?sum(arr)/arr.length:0} function sum(arr){return arr.reduce((a,b)=>a+(Number(b)||0),0)}
-    function tempRank(t){return t==='Calda'?3:t==='Neutra'?2:1} function activityRank(a){return a==='Gioca tanto'?3:a==='Gioca poco'?2:1}
-    function badgeText(t){if(t==='Calda'||t==='Gioca tanto')return riskBadge('good',t); if(t==='Fredda'||t==='Gioca poco')return riskBadge('warn',t); if(t==='Non gioca')return riskBadge('bad',t); return riskBadge('neutral',t)}
-    function riskBadge(kind,text){return `<span class="badge ${kind}"><span class="dot"></span>${h(text)}</span>`}
-    function makeChart(id,cfg){if(state.charts[id])state.charts[id].destroy();state.charts[id]=new Chart($(id).getContext('2d'),cfg)}
-    function chartOpts(){const c=getComputedStyle(document.body);return {responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:c.getPropertyValue('--text')},grid:{color:c.getPropertyValue('--line')}},y:{ticks:{color:c.getPropertyValue('--text')},grid:{color:c.getPropertyValue('--line')}}},plugins:{legend:{labels:{color:c.getPropertyValue('--text')}}}}}
-    function setTheme(theme){document.body.dataset.theme=theme;localStorage.setItem('awp-theme',theme); if(state.machines.length)renderAll()}
-    (function(){const saved=localStorage.getItem('awp-theme'); if(saved)document.body.dataset.theme=saved})();
+    function wAvg(arr){if(!arr.length)return 0;let n=0,d=0;arr.forEach((v,i)=>{const w=i+1;n+=v*w;d+=w});return d?n/d:0} function mean(arr){return arr.length?sum(arr)/arr.length:0} function sum(arr){return arr.reduce((a,b)=>a+(Number(b)||0),0)} function tempRank(t){return t==='Calda'?3:t==='Neutra'?2:1} function activityRank(a){return a==='Gioca tanto'?3:a==='Gioca poco'?2:1}
+    function badgeText(t){if(t==='Calda'||t==='Gioca tanto')return riskBadge('good',t); if(t==='Fredda'||t==='Gioca poco')return riskBadge('warn',t); if(t==='Non gioca')return riskBadge('bad',t); return riskBadge('neutral',t)} function riskBadge(kind,text){return `<span class="badge ${kind}"><span class="dot"></span>${h(text)}</span>`}
+    function makeChart(id,cfg){if(state.charts[id])state.charts[id].destroy();state.charts[id]=new Chart($(id).getContext('2d'),cfg)} function chartOpts(){const c=getComputedStyle(document.body);return {responsive:true,maintainAspectRatio:false,scales:{x:{ticks:{color:c.getPropertyValue('--text')},grid:{color:c.getPropertyValue('--line')}},y:{ticks:{color:c.getPropertyValue('--text')},grid:{color:c.getPropertyValue('--line')}}},plugins:{legend:{labels:{color:c.getPropertyValue('--text')}}}}}
+    function setTheme(theme){document.body.dataset.theme=theme;localStorage.setItem('awp-theme',theme); if(state.machines.length)renderAll();}
+    (function(){const saved=localStorage.getItem('awp-theme'); if(saved)document.body.dataset.theme=saved;})();
     function setProgress(p,msg){$('progressBar').style.width=`${p}%`; $('progressLabel').textContent=msg} function resetProgress(msg){setProgress(0,msg)}
     async function getJson(path){const r=await fetch(path); if(!r.ok)throw new Error(`Errore caricamento ${path}`); return r.json()} async function getBuffer(path){const r=await fetch(path); if(!r.ok)throw new Error(`Errore caricamento ${path}`); return r.arrayBuffer()}
     function fmtEuro(v){return new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR',maximumFractionDigits:0}).format(Number(v||0))} function fmtDate(v){const d=new Date(`${v}T00:00:00`); return Number.isFinite(d.getTime())?new Intl.DateTimeFormat('it-IT').format(d):String(v)} function isExpired(v){const d=new Date(`${v}T23:59:59`); return Number.isFinite(d.getTime())&&Date.now()>d.getTime()} function signed(v,s){const n=Number(v||0); const p=n>0?'+':''; return s==='€'?`${p}${fmtEuro(n)}`:`${p}${n.toFixed(1)}${s}`}
-    function h(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')} function esc(s){return h(s)} function renderUsersMaybe(){}
+    function h(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;')} function esc(s){return h(s)}
   </script>
 </body>
 </html>
