@@ -1,1333 +1,972 @@
-<!DOCTYPE html>
-<html lang="it" data-theme="light">
+<!doctype html>
+<html lang="it">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>AWP Fine Ciclo · Analyzer Pro IA</title>
-<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<style>
-:root{
-  --bg:#f6f8fc;--ink:#0b1220;--muted:#5a6885;--card:#fff;--border:#e7ecf5;
-  --accent:#2563eb;--ok:#16a34a;--warn:#f59e0b;--bad:#ef4444;
-  --thead:#f8fafc;--hover:#f3f7ff;--zebra:#fbfdff;--overlay:rgba(0,0,0,.35);
-  --glow:0 0 20px rgba(37,99,235,.35),0 0 40px rgba(37,99,235,.2);
-}
-html[data-theme=dark]{--bg:#0f1220;--ink:#eef1ff;--muted:#9aa3c7;--card:#161a2b;--border:#273057;--accent:#5b8cff;--ok:#2bd576;--warn:#ffd24a;--bad:#ff8c8c;--thead:#1a2040;--hover:#121735;--zebra:#12162e;--overlay:rgba(0,0,0,.55);--glow:0 0 20px rgba(91,140,255,.35),0 0 40px rgba(71,108,255,.2)}
-html[data-theme=mint]{--bg:#f2fbf7;--ink:#072018;--muted:#4c7a69;--card:#fff;--border:#d7efe4;--accent:#10b981;--ok:#0ea5a5;--warn:#f59e0b;--bad:#ef4444;--thead:#ecfdf5;--hover:#e6fff5;--zebra:#f6fffb;--overlay:rgba(0,0,0,.25);--glow:0 0 20px rgba(16,185,129,.35),0 0 40px rgba(16,185,129,.2)}
-html[data-theme=amber]{--bg:#fffaf2;--ink:#201508;--muted:#8b6a3a;--card:#fff;--border:#f1e3c8;--accent:#f59e0b;--ok:#22c55e;--warn:#d97706;--bad:#ef4444;--thead:#fff4e0;--hover:#fff0d4;--zebra:#fff8ea;--overlay:rgba(0,0,0,.25);--glow:0 0 20px rgba(245,158,11,.35),0 0 40px rgba(245,158,11,.2)}
-*{box-sizing:border-box}
-body{margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-.app{max-width:1350px;margin:auto;padding:16px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px}
-h1{margin:0 0 6px}
-.muted{color:var(--muted)}
-.hidden{display:none!important}
-.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
-.toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;margin-top:12px}
-.stat{border:1px dashed var(--border);border-radius:12px;padding:8px 12px;font-size:13px}
-.tabs{display:flex;gap:8px;margin:10px 0 0;flex-wrap:wrap}
-.tab{padding:8px 12px;border:1px solid var(--border);border-radius:999px;cursor:pointer;background:var(--card)}
-.tab.active{outline:2px solid var(--accent);box-shadow:var(--glow)}
-.themebar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.pill{border:1px solid var(--border);background:var(--card);color:var(--ink);padding:8px 12px;border-radius:999px;cursor:pointer;font-size:13px}
-.pill.primary{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:700}
-.search{border:1px solid var(--border);border-radius:999px;padding:8px 12px;width:320px}
-.badge{padding:4px 10px;border-radius:999px;font-weight:800;font-size:12px;border:1px solid var(--border)}
-.badge.base{background:#fff0;color:#6b7280}
-.badge.sub{background:#e7f6ed;color:#0b7a42;border-color:#bfe8d2}
-.badge.admin{background:#eef2ff;color:#3730a3;border-color:#c7d2fe}
-.table-wrap{overflow:auto;border-radius:12px;border:1px solid var(--border)}
-table{width:100%;border-collapse:separate;border-spacing:0;font-size:14px}
-thead th{position:sticky;top:0;z-index:2;background:var(--thead);text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);border-bottom:1px solid var(--border);padding:8px;cursor:pointer;user-select:none}
-tbody td{padding:8px;border-bottom:1px solid var(--border)}
-tbody tr:nth-child(odd) td{background:var(--zebra)}
-tbody tr:hover td{background:var(--hover)}
-.tag{padding:4px 9px;border-radius:999px;font-size:12px;font-weight:700;display:inline-block}
-.tag.good{background:color-mix(in oklab,var(--ok) 15%,transparent);color:var(--ok);border:1px solid color-mix(in oklab,var(--ok) 40%,transparent)}
-.tag.mid{background:color-mix(in oklab,var(--warn) 15%,transparent);color:var(--warn);border:1px solid color-mix(in oklab,var(--warn) 40%,transparent)}
-.tag.bad{background:color-mix(in oklab,var(--bad) 15%,transparent);color:var(--bad);border:1px solid color-mix(in oklab,var(--bad) 40%,transparent)}
-
-/* Splash/Login */
-.splash{position:fixed;inset:0;display:grid;place-items:center;overflow:hidden;background:radial-gradient(1200px 700px at 50% 0%,var(--thead) 0,var(--bg) 60%,var(--bg) 100%);z-index:5}
-.login-card{position:relative;text-align:center;max-width:680px;width:min(94vw,680px);padding:26px 22px 18px;border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,.9),rgba(255,255,255,.75));box-shadow:0 10px 40px rgba(0,0,0,.12),var(--glow);border:1px solid var(--border)}
-.brand{font-weight:900;font-size:clamp(30px,6vw,52px);letter-spacing:.3px;color:var(--ink);text-shadow:var(--glow)}
-.subtitle{color:var(--muted);margin-top:4px}
-.pinbox{margin-top:16px;display:grid;gap:10px;justify-items:center}
-.pinbox input{width:280px;text-align:center;letter-spacing:2px;font-size:18px;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:var(--card)}
-.btn{border:0;padding:10px 14px;border-radius:12px;background:var(--accent);color:#fff;cursor:pointer;font-weight:800;letter-spacing:.3px}
-.btn:hover{filter:brightness(1.05);box-shadow:var(--glow)}
-.error{color:var(--bad);font-weight:700;margin-top:6px;text-align:center}
-.float{position:absolute;font-size:42px;opacity:.13;filter:drop-shadow(0 2px 6px rgba(0,0,0,.2));animation:floaty 12s ease-in-out infinite}
-.f1{top:6%;left:8%}.f2{top:22%;right:8%}.f3{bottom:12%;left:12%}.f4{bottom:18%;right:18%}
-@keyframes floaty{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-18px) rotate(6deg)}}
-.login-footer{margin-top:12px;font-size:12px;color:var(--muted)}.version{font-weight:800}
-
-/* Loading bar */
-.loadbar{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;z-index:6;min-width:260px;max-width:420px;background:var(--card);border-radius:999px;border:1px solid var(--border);box-shadow:0 8px 20px rgba(0,0,0,.15);padding:8px 14px;font-size:12px;display:flex;flex-direction:column;gap:6px}
-.loadbar-line{width:100%;height:6px;border-radius:999px;background:var(--thead);overflow:hidden}
-.loadbar-fill{height:100%;border-radius:999px;background:var(--accent);width:0%;transition:width .25s}
-
-/* IA Insight card */
-.ia-chip{display:inline-flex;align-items:center;gap:6px;font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid var(--border);background:var(--thead)}
-
-/* Mobile */
-@media (max-width:860px){
-  .app{padding:10px}
-  .search{width:100%}
-  .toolbar{gap:8px}
-  .stat{font-size:12px}
-  table{min-width:980px;font-size:13px}
-  thead th{font-size:11px}
-}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AWP Analyzer Ultra V4</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #121b2e;
+      --panel-2: #19253d;
+      --panel-3: #21314f;
+      --text: #eef4ff;
+      --muted: #9fb0d0;
+      --accent: #5aa9ff;
+      --good: #36c275;
+      --warn: #ffb020;
+      --bad: #ff5f6d;
+      --line: rgba(255,255,255,0.08);
+      --shadow: 0 18px 50px rgba(0,0,0,0.25);
+      --radius: 18px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: linear-gradient(180deg, #08101c 0%, #0d1525 100%); color: var(--text); font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    .app { display: grid; grid-template-columns: 290px 1fr; min-height: 100vh; }
+    .sidebar {
+      padding: 20px;
+      border-right: 1px solid var(--line);
+      background: rgba(10,16,28,0.94);
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .brand {
+      padding: 18px;
+      border-radius: 24px;
+      background: linear-gradient(145deg, rgba(90,169,255,0.16), rgba(255,255,255,0.03));
+      border: 1px solid rgba(255,255,255,0.08);
+      box-shadow: var(--shadow);
+      margin-bottom: 18px;
+    }
+    .brand h1 { margin: 0; font-size: 1.35rem; line-height: 1.15; }
+    .brand p, .muted, .small { color: var(--muted); }
+    .brand p { margin: 8px 0 0; }
+    .card {
+      background: rgba(18,27,46,0.96);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      padding: 18px;
+      box-shadow: var(--shadow);
+    }
+    .sidebar .card { margin-bottom: 14px; }
+    .panel-title { font-size: 1.05rem; font-weight: 750; margin: 0 0 12px; }
+    .grid { display: grid; gap: 14px; }
+    .row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .grow { flex: 1; }
+    .nav { display: grid; gap: 10px; margin: 18px 0; }
+    .nav button, .btn, input, select {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      background: var(--panel);
+      color: var(--text);
+      padding: 12px 14px;
+      font: inherit;
+    }
+    input, select { width: 100%; }
+    .btn, .nav button { cursor: pointer; transition: 0.18s ease; }
+    .nav button:hover, .nav button.active, .btn:hover { background: var(--panel-2); border-color: rgba(90,169,255,0.35); transform: translateY(-1px); }
+    .btn.primary { background: linear-gradient(145deg, rgba(90,169,255,0.25), rgba(90,169,255,0.1)); }
+    .btn.good { background: rgba(54,194,117,0.12); border-color: rgba(54,194,117,0.3); }
+    .btn.warn { background: rgba(255,176,32,0.12); border-color: rgba(255,176,32,0.3); }
+    .btn.bad { background: rgba(255,95,109,0.12); border-color: rgba(255,95,109,0.3); }
+    .main { padding: 20px; display: grid; gap: 18px; }
+    .topbar { display: grid; grid-template-columns: 1fr auto auto; gap: 14px; align-items: center; }
+    .grid.kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .kpi { background: linear-gradient(145deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015)); border-radius: 20px; padding: 16px; border: 1px solid var(--line); }
+    .kpi .label { color: var(--muted); font-size: 0.85rem; }
+    .kpi .value { font-size: 1.6rem; font-weight: 800; margin-top: 6px; }
+    .layout-2 { display: grid; grid-template-columns: 1.25fr 0.75fr; gap: 18px; }
+    .layout-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; }
+    .split { display: grid; grid-template-columns: 360px 1fr; gap: 18px; min-height: 430px; }
+    .details-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    .kv { border: 1px solid var(--line); border-radius: 18px; padding: 14px; background: rgba(255,255,255,0.02); }
+    .kv .k { color: var(--muted); font-size: 0.84rem; margin-bottom: 6px; }
+    .kv .v { font-size: 1.05rem; font-weight: 720; }
+    .table-wrap { overflow: auto; border-radius: 18px; border: 1px solid var(--line); }
+    table { width: 100%; border-collapse: collapse; min-width: 1100px; }
+    th, td { padding: 12px; border-bottom: 1px solid var(--line); text-align: left; font-size: 0.93rem; white-space: nowrap; }
+    th { color: var(--muted); background: rgba(255,255,255,0.025); position: sticky; top: 0; z-index: 1; }
+    .badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 6px 10px; font-size: 0.82rem; border: 1px solid transparent; }
+    .badge.good { background: rgba(54,194,117,0.14); color: #9df0be; border-color: rgba(54,194,117,0.25); }
+    .badge.warn { background: rgba(255,176,32,0.14); color: #ffd37b; border-color: rgba(255,176,32,0.25); }
+    .badge.bad { background: rgba(255,95,109,0.14); color: #ff9eaa; border-color: rgba(255,95,109,0.25); }
+    .badge.neutral { background: rgba(255,255,255,0.06); color: #dbe6ff; border-color: rgba(255,255,255,0.1); }
+    .dot { width: 9px; height: 9px; border-radius: 999px; display: inline-block; }
+    .dot.good { background: var(--good); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); } .dot.neutral { background: #90a4c7; }
+    .list { display: grid; gap: 10px; max-height: 760px; overflow: auto; padding-right: 4px; }
+    .slot-item {
+      border: 1px solid var(--line); border-radius: 18px; padding: 14px; cursor: pointer;
+      background: rgba(255,255,255,0.02); transition: 0.16s ease;
+    }
+    .slot-item:hover, .slot-item.active { transform: translateY(-1px); border-color: rgba(90,169,255,0.35); background: rgba(90,169,255,0.08); }
+    .slot-item h4 { margin: 0 0 8px; font-size: 1rem; }
+    .slot-item .mini { display: flex; justify-content: space-between; gap: 10px; color: var(--muted); font-size: 0.85rem; }
+    .hidden { display: none !important; }
+    .footer-note { color: var(--muted); font-size: 0.88rem; line-height: 1.5; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .status-line { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px solid var(--line); padding: 6px 0; }
+    .status-line:last-child { border-bottom: none; }
+    canvas { width: 100% !important; }
+    @media (max-width: 1300px) {
+      .grid.kpis, .layout-2, .layout-3, .split, .details-grid, .topbar { grid-template-columns: 1fr; }
+      .app { grid-template-columns: 1fr; }
+      .sidebar { position: relative; height: auto; border-right: none; border-bottom: 1px solid var(--line); }
+    }
+  </style>
 </head>
 <body>
-<script type="application/json" id="cicloslot-json">[]</script>
-
-<!-- Splash / Login -->
-<div class="splash" id="splash">
-  <div class="float f1">🎰</div><div class="float f2">📊</div><div class="float f3">💸</div><div class="float f4">🧮</div>
-  <div class="login-card">
-    <div class="brand">AWP Fine Ciclo</div>
-    <div class="subtitle">Analyzer Pro IA · Accesso riservato</div>
-    <div class="pinbox">
-      <input type="text" id="user" placeholder="User" autocomplete="off"/>
-      <input type="password" id="pin" maxlength="16" placeholder="PIN" autocomplete="off"/>
-      <button class="btn" id="enterBtn" type="button">Entra</button>
+  <div id="loginScreen" style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
+    <div class="card" style="width:min(560px,100%);">
+      <div class="brand" style="margin-bottom:0;">
+        <h1>AWP Analyzer Ultra V4</h1>
+        <p>Login con PIN • Utenti da users.json • Monitoraggio professionale AWP</p>
+      </div>
+      <div class="grid" style="margin-top:16px;">
+        <div>
+          <label class="small">Utente</label>
+          <input id="loginUser" placeholder="Es. Admin" />
+        </div>
+        <div>
+          <label class="small">PIN</label>
+          <input id="loginPin" type="password" inputmode="numeric" placeholder="••••" />
+        </div>
+        <div class="row">
+          <button class="btn primary" id="btnLogin">Entra</button>
+          <div id="loginMsg" class="muted">Carica users.json dalla stessa cartella del file principale.</div>
+        </div>
+      </div>
     </div>
-    <div id="pinMsg" class="error" style="display:none;">Credenziali errate o non abilitate</div>
-    <div class="login-footer">Versione: <span class="version" id="version"></span></div>
   </div>
-</div>
 
-<!-- Barra caricamento -->
-<div class="loadbar hidden" id="loadBar">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
-    <span id="loadText" class="muted">Preparazione dati…</span>
-    <span id="loadPct" class="muted" style="font-variant-numeric:tabular-nums;">0%</span>
-  </div>
-  <div class="loadbar-line"><div class="loadbar-fill" id="loadFill"></div></div>
-  <div class="muted" style="font-size:11px;">
-    Modalità rapida: ultimi sinottici. Per analisi storica completa premi <b>Analisi IA</b> in alto.
-  </div>
-</div>
+  <div class="app hidden" id="appRoot">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>AWP Analyzer Ultra V4</h1>
+        <p>Predizione seria • correlazioni IN/OUT • anomalie • lettura ciclo</p>
+      </div>
 
-<!-- App -->
-<div class="app hidden" id="app">
-  <div class="card">
-    <div class="row" style="justify-content:space-between;align-items:flex-start;">
-      <div>
-        <h1>Analisi Fine Ciclo</h1>
-        <div class="muted">Modalità: <b id="modeLabel">Classica (ultimo sinottico)</b> · Payout default: <b>65%</b> · Date: <b>DD-MM-YYYY</b></div>
-        <div id="lastRead" class="muted" style="margin-top:4px;"></div>
-        <div class="row" style="margin-top:6px;gap:6px;align-items:center;">
-          <span class="ia-chip"><span>🤖</span><span>IA attiva su storico e modelli</span></span>
-          <span id="iaStatus" class="muted" style="font-size:11px;">Analisi IA veloce pronta. Storico completo non ancora caricato.</span>
-        </div>
-        <div id="staleWarn" class="error hidden" style="margin-top:6px;">Attenzione: alcune macchine non sono aggiornate a oggi.</div>
-        <div class="tabs" id="tabs" style="margin-top:10px;">
-          <button class="tab active" data-tab="dashboard">Dashboard</button>
-          <button class="tab" data-tab="nonaggiornate">Non aggiornate</button>
-          <button class="tab" data-tab="aggregati">Aggregati</button>
-          <button class="tab" data-tab="models">Modelli IA</button>
-          <button class="tab" data-tab="impostazioni">Impostazioni</button>
+      <div class="card">
+        <div class="panel-title">Utente</div>
+        <div class="status-line"><span class="muted">Nome</span><strong id="userInfoName">—</strong></div>
+        <div class="status-line"><span class="muted">Livello</span><strong id="userInfoLevel">—</strong></div>
+        <div class="status-line"><span class="muted">Scadenza</span><strong id="userInfoExpires">—</strong></div>
+        <div class="row" style="margin-top:12px;"><button class="btn" id="btnLogout">Esci</button></div>
+      </div>
+
+      <div class="card">
+        <div class="panel-title">Caricamento dati</div>
+        <div class="grid">
+          <button class="btn primary" id="btnBootstrap5">Carica ultimi 5 sinottici</button>
+          <button class="btn" id="btnBootstrapAll">Carica tutti i sinottici</button>
+          <button class="btn" id="btnReloadManifest">Rileggi manifest</button>
+          <div class="small">Percorsi attesi:</div>
+          <div class="mono small">./manifest.json</div>
+          <div class="mono small">./cicloslot.json</div>
+          <div class="mono small">./users.json</div>
+          <div class="mono small">./Dati/NOMEFILE.xlsx</div>
         </div>
       </div>
-      <div style="text-align:right;">
-        <div class="themebar">
-          <span class="muted" style="font-size:12px;">Tema:</span>
-          <button class="pill" data-theme="light">Chiaro</button>
-          <button class="pill" data-theme="dark">Scuro</button>
-          <button class="pill" data-theme="mint">Mint</button>
-          <button class="pill" data-theme="amber">Ambra</button>
+
+      <div class="nav">
+        <button class="active" data-view="dashboardView">Dashboard</button>
+        <button data-view="monitorView">Monitor slot</button>
+        <button data-view="alertsView">Anomalie</button>
+        <button data-view="modelsView">Modelli</button>
+        <button data-view="adminView">Admin</button>
+      </div>
+
+      <div class="card">
+        <div class="panel-title">Stato</div>
+        <div class="status-line"><span class="muted">Manifest</span><strong id="manifestStatus">non letto</strong></div>
+        <div class="status-line"><span class="muted">Cicli</span><strong id="cyclesStatus">non letti</strong></div>
+        <div class="status-line"><span class="muted">Sinottici letti</span><strong id="filesStatus">0</strong></div>
+        <div class="status-line"><span class="muted">Ultimo file</span><strong id="latestFile">—</strong></div>
+      </div>
+
+      <div class="card">
+        <div class="panel-title">Metodo V4</div>
+        <div class="footer-note">
+          V4 usa storico ordinato per timestamp, delta IN/OUT, velocità oraria, correlazione, confronto col payout atteso, squilibrio di ciclo e indice di stabilità. Il rischio cresce quando la macchina si comporta fuori dal profilo previsto.
         </div>
-        <div class="row" style="justify-content:flex-end;margin-top:8px;">
-          <input id="search" class="search" placeholder='Cerca (es: provincia:VE modello:"novo matic")...'/>
-        </div>
-        <div id="who" style="margin-top:8px;font-size:13px;"></div>
-        <div id="expireWarn" class="error hidden">Abbonamento scaduto: accesso in modalità Base.</div>
-        <div class="row" id="adminBar" style="justify-content:flex-end;margin-top:8px;display:none;gap:6px;">
-          <button class="pill" id="btnExportCSV" type="button">Esporta CSV</button>
-          <button class="pill" id="btnExportXLSX" type="button">Esporta XLSX</button>
-          <button class="pill" id="btnUnmapped" type="button">Codici non mappati</button>
-          <button class="pill primary" id="btnFullIA" type="button">Analisi IA completa</button>
-        </div>
       </div>
-    </div>
+    </aside>
 
-    <div class="toolbar" id="statsBar">
-      <div class="stat" id="statStatus">Stato: in attesa dati…</div>
-      <div class="stat" id="statCount">Macchine: 0</div>
-      <div class="stat" id="statGood">Top (OUT&gt;IN): 0</div>
-      <div class="stat" id="statWarn">Equilibrate (±10%): 0</div>
-      <div class="stat" id="statMap">Mappate/scartate: 0/0</div>
-    </div>
-
-    <!-- DASHBOARD -->
-    <div id="view-dashboard">
-      <div class="table-wrap">
-        <table id="resultTable">
-          <thead>
-            <tr>
-              <th data-k="flag" class="col-calc">⚑</th>
-              <th data-k="perc_cycle" class="col-calc">Percentuale Ciclo</th>
-              <th data-k="cycle_idx" class="col-calc">Ciclo Corrente</th>
-              <th data-k="resid_in" class="col-calc">Residuo IN</th>
-              <th data-k="resid_out" class="col-calc">Residuo OUT</th>
-              <th data-k="need65" class="col-calc">Residuo al 65%</th>
-              <th data-k="forecast_date" class="col-calc">Fine Ciclo Stimata</th>
-              <th data-k="ID">CODEID</th>
-              <th data-k="MODELLO">MODELLO</th>
-              <th data-k="DENOMIN_SEDE">DENOMIN. SEDE</th>
-              <th data-k="SEDE">SEDE</th>
-              <th data-k="INDIRIZZO" class="optcol">INDIRIZZO</th>
-              <th data-k="PROVINCIA" class="optcol">PROVINCIA</th>
-              <th data-k="_stato">Stato</th>
-              <th data-k="_ts_str">Ultima Lettura</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-      <div class="muted" id="footNote" style="margin-top:8px;">Modalità Classica: usa l’ultimo sinottico.<br/>Modalità IA: usa lo storico dei sinottici caricati. Residuo OUT negativo → <b>€0</b>. IN/OUT divisi per <b>100</b>. Timestamp da <b>“DATA ULTIMA LETTURA VAL.”</b>.</div>
-    </div>
-
-    <!-- NON AGGIORNATE -->
-    <div id="view-nonaggiornate" class="hidden" style="margin-top:10px;">
-      <div class="table-wrap">
-        <table id="staleTable">
-          <thead><tr><th>CODEID</th><th>MODELLO</th><th>DENOMIN. SEDE</th><th>SEDE</th><th>INDIRIZZO</th><th>PROVINCIA</th><th>Ultima Lettura</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- AGGREGATI -->
-    <div id="view-aggregati" class="hidden" style="margin-top:10px;">
-      <div class="row" style="gap:10px;">
-        <label>Raggruppa per:</label>
-        <select id="aggField" class="pill">
-          <option value="DENOMIN_SEDE">DENOMIN. SEDE</option>
-          <option value="SEDE">SEDE (Comune)</option>
-          <option value="PROVINCIA">PROVINCIA</option>
-          <option value="MODELLO">MODELLO</option>
-        </select>
-        <button class="pill" id="btnAggExport">Esporta aggregati (CSV)</button>
-      </div>
-      <div class="table-wrap" style="margin-top:8px;">
-        <table id="aggTable">
-          <thead><tr><th>Gruppo</th><th>Macchine</th><th>IN tot</th><th>OUT tot</th><th>Payout medio</th><th>Residuo IN medio</th><th>Residuo OUT medio</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- MODELLI IA -->
-    <div id="view-models" class="hidden" style="margin-top:10px;">
-      <div class="row" style="align-items:flex-start;gap:16px;">
-        <div style="flex:1.4;min-width:420px;">
-          <div class="row" style="gap:8px;align-items:center;margin-bottom:6px;">
-            <label>Ordina per:</label>
-            <select id="iaSort" class="pill">
-              <option value="in">Giocato (IN)</option>
-              <option value="speed">Giocato/giorno</option>
-              <option value="payout">Payout effettivo</option>
-            </select>
-            <span class="muted" style="font-size:11px;">La tabella usa sempre i dati IA (storico sinottici caricati).</span>
+    <main class="main">
+      <section id="dashboardView">
+        <div class="topbar">
+          <div class="card">
+            <div class="panel-title">Riepilogo</div>
+            <div class="muted" id="summaryText">Nessun dato caricato.</div>
           </div>
+          <div class="card"><strong id="manifestBubble">Manifest: —</strong></div>
+          <div class="card"><strong id="dateBubble">Ultimo aggiornamento: —</strong></div>
+        </div>
+
+        <div class="grid kpis">
+          <div class="kpi"><div class="label">Macchine</div><div class="value" id="kpiMachines">0</div></div>
+          <div class="kpi"><div class="label">Match ciclo</div><div class="value" id="kpiMatched">0</div></div>
+          <div class="kpi"><div class="label">Anomalie alte</div><div class="value" id="kpiHighAlerts">0</div></div>
+          <div class="kpi"><div class="label">Pred. IN 24h</div><div class="value" id="kpiPredIn">€0</div></div>
+          <div class="kpi"><div class="label">Pred. OUT 24h</div><div class="value" id="kpiPredOut">€0</div></div>
+          <div class="kpi"><div class="label">Correlazione media</div><div class="value" id="kpiCorrAvg">—</div></div>
+        </div>
+
+        <div class="layout-2">
+          <div class="card">
+            <div class="row" style="justify-content:space-between;">
+              <div class="panel-title">Andamento aggregato</div>
+              <div class="row" style="min-width:min(560px,100%); justify-content:flex-end;">
+                <input id="filterSearch" class="grow" placeholder="Filtra per locale, comune, modello, codeid, pda" />
+                <select id="sortMode" style="max-width:220px;">
+                  <option value="risk">Ordina per rischio</option>
+                  <option value="imbalance">Ordina per squilibrio</option>
+                  <option value="activity">Ordina per attività</option>
+                  <option value="phase">Ordina per fase ciclo</option>
+                </select>
+              </div>
+            </div>
+            <canvas id="aggregateChart" height="120"></canvas>
+          </div>
+          <div class="card">
+            <div class="panel-title">Rischio complessivo</div>
+            <canvas id="riskChart" height="180"></canvas>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="panel-title">Tabella operativa</div>
           <div class="table-wrap">
-            <table id="iaModelTable">
+            <table id="mainTable">
               <thead>
                 <tr>
+                  <th>Rischio</th>
+                  <th>Locale</th>
+                  <th>Comune</th>
                   <th>Modello</th>
-                  <th>Codice</th>
-                  <th># Macchine</th>
-                  <th>IN tot</th>
-                  <th>OUT tot</th>
-                  <th>Payout eff.</th>
-                  <th>Giocato/giorno</th>
-                  <th>Zona pagamento tipica</th>
-                  <th>Locali migliori</th>
+                  <th>CODEID</th>
+                  <th>PDA</th>
+                  <th>Fase ciclo</th>
+                  <th>Δ IN medio</th>
+                  <th>Δ OUT medio</th>
+                  <th>Correlazione</th>
+                  <th>Pred. IN 24h</th>
+                  <th>Pred. OUT 24h</th>
+                  <th>Squilibrio</th>
+                  <th>Anomalia</th>
                 </tr>
               </thead>
               <tbody></tbody>
             </table>
           </div>
         </div>
-        <div style="flex:1;min-width:260px;">
-          <div class="card" style="padding:14px;">
-            <h3 style="margin-top:0;margin-bottom:4px;">Assistente IA modelli</h3>
-            <div class="muted" style="font-size:11px;margin-bottom:4px;">Suggerimenti automatici basati sullo storico (sinottici caricati).</div>
-            <div id="iaInsightBox" class="muted" style="font-size:13px;line-height:1.5;">
-              Seleziona un modello nella tabella per vedere:
-              <ul>
-                <li>dove gioca di più (locali/comuni);</li>
-                <li>quando tende a pagare nel ciclo;</li>
-                <li>in che tipo di locale conviene metterlo.</li>
-              </ul>
+      </section>
+
+      <section id="monitorView" class="hidden">
+        <div class="card split">
+          <div>
+            <div class="panel-title">Lista slot</div>
+            <div class="list" id="slotList"></div>
+          </div>
+          <div class="grid">
+            <div class="card">
+              <div class="panel-title" id="slotTitle">Seleziona una slot</div>
+              <div class="muted" id="slotSubtitle">—</div>
+              <canvas id="slotChart" height="120"></canvas>
             </div>
-            <button class="pill primary" id="btnIaRebuild" type="button" style="margin-top:10px;">Ricalcola IA con storico completo</button>
+            <div class="details-grid" id="slotDetails"></div>
+            <div class="card">
+              <div class="panel-title">Lettura operativa</div>
+              <div id="slotNarrative" class="footer-note">Carica i dati per ottenere una lettura dettagliata della slot selezionata.</div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </section>
 
-    <!-- IMPOSTAZIONI -->
-    <div id="view-impostazioni" class="hidden" style="margin-top:10px;">
-      <div class="row" style="gap:10px;align-items:center;">
-        <label>Soglia “buone” (Δ OUT-IN) €:</label><input id="thrAbs" type="number" step="10" class="pill" style="width:120px"/>
-        <label>oppure % su residuo IN:</label><input id="thrPct" type="number" step="1" class="pill" style="width:100px"/>
-        <label>Giorni per avviso dati vecchi:</label><input id="staleDays" type="number" step="1" class="pill" style="width:90px"/>
-        <label><input type="checkbox" class="colToggle" data-col="INDIRIZZO" checked/> Indirizzo</label>
-        <label><input type="checkbox" class="colToggle" data-col="PROVINCIA" checked/> Provincia</label>
-        <button class="pill" id="btnSaveSettings">Salva</button>
-        <button class="pill" id="btnResetSettings">Reset</button>
-      </div>
-    </div>
+      <section id="alertsView" class="hidden">
+        <div class="card">
+          <div class="row" style="justify-content:space-between;">
+            <div class="panel-title">Anomalie prioritarie</div>
+            <select id="riskThreshold" style="max-width:220px;">
+              <option value="60">Rischio alto da 60</option>
+              <option value="70" selected>Rischio alto da 70</option>
+              <option value="80">Rischio alto da 80</option>
+            </select>
+          </div>
+          <div class="table-wrap">
+            <table id="alertsTable">
+              <thead>
+                <tr>
+                  <th>Priorità</th>
+                  <th>Locale</th>
+                  <th>Comune</th>
+                  <th>Modello</th>
+                  <th>CODEID</th>
+                  <th>Motivo principale</th>
+                  <th>Dettaglio</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="modelsView" class="hidden">
+        <div class="layout-2">
+          <div class="card">
+            <div class="panel-title">Modelli da cicloslot.json</div>
+            <div class="table-wrap">
+              <table id="modelsTable">
+                <thead>
+                  <tr>
+                    <th>Codice modello</th>
+                    <th>Nome modello</th>
+                    <th>Ciclo</th>
+                    <th>Payout</th>
+                    <th>Macchine viste</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="panel-title">Colonne attese</div>
+            <div class="footer-note">
+              CODEID • CODICE MODELLO • MODELLO • MACADDRESS PDA • DENOMIN. SEDE • COMUNE • PROVINCIA • INDIRIZZO • DATA ULTIMA LETTURA VAL. • DATA ULTIMO COLLEGAMENTO • GG MANCATO COLLEGAMENTO • CNTTOTIN • CNTTOTOT • DESCR. STATO • WARNING
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="adminView" class="hidden">
+        <div class="layout-3">
+          <div class="card">
+            <div class="panel-title">Utenti</div>
+            <div class="table-wrap">
+              <table id="usersTable">
+                <thead>
+                  <tr><th>User</th><th>Level</th><th>Expires</th><th>Stato</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="card">
+            <div class="panel-title">Impostazioni analisi</div>
+            <div class="grid">
+              <div>
+                <label class="small">Finestra storico</label>
+                <select id="historyWindow">
+                  <option value="5">Ultimi 5 rilevamenti</option>
+                  <option value="8" selected>Ultimi 8 rilevamenti</option>
+                  <option value="12">Ultimi 12 rilevamenti</option>
+                  <option value="20">Ultimi 20 rilevamenti</option>
+                </select>
+              </div>
+              <div>
+                <label class="small">Peso predizione</label>
+                <select id="predictionMode">
+                  <option value="weighted" selected>Media pesata</option>
+                  <option value="recent">Più peso agli ultimi delta</option>
+                </select>
+              </div>
+              <button class="btn primary" id="btnReanalyze">Ricalcola analisi</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="panel-title">Diagnostica</div>
+            <div id="diagBox" class="footer-note">Nessuna diagnostica disponibile.</div>
+          </div>
+        </div>
+      </section>
+    </main>
   </div>
-</div>
 
-<!-- Modal scheda -->
-<div class="hidden" id="modal" style="position:fixed;inset:0;background:var(--overlay);display:flex;align-items:center;justify-content:center;z-index:10;">
-  <div class="panel" style="width:min(900px,95vw);background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px;">
-    <button class="pill" id="closeModal" style="float:right">Chiudi</button>
-    <h3 id="m_title" style="margin:0 0 8px;">Scheda macchina</h3>
-    <div class="row" style="gap:20px;align-items:flex-start;flex-wrap:wrap;">
-      <div style="flex:1;min-width:260px;">
-        <div><b>CODEID</b>: <span id="m_id"></span></div>
-        <div><b>Codice Modello</b>: <span id="m_code" style="font-family:ui-monospace,Menlo,Consolas,monospace;"></span></div>
-        <div><b>Modello</b>: <span id="m_model"></span></div>
-        <div><b>Locale</b>: <span id="m_locale"></span></div>
-        <div><b>Indirizzo</b>: <span id="m_addr"></span></div>
-        <div><b>Comune/Prov.</b>: <span id="m_city"></span></div>
-        <div><b>Ciclo</b>: <span id="m_cycle"></span> · <b>Payout teorico</b>: <span id="m_payout">65%</span></div>
-        <div><b>Residuo IN</b>: <span id="m_resid_in"></span> · <b>Residuo OUT</b>: <span id="m_resid_out"></span></div>
-        <div><b>Percentuale Ciclo</b>: <span id="m_perc"></span> · <b>Fine Ciclo Stimata</b>: <span id="m_forecast"></span></div>
-      </div>
-      <div style="flex:1;min-width:320px;">
-        <canvas id="m_chart" width="640" height="240"></canvas>
-      </div>
-    </div>
-    <h4 style="margin-top:12px;">Storico letture</h4>
-    <div id="m_history" style="max-height:220px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:8px;"></div>
-  </div>
-</div>
-
-<script>
-/* ===== Versione ===== */
-document.getElementById('version').textContent = "v2.0.0 · IA modelli + caricamento rapido";
-
-/* ===== Utility ===== */
-const norm = s => (s ?? "").toString().trim();
-const lowerKeys = o => { const r={}; for(const k in o) r[norm(k).toLowerCase()] = o[k]; return r; };
-const normalize = s => (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,' ').trim();
-const euro = n => new Intl.NumberFormat('it-IT',{style:'currency',currency:'EUR'}).format(n||0);
-const fmtDMY = iso => {
-  if(!iso) return '—';
-  const d = new Date(iso); if(isNaN(d)) return '—';
-  const dd=String(d.getDate()).padStart(2,'0'),mm=String(d.getMonth()+1).padStart(2,'0'),yy=d.getFullYear();
-  return `${dd}-${mm}-${yy}`;
-};
-const todayIso = () => new Date().toISOString().slice(0,10);
-const daysDiff = iso => {
-  if(!iso) return null;
-  const t=new Date(iso); if(isNaN(t)) return null;
-  const ms = new Date().setHours(0,0,0,0) - new Date(t.getFullYear(),t.getMonth(),t.getDate()).getTime();
-  return Math.max(0,Math.round(ms/86400000));
-};
-function toast(m){const d=document.createElement('div');d.textContent=m;d.style.cssText='position:fixed;bottom:12px;left:12px;right:12px;padding:10px 14px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:10px;z-index:9999;font-weight:700';document.body.appendChild(d);setTimeout(()=>d.remove(),4500);}
-function escapeHTML(s){return(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
-
-/* ===== Tema ===== */
-document.querySelectorAll('.pill[data-theme]').forEach(b=>b.onclick=()=>{
-  document.documentElement.setAttribute('data-theme',b.dataset.theme);
-  localStorage.setItem('awp_theme',b.dataset.theme);
-});
-const savedTheme = localStorage.getItem('awp_theme');
-if(savedTheme) document.documentElement.setAttribute('data-theme',savedTheme);
-
-/* ===== Login ===== */
-let CURRENT_USER=null;
-document.getElementById('enterBtn').onclick=auth;
-document.getElementById('pin').addEventListener('keydown',e=>{if(e.key==='Enter')auth();});
-async function sha256Hex(s){
-  const enc=new TextEncoder().encode(s);
-  const buf=await crypto.subtle.digest('SHA-256',enc);
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-function badgeHTML(l){
-  l=(l||'Base').toLowerCase();
-  return l==='admin'?'<span class="badge admin">Admin</span>':(l==='abbonato'?'<span class="badge sub">Abbonato</span>':'<span class="badge base">Base</span>');
-}
-function loginErr(){const m=document.getElementById('pinMsg');m.style.display='block';setTimeout(()=>m.style.display='none',1500);}
-async function auth(){
-  const u=norm(document.getElementById('user').value).toLowerCase();
-  const p=norm(document.getElementById('pin').value);
-  let list=[];
-  try{
-    const r=await fetch('Dati/users.json',{cache:'no-store'});
-    if(!r.ok) throw 0;
-    list=await r.json();
-  }catch{
-    toast('Errore lettura Dati/users.json');
-    return;
-  }
-  const rec=list.find(x=>String(x.user||'').toLowerCase()===u);
-  if(!rec) return loginErr();
-  let ok=false;
-  if(rec.pin_hash){
-    ok=(await sha256Hex(p)).toLowerCase()===String(rec.pin_hash).toLowerCase();
-  }else if(rec.pin){
-    ok=String(rec.pin)===p;
-  }
-  if(!ok) return loginErr();
-
-  let level=(rec.level||'Base').trim();
-  const exp=rec.expires?String(rec.expires):null;
-  const now=todayIso();
-  const expired=!!(exp && exp<now);
-  if(expired) level='Base';
-
-  CURRENT_USER={user:rec.user,level,expires:exp,expiredFlag:expired};
-  document.getElementById('splash').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
-  document.getElementById('who').innerHTML=`Utente: <b>${CURRENT_USER.user}</b> · ${badgeHTML(level)} · Scadenza: <b>${CURRENT_USER.expires||'—'}</b>`;
-  document.getElementById('expireWarn').classList.toggle('hidden',!expired);
-
-  const pro=(level.toLowerCase()==='abbonato'||level.toLowerCase()==='admin');
-  document.querySelectorAll('.col-calc').forEach(el=>el.style.display=pro?'':'none');
-  document.getElementById('statsBar').style.display=pro?'flex':'none';
-  document.getElementById('footNote').style.display=pro?'block':'none';
-  document.getElementById('adminBar').style.display=(level.toLowerCase()==='admin')?'flex':'none';
-
-  initAuto(); // avvio caricamento dati
-}
-
-/* ===== Tabs ===== */
-function showTab(name){
-  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active',t.dataset.tab===name));
-  ['dashboard','nonaggiornate','aggregati','models','impostazioni'].forEach(id=>{
-    document.getElementById('view-'+id).classList.toggle('hidden',id!==name);
-  });
-  if(name==='aggregati') renderAggregati();
-  if(name==='nonaggiornate') renderStale();
-  if(name==='models') renderModelStats();
-}
-document.getElementById('tabs').addEventListener('click',e=>{
-  const b=e.target.closest('button.tab'); if(!b) return;
-  showTab(b.dataset.tab);
-});
-
-/* ===== Ciclo Slot ===== */
-let CICLOSLOT = [];
-try{
-  const el=document.getElementById('cicloslot-json');
-  if(el && el.textContent.trim()) CICLOSLOT=JSON.parse(el.textContent);
-}catch{}
-const cleanCode=s=>(s||'').toUpperCase().replace(/[^A-Z0-9]/g,'').replace(/^0+/,'');
-const cleanID=s=>(s||'').trim();
-function parsePayout(v){
-  if(v==null||v==='')return null;
-  let s=String(v).replace('%','').trim();
-  let n=parseFloat(s); if(isNaN(n))return null;
-  if(n>1) n/=100;
-  return Math.max(0,Math.min(1,n));
-}
-function buildCicloMaps(arr){
-  const byModelCode=new Map(),payoutByModelCode=new Map(),cicloByModelName=new Map(),payoutByModelName=new Map();
-  arr.forEach(x=>{
-    const mc=cleanCode(x.code||x['codice modello']||x['CODICE MODELLO']);
-    const mdl=norm(x.model||x.modello||x['MODELLO']||'');
-    const cyc=+x.ciclo||+x.cycle||+x['CICLO'];
-    const py=parsePayout(x['PAYOUT %']??x['PAYOUT']??x['payout']);
-    if(mc&&cyc){byModelCode.set(mc,cyc);if(py!=null)payoutByModelCode.set(mc,py);}
-    const mkey=normalize(mdl);
-    if(mkey&&cyc)cicloByModelName.set(mkey,cyc);
-    if(mkey&&py!=null)payoutByModelName.set(mkey,py);
-  });
-  return{byModelCode,payoutByModelCode,cicloByModelName,payoutByModelName};
-}
-let CYCLE = buildCicloMaps(CICLOSLOT);
-
-/* ===== XLS/XLSX helper ===== */
-async function fetchXLSX(url){
-  const res=await fetch(url,{cache:'no-store'});
-  if(!res.ok) throw new Error('fetch '+url);
-  const buf=await res.arrayBuffer();
-  const wb=XLSX.read(buf,{type:'array'});
-  const ws=wb.Sheets[wb.SheetNames[0]];
-  const json=XLSX.utils.sheet_to_json(ws,{defval:'',raw:false,blankrows:false,skipHidden:false});
-  return json.map(lowerKeys);
-}
-
-/* col mapping */
-function pickCols(map){
-  const keys=Object.keys(map);
-  const pick=a=>a.find(k=>keys.includes(k));
-  return{
-    idKey: pick(['codeid','id','id awp','id macchina','matricola','codiceid'])||null,
-    modelCodeKey: keys.includes('codice modello')?'codice modello':null,
-    inKey: keys.includes('cnttotin')?'cnttotin':null,
-    outKey: keys.includes('cnttotot')?'cnttotot':null,
-    modelloKey: pick(['modello','descrizione modello','model','desc modello','descr. modello']),
-    denomSedeKey: pick(['denomin. sede','denominazione sede','denom. sede','denominazione','denonim. sede']),
-    sedeKey: pick(['sede','comune','località','localita','città','citta','city']),
-    indirKey: pick(['indirizzo','indirizzo sede','via','via/piazza','indir.','address']),
-    provKey: pick(['provincia','prov.','prov','sigla provincia']),
-    validKey: pick(['data ultima lettura val.','data ultima lettura val','data ultima lettura','ultima lettura val.','ultima lettura']),
-    timeKey: pick(['ora lettura','ora','time','orario'])
-  };
-}
-
-/* contatori */
-const parseCnt=v=>{
-  if(typeof v==='number')return v/100;
-  let s=(v||'').toString().trim();
-  if(!s)return 0;
-  s=s.replace(/\s+/g,'');
-  if(s.includes('.')&&s.includes(','))s=s.replace(/\./g,'').replace(',', '.');
-  else if(s.includes(','))s=s.replace('.', '').replace(',', '.');
-  const n=parseFloat(s);
-  return isNaN(n)?0:n/100;
-};
-
-/* date parsing */
-function parseTSValue(val, fallbackISO){
-  if(!val) return fallbackISO;
-  const s=String(val).trim();
-  let m=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-  if(m){
-    const dd=m[1].padStart(2,'0'),mm=m[2].padStart(2,'0'),yy=(m[3].length===2?('20'+m[3]):m[3]);
-    const HH=(m[4]??'00').padStart(2,'0'),MM=(m[5]??'00').padStart(2,'0'),SS=(m[6]??'00').padStart(2,'0');
-    return `${yy}-${mm}-${dd}T${HH}:${MM}:${SS}`;
-  }
-  if(/^\d{4}-\d{2}-\d{2}T/.test(s) || /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(s))
-    return s.replace(' ','T').replace(/(\d{2}:\d{2})(?!:)/,'$1:00');
-  let m2=s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-  if(m2){
-    const dd=m2[1].padStart(2,'0'),mm=m2[2].padStart(2,'0'),yy=(m2[3].length===2?('20'+m2[3]):m2[3]);
-    return `${yy}-${mm}-${dd}T00:00:00`;
-  }
-  return fallbackISO;
-}
-function parseStampFromName(name){
-  const d=name.match(/(\d{4})-(\d{2})-(\d{2})(?:[_\s\-T]?(\d{2})[:\-]?(\d{2}))?/);
-  if(!d) return new Date().toISOString();
-  const[,Y,M,D,h,m]=d;
-  return `${Y}-${M}-${D}T${h??'00'}:${m??'00'}:00`;
-}
-
-/* ===== Storico & IA ===== */
-const payoutDefault=0.65;
-const HIST_KEY='awp_history_by_id_v2';
-let history={};
-try{ history=JSON.parse(localStorage.getItem(HIST_KEY)||'{}'); }catch{ history={}; }
-
-function pushHistory(ID,ts,IN,OUT,meta){
-  ID = cleanID(ID);
-  if(!ID) return;
-  if(!history[ID]) history[ID]=[];
-  const arr=history[ID];
-  if(arr.some(r=>r.ts===ts)) return;
-  arr.push({ts,IN,OUT,meta});
-  arr.sort((a,b)=> new Date(a.ts)-new Date(b.ts));
-}
-function getLatestStateForAll(){
-  const out=[];
-  for(const ID in history){
-    const arr=history[ID]; if(!arr?.length) continue;
-    const last=arr[arr.length-1], m=last.meta||{};
-    out.push({
-      ID,
-      IN:last.IN,
-      OUT:last.OUT,
-      MODELLO:m.MODELLO||'',
-      MODEL_CODE:m.MODEL_CODE||'',
-      DENOMIN_SEDE:m.DENOMIN_SEDE||'',
-      SEDE:m.SEDE||'',
-      INDIRIZZO:m.INDIRIZZO||'',
-      PROVINCIA:m.PROVINCIA||'',
-      _ts:last.ts
-    });
-  }
-  return out;
-}
-function forecastDate(ID,resid_in){
-  const h=history[ID]||[];
-  if(h.length<2) return '—';
-  const last=h.slice(-6);
-  let sumIn=0,sumHrs=0;
-  for(let i=1;i<last.length;i++){
-    const t1=new Date(last[i-1].ts),t2=new Date(last[i].ts);
-    const dtHrs=Math.max(1,(t2-t1)/36e5);
-    const dIn=Math.max(0,last[i].IN-(last[i-1].IN||0));
-    sumIn+=dIn;sumHrs+=dtHrs;
-  }
-  const avg=sumHrs>0?sumIn/sumHrs:0;
-  if(avg<=0||resid_in<=0) return '—';
-  const hrs=Math.ceil(resid_in/avg);
-  const est=new Date(); est.setHours(est.getHours()+hrs);
-  return fmtDMY(est.toISOString());
-}
-
-/* ===== Calcoli riga ===== */
-function getCicloPayout(modelCode,modelName){
-  const mc=cleanCode(modelCode);
-  const byCode=CYCLE.byModelCode.get(mc);
-  const byName=CYCLE.cicloByModelName.get(normalize(modelName||''));
-  const ciclo=byCode||byName||null;
-  const py=CYCLE.payoutByModelCode.get(mc) ?? CYCLE.payoutByModelName.get(normalize(modelName||'')) ?? payoutDefault;
-  return{ciclo,payout:py};
-}
-function rowFlag(delta,resid_in){
-  const cfg=JSON.parse(localStorage.getItem('awp_cfg_v3')||'{}');
-  const abs=Number(cfg.thrAbs||200),pct=Number(cfg.thrPct||0);
-  const passAbs=abs>0 && delta>=abs;
-  const passPct=pct>0 && resid_in>0 && delta>=(pct/100)*resid_in;
-  return(passAbs||passPct)?'⭐':'';
-}
-
-/* --- modalità CLASSICA: solo ultimo sinottico --- */
-function computeRowClassic(r){
-  const pro=(CURRENT_USER?.level||'Base').toLowerCase();
-  const show=(pro==='abbonato'||pro==='admin');
-  const {ciclo:C,payout:P}=getCicloPayout(r.MODEL_CODE,r.MODELLO);
-  const I=r.IN,V=r.OUT;
-  const isToday=(r._ts||'').slice(0,10)===todayIso();
-  const tsDays=daysDiff(r._ts);
-
-  if(!C || !show){
-    return {...r,_cycle:C||null,_payout:P||payoutDefault,perc_cycle:null,cycle_idx:null,resid_in:null,resid_out:null,need65:null,forecast_date:'',
-      _delta:0,flag:'',_ts_str:fmtDMY(r._ts)+(isToday?'':(tsDays!=null?` (${tsDays} gg)`:'')),_stato:'',_oggi:isToday,_I:I,_V:V};
-  }
-
-  const cycles_done=Math.floor(I/C);
-  const in_cycle=I-cycles_done*C;
-  const target_prev=cycles_done*(P*C);
-  let paid_cycle=V-target_prev; if(paid_cycle<0)paid_cycle=0;
-  const resid_in=in_cycle>0?(C-in_cycle):C;
-  let resid_out=(P*C)-paid_cycle; if(resid_out<0)resid_out=0;
-  const perc_cycle=in_cycle>0?(paid_cycle/in_cycle)*100:0;
-  const cycle_idx=cycles_done+1;
-  const need65=(in_cycle>0 && perc_cycle<65)?Math.max(0,(0.65*in_cycle)-paid_cycle):null;
-  const fDate=forecastDate(r.ID,resid_in);
-  const delta=resid_out-resid_in;
-  const flag=rowFlag(delta,resid_in);
-
-  const stato = {badge:'',label:''};
-  return {...r,_cycle:C,_payout:P,perc_cycle,cycle_idx,resid_in,resid_out,need65,forecast_date:fDate,_delta:delta,flag,
-    _ts_str:fmtDMY(r._ts)+(isToday?'':(tsDays!=null?` (${tsDays} gg)`:'')),
-    _stato:`${stato.badge} ${stato.label}`,_oggi:isToday,_I:I,_V:V};
-}
-
-/* --- modalità IA: usa ultimo stato da history, controlla aggiornamento --- */
-function computeRowIA(r){
-  const pro=(CURRENT_USER?.level||'Base').toLowerCase();
-  const show=(pro==='abbonato'||pro==='admin');
-  const {ciclo:C,payout:P}=getCicloPayout(r.MODEL_CODE,r.MODELLO);
-  const I=r.IN,V=r.OUT;
-  const isToday=(r._ts||'').slice(0,10)===todayIso();
-  const tsDays=daysDiff(r._ts);
-
-  const arr=(history[r.ID]||[]).slice(-2);
-  const stato = !arr.length ? {label:'—',badge:''}
-               : ((arr[arr.length-1].ts.slice(0,10)!==todayIso()) ? {label:'Non aggiornata',badge:'⏸️'}
-                  : (arr.length<2 ? {label:'Aggiornata',badge:'✅'}
-                    : ((arr[arr.length-1].IN===arr[arr.length-2].IN && arr[arr.length-1].OUT===arr[arr.length-2].OUT)
-                       ? {label:'Invariata',badge:'＝'} : {label:'Aggiornata',badge:'✅'})));
-
-  if(!C || !show){
-    return {...r,_cycle:C||null,_payout:P||payoutDefault,perc_cycle:null,cycle_idx:null,resid_in:null,resid_out:null,need65:null,forecast_date:'',
-      _delta:0,flag:'',_ts_str:fmtDMY(r._ts)+(isToday?'':(tsDays!=null?` (${tsDays} gg)`:'')),
-      _stato:`${stato.badge} ${stato.label}`,_oggi:isToday,_I:I,_V:V};
-  }
-
-  const cycles_done=Math.floor(I/C);
-  const in_cycle=I-cycles_done*C;
-  const target_prev=cycles_done*(P*C);
-  let paid_cycle=V-target_prev; if(paid_cycle<0)paid_cycle=0;
-  const resid_in=in_cycle>0?(C-in_cycle):C;
-  let resid_out=(P*C)-paid_cycle; if(resid_out<0)resid_out=0;
-  const perc_cycle=in_cycle>0?(paid_cycle/in_cycle)*100:0;
-  const cycle_idx=cycles_done+1;
-  const need65=(in_cycle>0 && perc_cycle<65)?Math.max(0,(0.65*in_cycle)-paid_cycle):null;
-  const fDate=forecastDate(r.ID,resid_in);
-  const delta=resid_out-resid_in;
-  const flag=rowFlag(delta,resid_in);
-
-  return {...r,_cycle:C,_payout:P,perc_cycle,cycle_idx,resid_in,resid_out,need65,forecast_date:fDate,_delta:delta,flag,
-    _ts_str:fmtDMY(r._ts)+(isToday?'':(tsDays!=null?` (${tsDays} gg)`:'')),
-    _stato:`${stato.badge} ${stato.label}`,_oggi:isToday,_I:I,_V:V};
-}
-
-/* ===== Stato globale ===== */
-const STORE='awp_cfg_v3';
-const defCfg={thrAbs:200,thrPct:0,staleDays:0,showCols:{INDIRIZZO:true,PROVINCIA:true}};
-let CFG=defCfg;
-try{ CFG=Object.assign({},defCfg,JSON.parse(localStorage.getItem(STORE)||'{}')); }catch{}
-
-let latestSnapshot='—', lastUnmapped=[], SORT_KEY=null,SORT_DIR=1;
-let staleRows=[];
-
-let MODE='classic'; // 'classic' | 'ia'
-let fullRowsClassic=[],fullRowsIA=[];
-
-let MODEL_STATS=[]; // array per tab Modelli IA
-
-let PENDING_FILES=[]; // sinottici più vecchi da caricare per IA completa
-let LATEST_FILE_NAME='';
-
-function setMode(m){
-  MODE=m;
-  document.getElementById('modeLabel').textContent = MODE==='classic'
-    ? 'Classica (ultimo sinottico)'
-    : 'IA (storico sinottici)';
-  renderCurrent();
-}
-
-/* ===== Filtri & rendering ===== */
-function filterByQuery(rows){
-  const q=norm(document.getElementById('search').value).toLowerCase();
-  if(!q) return rows;
-  const parts=q.match(/(?:[^\s"]+|"[^"]*")+/g)||[];
-  let free=[],keyed=[];
-  parts.forEach(p=>{
-    if(p.includes(':')){
-      const [k,...rest]=p.split(':');
-      const v=rest.join(':').replaceAll('"','');
-      keyed.push({k:k.toLowerCase(),v:v.toLowerCase()});
-    }else free.push(p.replaceAll('"',''));
-  });
-  return rows.filter(r=>{
-    const blob=`${r.ID} ${r.MODELLO} ${r.DENOMIN_SEDE} ${r.SEDE} ${r.INDIRIZZO} ${r.PROVINCIA}`.toLowerCase();
-    if(free.some(t=>!blob.includes(t))) return false;
-    for(const kv of keyed){
-      const val=String(r[kv.k?.toUpperCase()]||r[kv.k]||'').toLowerCase();
-      if(!val.includes(kv.v)) return false;
-    }
-    return true;
-  });
-}
-function getValForSort(r,k){
-  const v=r[k]; if(v==null) return '';
-  if(['perc_cycle','cycle_idx','resid_in','resid_out','need65','_delta'].includes(k)) return +v;
-  if(k==='forecast_date'){ if(!v||v==='—') return ''; const [d,m,y]=v.split('-'); return `${y}-${m}-${d}`; }
-  if(k==='_ts_str'){ return r._ts||''; }
-  return String(v).toLowerCase();
-}
-function render(rows){
-  const pro=(CURRENT_USER?.level||'Base').toLowerCase();
-  const show=(pro==='abbonato'||pro==='admin');
-
-  let view=filterByQuery(rows);
-  if(SORT_KEY){
-    view.sort((a,b)=>{
-      const va=getValForSort(a,SORT_KEY),vb=getValForSort(b,SORT_KEY);
-      if(va<vb)return-1*SORT_DIR; if(va>vb)return 1*SORT_DIR; return 0;
-    });
-  }else{
-    if(show) view.sort((a,b)=>(b._delta-a._delta)||(b.resid_out-a.resid_out));
-    else view.sort((a,b)=>String(a.DENOMIN_SEDE||a.SEDE||a.MODELLO).localeCompare(String(b.DENOMIN_SEDE||b.SEDE||b.MODELLO)));
-  }
-
-  const tb=document.querySelector('#resultTable tbody'); tb.innerHTML='';
-  for(const r of view){
-    const tr=document.createElement('tr');
-    const calc = r._cycle!=null && show;
-    const tagClass=(calc && (r.resid_out>r.resid_in)) ? 'good'
-                      : (calc && Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*(r.resid_in||1)) ? 'mid' : 'bad';
-    tr.innerHTML = `
-      <td class="col-calc">${calc?(r.flag||''):''}</td>
-      <td class="col-calc">${calc? `<span class="tag ${tagClass}">${r.perc_cycle!=null ? r.perc_cycle.toFixed(2) : '0.00'}%</span>` : ''}</td>
-      <td class="col-calc">${calc?(r.cycle_idx ?? ''):''}</td>
-      <td class="col-calc">${calc?(r.resid_in!=null ? euro(r.resid_in) : ''):''}</td>
-      <td class="col-calc">${calc?(r.resid_out!=null ? euro(r.resid_out) : ''):''}</td>
-      <td class="col-calc">${calc?((r.need65!=null) ? euro(r.need65) : '—'):''}</td>
-      <td class="col-calc">${calc?(r.forecast_date || '—'):''}</td>
-      <td>${escapeHTML(r.ID||'')}</td>
-      <td>${escapeHTML(r.MODELLO||'')}</td>
-      <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
-      <td>${escapeHTML(r.SEDE||'')}</td>
-      <td class="col-INDIRIZZO">${escapeHTML(r.INDIRIZZO||'')}</td>
-      <td class="col-PROVINCIA">${escapeHTML(r.PROVINCIA||'')}</td>
-      <td>${escapeHTML(r._stato||'')}</td>
-      <td>${r._oggi ? '<span class="tag good">Oggi</span>' : escapeHTML(r._ts_str||'')}</td>
-    `;
-    tr.addEventListener('click',()=>openModal(r.ID,r));
-    tb.appendChild(tr);
-  }
-
-  document.getElementById('statCount').textContent='Macchine: '+view.length;
-  if(!show){
-    document.getElementById('statGood').textContent='Top: —';
-    document.getElementById('statWarn').textContent='Equilibrate: —';
-  }else{
-    const good=view.filter(r=> (r._cycle!=null && r.resid_out>r.resid_in)).length;
-    const warn=view.filter(r=> (r._cycle!=null && Math.abs((r.resid_out||0)-(r.resid_in||0)) <= 0.1*(r.resid_in||1))).length;
-    document.getElementById('statGood').textContent='Top (OUT>IN): '+good;
-    document.getElementById('statWarn').textContent='Equilibrate (±10%): '+warn;
-  }
-
-  document.querySelectorAll('.col-INDIRIZZO').forEach(td=> td.style.display = CFG.showCols.INDIRIZZO ? '' : 'none');
-  document.querySelectorAll('.col-PROVINCIA').forEach(td=> td.style.display = CFG.showCols.PROVINCIA ? '' : 'none');
-}
-function renderCurrent(){
-  const rows = MODE==='classic' ? fullRowsClassic : fullRowsIA;
-  render(rows);
-}
-document.querySelector('#resultTable thead').addEventListener('click',e=>{
-  const th=e.target.closest('th'); if(!th) return;
-  const key=th.dataset.k; if(!key) return;
-  if(SORT_KEY===key) SORT_DIR*=-1; else{ SORT_KEY=key; SORT_DIR=1; }
-  renderCurrent();
-});
-
-/* ===== Non aggiornate ===== */
-function findStale(){
-  const today=todayIso();
-  const all=getLatestStateForAll();
-  staleRows = all.filter(x=>(x._ts||'').slice(0,10)!==today)
-    .map(s=>({...s,_ts_str:fmtDMY(s._ts),_days:daysDiff(s._ts)}));
-  document.getElementById('staleWarn').classList.toggle('hidden',staleRows.length===0);
-}
-function renderStale(){
-  const tb=document.querySelector('#staleTable tbody'); tb.innerHTML='';
-  for(const r of staleRows){
-    const tr=document.createElement('tr');
-    tr.innerHTML = `
-      <td>${escapeHTML(r.ID||'')}</td>
-      <td>${escapeHTML(r.MODELLO||'')}</td>
-      <td>${escapeHTML(r.DENOMIN_SEDE||'')}</td>
-      <td>${escapeHTML(r.SEDE||'')}</td>
-      <td>${escapeHTML(r.INDIRIZZO||'')}</td>
-      <td>${escapeHTML(r.PROVINCIA||'')}</td>
-      <td>${escapeHTML(r._ts_str||'')} ${r._days!=null?`(${r._days} gg)`:''}</td>`;
-    tb.appendChild(tr);
-  }
-}
-
-/* ===== Aggregati ===== */
-function renderAggregati(){
-  const pro=(CURRENT_USER?.level||'Base').toLowerCase(); const show=(pro==='abbonato'||pro==='admin');
-  const field=document.getElementById('aggField').value;
-  const src=filterByQuery(MODE==='classic'?fullRowsClassic:fullRowsIA);
-  const map=new Map();
-  for(const r of src){
-    const key=r[field]||'—';
-    let o=map.get(key); if(!o)o={k:key,n:0,in:0,out:0,rin:0,rout:0};
-    o.n++; o.in+=(r._I||0); o.out+=(r._V||0);
-    if(show){o.rin+=(r.resid_in||0);o.rout+=(r.resid_out||0);}
-    map.set(key,o);
-  }
-  const arr=[...map.values()].sort((a,b)=>(b.rout-b.rin)-(a.rout-a.rin)||(b.out-b.in)-(a.out-a.in)||b.n-a.n);
-  const tb=document.querySelector('#aggTable tbody'); tb.innerHTML='';
-  for(const g of arr){
-    const payout=g.in>0?(g.out/g.in)*100:0;
-    const tr=document.createElement('tr');
-    tr.innerHTML=`<td>${escapeHTML(g.k)}</td><td>${g.n}</td><td>${euro(g.in)}</td><td>${euro(g.out)}</td><td>${payout.toFixed(2)}%</td><td>${euro(g.rin/g.n||0)}</td><td>${euro(g.rout/g.n||0)}</td>`;
-    tb.appendChild(tr);
-  }
-}
-
-/* ===== Export ===== */
-function exportCSV(rows,filename){
-  const cols=['flag','perc_cycle','cycle_idx','resid_in','resid_out','need65','forecast_date','ID','MODELLO','DENOMIN_SEDE','SEDE','INDIRIZZO','PROVINCIA','_stato','_ts_str'];
-  const lines=[cols.join(';')];
-  rows.forEach(r=>{
-    const o={...r};
-    o.perc_cycle=(o.perc_cycle!=null)?o.perc_cycle.toFixed(2)+'%':'';
-    o.resid_in=(o.resid_in!=null)?o.resid_in.toFixed(2):'';
-    o.resid_out=(o.resid_out!=null)?o.resid_out.toFixed(2):'';
-    o.need65=(o.need65!=null)?o.need65.toFixed(2):'';
-    lines.push(cols.map(c=>String(o[c]??'').replace(/;/g,',')).join(';'));
-  });
-  const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();
-}
-function exportXLSX(rows,filename){
-  const data=rows.map(r=>({
-    flag:r.flag||'','Percentuale Ciclo':r.perc_cycle!=null?r.perc_cycle.toFixed(2)+'%':'',
-    'Ciclo Corrente':r.cycle_idx??'','Residuo IN':r.resid_in!=null?r.resid_in.toFixed(2):'',
-    'Residuo OUT':r.resid_out!=null?r.resid_out.toFixed(2):'','Residuo al 65%':r.need65!=null?r.need65.toFixed(2):'',
-    'Fine Ciclo Stimata':r.forecast_date||'',CODEID:r.ID||'',MODELLO:r.MODELLO||'',
-    'DENOMIN. SEDE':r.DENOMIN_SEDE||'',SEDE:r.SEDE||'',INDIRIZZO:r.INDIRIZZO||'',PROVINCIA:r.PROVINCIA||'',
-    Stato:r._stato||'','Ultima Lettura':r._oggi?'Oggi':(r._ts_str||'')
-  }));
-  const ws=XLSX.utils.json_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'dati');XLSX.writeFile(wb,filename);
-}
-document.getElementById('btnExportCSV').onclick=()=>exportCSV(filterByQuery(MODE==='classic'?fullRowsClassic:fullRowsIA),`awp_${latestSnapshot||'export'}.csv`);
-document.getElementById('btnExportXLSX').onclick=()=>exportXLSX(filterByQuery(MODE==='classic'?fullRowsClassic:fullRowsIA),`awp_${latestSnapshot||'export'}.xlsx`);
-document.getElementById('btnAggExport').onclick=()=>{
-  const tb=document.querySelector('#aggTable tbody');
-  const rows=[...tb.querySelectorAll('tr')].map(tr=>{
-    const t=tr.querySelectorAll('td');
-    return{gruppo:t[0].innerText,macchine:t[1].innerText,in_tot:t[2].innerText,out_tot:t[3].innerText,payout_medio:t[4].innerText,residuo_in_medio:t[5].innerText,residuo_out_medio:t[6].innerText};
-  });
-  const ws=XLSX.utils.json_to_sheet(rows);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'aggregati');XLSX.writeFile(wb,`aggregati_${todayIso()}.xlsx`);
-};
-document.getElementById('btnUnmapped').onclick=()=>{
-  const lines=['CODICE MODELLO;MODELLO'];
-  lastUnmapped.forEach(x=>lines.push(`${x.modelCode};${(x.modello||'').replace(/;/g,',')}`));
-  const blob=new Blob([lines.join('\n')],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`non_mappati_${latestSnapshot||todayIso()}.csv`;a.click();
-};
-
-/* ===== Impostazioni ===== */
-function loadSettingsUI(){
-  document.getElementById('thrAbs').value=CFG.thrAbs;
-  document.getElementById('thrPct').value=CFG.thrPct;
-  document.getElementById('staleDays').value=CFG.staleDays;
-  document.querySelectorAll('.colToggle').forEach(ch=>ch.checked=!!CFG.showCols[ch.dataset.col]);
-}
-document.getElementById('btnSaveSettings').onclick=()=>{
-  CFG.thrAbs=+document.getElementById('thrAbs').value||0;
-  CFG.thrPct=+document.getElementById('thrPct').value||0;
-  CFG.staleDays=+document.getElementById('staleDays').value||0;
-  document.querySelectorAll('.colToggle').forEach(ch=>CFG.showCols[ch.dataset.col]=!!ch.checked);
-  localStorage.setItem(STORE,JSON.stringify(CFG));
-  renderCurrent();renderAggregati();renderStale();toast('Impostazioni salvate');
-};
-document.getElementById('btnResetSettings').onclick=()=>{
-  CFG=JSON.parse(JSON.stringify(defCfg));
-  localStorage.setItem(STORE,JSON.stringify(CFG));
-  loadSettingsUI();renderCurrent();renderAggregati();renderStale();
-};
-
-/* ===== Modale & grafico ===== */
-const modal=document.getElementById('modal');
-document.getElementById('closeModal').onclick=()=>modal.classList.add('hidden');
-function drawChart(canvas,series){
-  const ctx=canvas.getContext('2d');const W=canvas.width,H=canvas.height;
-  ctx.clearRect(0,0,W,H);
-  if(series.length<2){
-    ctx.fillStyle='var(--muted)';ctx.font='12px system-ui';ctx.fillText('Dati insufficienti',10,20);return;
-  }
-  const pad=30,x0=pad,x1=W-pad,y0=H-pad,y1=pad;
-  const minT=+new Date(series[0].ts),maxT=+new Date(series[series.length-1].ts);
-  let minV=Infinity,maxV=-Infinity;
-  series.forEach(p=>{minV=Math.min(minV,p.IN,p.OUT);maxV=Math.max(maxV,p.IN,p.OUT);});
-  if(minV===maxV) minV=0;
-  const x=t=>x0+((t-minT)/(maxT-minT||1))*(x1-x0);
-  const y=v=>y0-((v-minV)/(maxV-minV||1))*(y0-y1);
-  ctx.strokeStyle='rgba(0,0,0,.2)';ctx.beginPath();ctx.moveTo(x0,y0);ctx.lineTo(x1,y0);ctx.moveTo(x0,y0);ctx.lineTo(x0,y1);ctx.stroke();
-  ctx.beginPath();series.forEach((p,i)=>{const X=x(+new Date(p.ts)),Y=y(p.IN);if(i===0)ctx.moveTo(X,Y);else ctx.lineTo(X,Y);});
-  ctx.strokeStyle='#0b6';ctx.lineWidth=2;ctx.stroke();
-  ctx.beginPath();series.forEach((p,i)=>{const X=x(+new Date(p.ts)),Y=y(p.OUT);if(i===0)ctx.moveTo(X,Y);else ctx.lineTo(X,Y);});
-  ctx.strokeStyle='#666';ctx.lineWidth=2;ctx.stroke();
-}
-function openModal(ID,row){
-  const pro=(CURRENT_USER?.level||'Base').toLowerCase();
-  if(!(pro==='abbonato'||pro==='admin'))return;
-  modal.classList.remove('hidden');
-  document.getElementById('m_title').textContent='Scheda macchina – '+ID;
-  document.getElementById('m_id').textContent=ID;
-  document.getElementById('m_code').textContent=row.MODEL_CODE||'';
-  document.getElementById('m_model').textContent=row.MODELLO||'';
-  document.getElementById('m_locale').textContent=row.DENOMIN_SEDE||'';
-  document.getElementById('m_addr').textContent=row.INDIRIZZO||'';
-  document.getElementById('m_city').textContent=(row.SEDE||'')+(row.PROVINCIA?' ('+row.PROVINCIA+')':'');
-  document.getElementById('m_cycle').textContent=(row._cycle||'')+' partite';
-  document.getElementById('m_payout').textContent=((row._payout||payoutDefault)*100).toFixed(2)+'%';
-  document.getElementById('m_resid_in').textContent=row.resid_in!=null?euro(row.resid_in):'—';
-  document.getElementById('m_resid_out').textContent=row.resid_out!=null?euro(row.resid_out):'—';
-  document.getElementById('m_perc').textContent=(row.perc_cycle!=null?row.perc_cycle.toFixed(2):'—')+'%';
-  document.getElementById('m_forecast').textContent=row.forecast_date||'—';
-
-  const h=(history[ID]||[]).slice().sort((a,b)=>new Date(a.ts)-new Date(b.ts));
-  let html='<table style="width:100%;border-collapse:collapse;"><thead><tr>'
-    +'<th style="text-align:left;border-bottom:1px solid var(--border);padding:6px;">Data/ora</th>'
-    +'<th style="text-align:right;border-bottom:1px solid var(--border);padding:6px;">IN</th>'
-    +'<th style="text-align:right;border-bottom:1px solid var(--border);padding:6px;">OUT</th>'
-    +'<th style="text-align:right;border-bottom:1px solid var(--border);padding:6px;">ΔIN</th>'
-    +'<th style="text-align:right;border-bottom:1px solid var(--border);padding:6px;">ΔOUT</th>'
-    +'</tr></thead><tbody>';
-  for(let i=0;i<h.length;i++){
-    const prev=h[i-1];const dIn=i?(h[i].IN-(prev?.IN||0)):0;const dOut=i?(h[i].OUT-(prev?.OUT||0)):0;
-    html+=`<tr><td style="padding:6px;">${fmtDMY(h[i].ts)} ${h[i].ts.slice(11,16)}</td><td style="padding:6px;text-align:right;">${euro(h[i].IN)}</td><td style="padding:6px;text-align:right;">${euro(h[i].OUT)}</td><td style="padding:6px;text-align:right;">${euro(dIn)}</td><td style="padding:6px;text-align:right;">${euro(dOut)}</td></tr>`;
-  }
-  html+='</tbody></table>';
-  document.getElementById('m_history').innerHTML=html;
-  drawChart(document.getElementById('m_chart'),h.map(x=>({ts:x.ts,IN:x.IN,OUT:x.OUT})));
-}
-
-/* ===== IA sui modelli / “algoritmo scheda” ===== */
-function buildModelStats(){
-  const statsMap=new Map(); // key -> obj
-
-  for(const ID in history){
-    const arr=history[ID]; if(!arr || arr.length<2) continue;
-    for(let i=1;i<arr.length;i++){
-      const prev=arr[i-1],cur=arr[i];
-      const dIn=cur.IN-(prev.IN||0);
-      const dOut=cur.OUT-(prev.OUT||0);
-      if(dIn<=0 && dOut<=0) continue;
-      const dtMs=new Date(cur.ts)-new Date(prev.ts);
-      const dtDays=dtMs>0?dtMs/86400000:0.0001;
-      const meta=cur.meta||prev.meta||{};
-      const modelCode=meta.MODEL_CODE||'';
-      const modelName=meta.MODELLO||'';
-      const key=modelCode || normalize(modelName||'Senza modello');
-      if(!statsMap.has(key)){
-        const {ciclo,payout}=getCicloPayout(modelCode,modelName);
-        statsMap.set(key,{
-          key,modelCode,modelName:(modelName||'(senza nome)'),machines:new Set(),
-          totalIN:0,totalOUT:0,totalDays:0,
-          locations:new Map(),payEvents:[],
-          theoCycle:ciclo||null,theoPayout:payout||payoutDefault
-        });
-      }
-      const s=statsMap.get(key);
-      s.machines.add(ID);
-      s.totalIN+=Math.max(0,dIn);
-      s.totalOUT+=Math.max(0,dOut);
-      s.totalDays+=dtDays;
-
-      const locKey=meta.DENOMIN_SEDE||meta.SEDE||'—';
-      if(locKey){
-        let L=s.locations.get(locKey);
-        if(!L){L={name:locKey,totalIN:0,totalOUT:0};s.locations.set(locKey,L);}
-        L.totalIN+=Math.max(0,dIn);
-        L.totalOUT+=Math.max(0,dOut);
-      }
-
-      // rileva "evento pagamento"
-      const C=s.theoCycle;
-      if(C){
-        const inCycle = cur.IN % C;
-        const percCycle = (inCycle/C)*100;
-        const expOut = (s.theoPayout||payoutDefault)*dIn;
-        const bonus = dOut-expOut;
-        // evento quando paga forte: tanto OUT o bonus alto
-        if(dOut>=200 || bonus>=150 || dOut>=3*dIn){
-          s.payEvents.push({percCycle,dIn,dOut,bonus});
-        }
-      }
-    }
-  }
-
-  MODEL_STATS=[...statsMap.values()].map(s=>{
-    const nMach=s.machines.size;
-    const effPayout=s.totalIN>0?s.totalOUT/s.totalIN:0;
-    const inPerDay=s.totalDays>0?s.totalIN/s.totalDays:0;
-    const payPercs=s.payEvents.map(p=>p.percCycle).filter(p=>p>=0&&isFinite(p));
-    let payZone='Dati insufficienti';
-    if(payPercs.length>=2){
-      payPercs.sort((a,b)=>a-b);
-      const min=payPercs[0],max=payPercs[payPercs.length-1];
-      const avg=payPercs.reduce((a,b)=>a+b,0)/payPercs.length;
-      payZone=`Tra ~${min.toFixed(0)}% e ${max.toFixed(0)}% (media ${avg.toFixed(0)}%)`;
-    }else if(payPercs.length===1){
-      payZone=`Intorno al ${payPercs[0].toFixed(0)}% del ciclo`;
-    }
-
-    const locArr=[...s.locations.values()].sort((a,b)=>b.totalIN-a.totalIN).slice(0,3);
-    const locLabel=locArr.length?locArr.map(l=>`${l.name} (${euro(l.totalIN)})`).join(', '):'—';
-
-    return{
-      key:s.key,
-      modelCode:s.modelCode,
-      modelName:s.modelName,
-      nMachines:nMach,
-      totalIN:s.totalIN,
-      totalOUT:s.totalOUT,
-      effPayout,
-      inPerDay,
-      theoCycle:s.theoCycle,
-      theoPayout:s.theoPayout,
-      payZone,
-      locations:locArr,
-      payEvents:s.payEvents
+  <script>
+    const state = {
+      users: [],
+      currentUser: null,
+      manifest: [],
+      cicloslot: [],
+      rawSnapshots: [],
+      seriesMap: new Map(),
+      analyzed: [],
+      selectedCodeId: null,
+      charts: {}
     };
-  });
 
-  const iaStatus=document.getElementById('iaStatus');
-  iaStatus.textContent = PENDING_FILES.length
-    ? 'IA veloce pronta. Per includere tutto lo storico premi “Analisi IA completa / Ricalcola IA”.'
-    : 'IA calcolata su tutto lo storico disponibile.';
-}
+    const aliases = {
+      codeId: ['CODEID', 'Codeid', 'codeid'],
+      codiceModello: ['CODICE MODELLO', 'Codice Modello', 'codice modello'],
+      modello: ['MODELLO', 'Modello', 'modello'],
+      pda: ['MACADDRESS PDA', 'PDA', 'Macaddress Pda'],
+      sede: ['DENOMIN. SEDE', 'DENOMIN SEDE', 'Sede', 'Locale'],
+      comune: ['COMUNE', 'Comune'],
+      provincia: ['PROVINCIA', 'Provincia'],
+      indirizzo: ['INDIRIZZO', 'Indirizzo'],
+      lastRead: ['DATA ULTIMA LETTURA VAL.', 'DATA ULTIMA LETTURA', 'Ultima Lettura'],
+      lastConn: ['DATA ULTIMO COLLEGAMENTO', 'Ultimo Collegamento'],
+      noConnDays: ['GG MANCATO COLLEGAMENTO', 'Mancato Collegamento'],
+      inTot: ['CNTTOTIN', 'IN_TOT', 'TOT IN'],
+      outTot: ['CNTTOTOT', 'OUT_TOT', 'TOT OUT'],
+      stato: ['DESCR. STATO', 'STATO'],
+      warning: ['WARNING', 'Warning']
+    };
 
-function renderModelStats(){
-  const tb=document.querySelector('#iaModelTable tbody'); if(!tb) return;
-  tb.innerHTML='';
-  if(!MODEL_STATS.length){
-    tb.innerHTML='<tr><td colspan="9" style="padding:10px;">Nessun dato ancora disponibile. Assicurati di aver caricato almeno alcuni sinottici.</td></tr>';
-    return;
-  }
-  const sortBy=document.getElementById('iaSort').value;
-  const arr=[...MODEL_STATS];
-  arr.sort((a,b)=>{
-    if(sortBy==='payout') return (b.effPayout-a.effPayout)||(b.totalIN-a.totalIN);
-    if(sortBy==='speed') return (b.inPerDay-a.inPerDay)||(b.totalIN-a.totalIN);
-    return (b.totalIN-a.totalIN);
-  });
-  for(const s of arr){
-    const tr=document.createElement('tr');
-    tr.innerHTML=`
-      <td>${escapeHTML(s.modelName)}</td>
-      <td>${escapeHTML(s.modelCode||'—')}</td>
-      <td>${s.nMachines}</td>
-      <td>${euro(s.totalIN)}</td>
-      <td>${euro(s.totalOUT)}</td>
-      <td>${(s.effPayout*100).toFixed(2)}%</td>
-      <td>${euro(s.inPerDay)}</td>
-      <td>${escapeHTML(s.payZone)}</td>
-      <td>${escapeHTML(s.locations.map(l=>l.name).join(', ')||'—')}</td>`;
-    tr.addEventListener('click',()=>updateIAInsights(s));
-    tb.appendChild(tr);
-  }
-}
-document.getElementById('iaSort').addEventListener('change',renderModelStats);
+    const $ = id => document.getElementById(id);
 
-function updateIAInsights(s){
-  const box=document.getElementById('iaInsightBox');
-  if(!s){
-    box.textContent='Seleziona un modello nella tabella per vedere i suggerimenti.';
-    return;
-  }
-  const bestLoc = s.locations[0];
-  const payoutEff=(s.effPayout*100).toFixed(2);
-  const payoutTheo=(s.theoPayout*100).toFixed(2);
-  const deltaPayout = (s.effPayout-s.theoPayout)*100;
-  const deltaText = Math.abs(deltaPayout)<0.2 ? 'molto vicino al teorico'
-                   : (deltaPayout>0 ? 'leggermente più generoso del teorico'
-                                    : 'un po’ più “tirato” del teorico');
+    document.querySelectorAll('.nav button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        ['dashboardView','monitorView','alertsView','modelsView','adminView'].forEach(id => $(id).classList.toggle('hidden', id !== btn.dataset.view));
+      });
+    });
 
-  let locText='Non ci sono ancora abbastanza dati sui locali per questo modello.';
-  if(bestLoc){
-    locText = `Finora il modello gioca di più in <b>${escapeHTML(bestLoc.name)}</b>, con circa <b>${euro(bestLoc.totalIN)}</b> di IN accumulato nelle letture considerate.`;
-  }
+    $('btnLogin').addEventListener('click', doLogin);
+    $('loginPin').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    $('btnLogout').addEventListener('click', logout);
+    $('btnBootstrap5').addEventListener('click', () => bootstrap(5));
+    $('btnBootstrapAll').addEventListener('click', () => bootstrap(null));
+    $('btnReloadManifest').addEventListener('click', async () => { await loadReferenceFiles(); await loadManifestOnly(); });
+    $('btnReanalyze').addEventListener('click', () => { analyzeAll(); renderAll(); });
+    $('filterSearch').addEventListener('input', renderAll);
+    $('sortMode').addEventListener('change', renderAll);
+    $('riskThreshold').addEventListener('change', renderAll);
+    $('historyWindow').addEventListener('change', () => { analyzeAll(); renderAll(); });
+    $('predictionMode').addEventListener('change', () => { analyzeAll(); renderAll(); });
 
-  box.innerHTML = `
-    <p><b>Modello:</b> ${escapeHTML(s.modelName)} ${s.modelCode?`(<code>${escapeHTML(s.modelCode)}</code>)`:''}</p>
-    <p>Stai guardando <b>${s.nMachines}</b> macchin${s.nMachines===1?'a':'e'} di questo modello, con un totale di <b>${euro(s.totalIN)}</b> giocato e <b>${euro(s.totalOUT)}</b> pagato.</p>
-    <p>Il payout effettivo è <b>${payoutEff}%</b>, a fronte di un teorico di circa <b>${payoutTheo}%</b>: in pratica questo modello è ${deltaText}.</p>
-    <p><b>Algoritmo di pagamento stimato:</b> ${escapeHTML(s.payZone)}. Significa che, mediamente, gli “scarichi grossi” tendono a concentrarsi in quella zona del ciclo.</p>
-    <p>${locText}</p>
-    <p><b>Dove metterlo?</b><br/>
-       Se devi scegliere, prova a posizionare questo modello in locali con un flusso di gioco simile a <b>${bestLoc?escapeHTML(bestLoc.name):'quelli dove vedi più IN'}</b>
-       e con clientela abituale. Nei locali dove il giocato medio è più basso, potrebbe impiegare più tempo a entrare nella sua finestra di pagamento tipica.</p>
-  `;
-}
+    init();
 
-/* ===== Barra caricamento ===== */
-function showLoadBar(msg,pct){
-  const bar=document.getElementById('loadBar');
-  bar.classList.remove('hidden');
-  document.getElementById('loadText').textContent=msg;
-  document.getElementById('loadPct').textContent=Math.round(pct||0)+'%';
-  document.getElementById('loadFill').style.width=(pct||0)+'%';
-}
-function hideLoadBar(){document.getElementById('loadBar').classList.add('hidden');}
-
-/* ===== Init: lettura sinottici (rapida + IA completa) ===== */
-async function loadCicloslotIfNeeded(){
-  if(CICLOSLOT.length){
-    CYCLE=buildCicloMaps(CICLOSLOT);
-    return;
-  }
-  try{
-    const rJson=await fetch('Dati/cicloslot.json',{cache:'no-store'});
-    if(rJson.ok){
-      const j=await rJson.json();
-      CICLOSLOT=j;
-      CYCLE=buildCicloMaps(j);
-      return;
-    }
-  }catch{}
-  try{
-    const cicloRows=await fetchXLSX('Dati/cicloslot.xlsx');
-    const mapped=cicloRows.map(r=>({
-      code:r['codice modello']||r.code||r['CODICE MODELLO'],
-      model:r.modello||r.model||r['MODELLO']||'',
-      ciclo:r.ciclo||r.cycle||r['CICLO'],
-      payout:r['payout %']||r['payout']||r['PAYOUT %']||r['PAYOUT']
-    })).filter(x=>x.code&&+x.ciclo>0);
-    CICLOSLOT=mapped;
-    CYCLE=buildCicloMaps(mapped);
-  }catch(e){
-    toast('Impossibile leggere cicloslot.json / .xlsx'); 
-  }
-}
-
-let ALL_FILES=[];
-
-async function initAuto(){
-  const status=m=>document.getElementById('statStatus').textContent=m;
-  showLoadBar('Preparazione cicli...',5);
-
-  await loadCicloslotIfNeeded();
-
-  status('Carico manifest…');
-  let lista=[];
-  try{
-    const r=await fetch('Dati/manifest.json',{cache:'no-store'});
-    if(r.ok){
-      const j=await r.json();
-      lista=Array.isArray(j.sinottici)?j.sinottici:[];
-    }
-  }catch{}
-  if(!lista.length){
-    status('Manifest mancante (Dati/manifest.json)');
-    hideLoadBar();
-    return;
-  }
-
-  ALL_FILES = lista.map(name=>({name,ts:parseStampFromName(name)}))
-                   .sort((a,b)=>new Date(a.ts)-new Date(b.ts));
-  LATEST_FILE_NAME = ALL_FILES[ALL_FILES.length-1].name;
-
-  const N_FAST=5;
-  const idxStart=Math.max(0,ALL_FILES.length-N_FAST);
-  const fastFiles=ALL_FILES.slice(idxStart);
-  PENDING_FILES = ALL_FILES.slice(0,idxStart);
-
-  history={}; // ricostruisco per il run corrente
-  lastUnmapped=[];
-  latestSnapshot='—';
-
-  await loadSinotticiSet(fastFiles,true); // caricamento rapido
-
-  localStorage.setItem(HIST_KEY,JSON.stringify(history));
-  findStale();renderStale();
-  buildModelStats();
-  renderModelStats();
-
-  const savedQ=localStorage.getItem('awp_q');
-  if(savedQ) document.getElementById('search').value=savedQ;
-  document.getElementById('search').addEventListener('input',()=>{
-    localStorage.setItem('awp_q',document.getElementById('search').value);
-    renderCurrent();
-  });
-
-  loadSettingsUI();
-  document.querySelectorAll('.colToggle').forEach(ch=>{
-    ch.checked=!!CFG.showCols[ch.dataset.col];
-    ch.onchange=()=>{CFG.showCols[ch.dataset.col]=!!ch.checked;localStorage.setItem(STORE,JSON.stringify(CFG));renderCurrent();};
-  });
-
-  hideLoadBar();
-  document.getElementById('statMap').textContent=`Non mappati: ${lastUnmapped.length}`;
-  document.getElementById('iaStatus').textContent = PENDING_FILES.length
-    ? 'IA veloce pronta. Puoi avviare l’analisi completa dallo storico.'
-    : 'IA calcolata su tutto lo storico disponibile.';
-}
-
-/* carica un set di sinottici, aggiornando history + dataset */
-async function loadSinotticiSet(files,isInitial){
-  const status=m=>document.getElementById('statStatus').textContent=m;
-  const latestByFile=new Map(); // ID -> r dall’ULTIMO sinottico
-  let lastName='',lastRowsTotal=0,totalPushed=0;
-  const totalFiles=files.length||1;
-
-  for(let idx=0; idx<files.length; idx++){
-    const f=files[idx];
-    const pct = 5 + ((idx+1)/totalFiles)*60;
-    showLoadBar(`Leggo ${f.name}…`,pct);
-    try{
-      status(`Leggo ${f.name}…`);
-      const data=await fetchXLSX('Dati/'+f.name);
-      lastName=f.name; lastRowsTotal=data.length; if(!data.length) continue;
-      const cols=pickCols(data[0]);
-      if(!cols.idKey||!cols.modelCodeKey||!cols.inKey||!cols.outKey){
-        toast(`Colonne mancanti in ${f.name}`);
-        continue;
+    async function init() {
+      try {
+        state.users = await fetchJson('./users.json');
+        renderUsersTable();
+        $('loginMsg').textContent = 'Inserisci utente e PIN.';
+      } catch (err) {
+        $('loginMsg').textContent = 'Errore caricamento users.json';
       }
-      const fallbackTS=parseStampFromName(f.name);
-      for(const r of data){
-        const rec={
-          ID: cleanID(r[cols.idKey]),
-          MODEL_CODE: cleanCode(r[cols.modelCodeKey]),
-          IN: parseCnt(r[cols.inKey]),
-          OUT: parseCnt(r[cols.outKey]),
-          MODELLO: cols.modelloKey?norm(r[cols.modelloKey]):'',
-          DENOMIN_SEDE: cols.denomSedeKey?norm(r[cols.denomSedeKey]):'',
-          SEDE: cols.sedeKey?norm(r[cols.sedeKey]):(norm(r['comune'])||''),
-          INDIRIZZO: cols.indirKey?norm(r[cols.indirKey]):'',
-          PROVINCIA: cols.provKey?norm(r[cols.provKey]):''
-        };
-        if(!rec.ID) continue;
-        const tsVal = cols.validKey ? r[cols.validKey] : '';
-        const ts = parseTSValue(tsVal,fallbackTS);
+    }
 
-        const {ciclo}=getCicloPayout(rec.MODEL_CODE,rec.MODELLO);
-        if(!ciclo){ lastUnmapped.push({modelCode:rec.MODEL_CODE,modello:rec.MODELLO}); }
+    async function doLogin() {
+      const user = $('loginUser').value.trim();
+      const pin = $('loginPin').value.trim();
+      if (!user || !pin) {
+        $('loginMsg').textContent = 'Inserisci utente e PIN.';
+        return;
+      }
+      if (!state.users.length) {
+        $('loginMsg').textContent = 'users.json non disponibile.';
+        return;
+      }
+      const found = state.users.find(u => String(u.user).toLowerCase() === user.toLowerCase() && String(u.pin) === pin);
+      if (!found) {
+        $('loginMsg').textContent = 'Credenziali non valide.';
+        return;
+      }
+      if (isExpired(found.expires)) {
+        $('loginMsg').textContent = 'Abbonamento scaduto.';
+        return;
+      }
+      state.currentUser = found;
+      $('userInfoName').textContent = found.user;
+      $('userInfoLevel').textContent = found.level;
+      $('userInfoExpires').textContent = formatEuropeanDate(found.expires);
+      $('loginScreen').classList.add('hidden');
+      $('appRoot').classList.remove('hidden');
+      $('diagBox').textContent = 'Login riuscito. Carica i sinottici per avviare l’analisi.';
+    }
 
-        pushHistory(rec.ID,ts,rec.IN,rec.OUT,{
-          MODEL_CODE:rec.MODEL_CODE,MODELLO:rec.MODELLO,DENOMIN_SEDE:rec.DENOMIN_SEDE,
-          SEDE:rec.SEDE,INDIRIZZO:rec.INDIRIZZO,PROVINCIA:rec.PROVINCIA
-        });
-        totalPushed++;
-        latestSnapshot=ts;
+    function logout() {
+      state.currentUser = null;
+      $('loginPin').value = '';
+      $('appRoot').classList.add('hidden');
+      $('loginScreen').classList.remove('hidden');
+    }
 
-        if(f.name===LATEST_FILE_NAME){
-          latestByFile.set(rec.ID,{...rec,_ts:ts});
+    async function bootstrap(limit) {
+      try {
+        await loadReferenceFiles();
+        await loadManifestOnly();
+        await loadSinottici(limit);
+        analyzeAll();
+        renderAll();
+      } catch (err) {
+        console.error(err);
+        $('summaryText').textContent = 'Errore durante il caricamento dei dati.';
+        $('diagBox').textContent = String(err?.message || err);
+      }
+    }
+
+    async function loadReferenceFiles() {
+      const [cycles] = await Promise.all([fetchJson('./cicloslot.json')]);
+      state.cicloslot = Array.isArray(cycles) ? cycles : [];
+      $('cyclesStatus').textContent = `${state.cicloslot.length} modelli`;
+    }
+
+    async function loadManifestOnly() {
+      const manifest = await fetchJson('./manifest.json');
+      const files = Array.isArray(manifest.sinottici) ? manifest.sinottici : [];
+      state.manifest = files
+        .map(filename => ({ filename, parsed: parseManifestFilename(filename) }))
+        .filter(x => x.parsed)
+        .sort((a, b) => a.parsed.ts - b.parsed.ts);
+
+      $('manifestStatus').textContent = `${state.manifest.length} file`;
+      $('manifestBubble').textContent = `Manifest: ${state.manifest.length} file`;
+      $('latestFile').textContent = state.manifest.at(-1)?.filename || '—';
+      $('dateBubble').textContent = `Ultimo aggiornamento: ${state.manifest.at(-1)?.parsed?.label || '—'}`;
+      $('diagBox').textContent = `Manifest letto correttamente. File validi: ${state.manifest.length}.`;
+    }
+
+    async function loadSinottici(limit) {
+      const target = limit ? state.manifest.slice(-limit) : state.manifest;
+      state.rawSnapshots = [];
+      $('summaryText').textContent = 'Caricamento sinottici in corso...';
+      for (const item of target) {
+        try {
+          const buffer = await fetchArrayBuffer(`./Dati/${item.filename}`);
+          const wb = XLSX.read(buffer, { type: 'array', cellDates: true });
+          const firstSheet = wb.Sheets[wb.SheetNames[0]];
+          const rows = XLSX.utils.sheet_to_json(firstSheet, { defval: null, raw: false });
+          state.rawSnapshots.push({ filename: item.filename, parsed: item.parsed, rows });
+        } catch (err) {
+          console.warn('Errore lettura sinottico', item.filename, err);
         }
       }
-    }catch(err){
-      console.error('Errore su file',f.name,err);
-      toast(`Errore leggendo ${f.name}`);
-      continue;
+      $('filesStatus').textContent = String(state.rawSnapshots.length);
+      $('summaryText').textContent = `${state.rawSnapshots.length} sinottici caricati.`;
+      $('diagBox').textContent = `Sinottici letti: ${state.rawSnapshots.length}. Ultimo: ${state.rawSnapshots.at(-1)?.filename || '—'}.`;
     }
-  }
 
-  // costruisco dataset CLASSICO (solo ultimo file)
-  const classicStates=[...latestByFile.values()];
-  fullRowsClassic=classicStates.map(s=>computeRowClassic(s)).filter(Boolean);
+    function analyzeAll() {
+      state.seriesMap = new Map();
+      const normalized = [];
+      for (const snap of state.rawSnapshots) {
+        for (const row of snap.rows) {
+          const nr = normalizeRow(row, snap);
+          if (nr) normalized.push(nr);
+        }
+      }
+      normalized.forEach(r => {
+        if (!state.seriesMap.has(r.codeId)) state.seriesMap.set(r.codeId, []);
+        state.seriesMap.get(r.codeId).push(r);
+      });
 
-  // dataset IA (ultimo stato da history)
-  const latestStates=getLatestStateForAll();
-  fullRowsIA=latestStates.map(s=>computeRowIA(s)).filter(Boolean);
+      const results = [];
+      const win = Number($('historyWindow').value || 8);
+      const mode = $('predictionMode').value;
 
-  document.getElementById('lastRead').innerHTML=`Ultima lettura: <b>${fmtDMY(latestSnapshot)}</b>`;
-  status(`Modalità: ${MODE==='classic'?'Classica':'IA'} · Ultimo file: ${lastName||'—'} — righe: ${lastRowsTotal} — letture storiche: ${totalPushed}`);
-  renderCurrent();
-}
+      for (const [codeId, rawSeries] of state.seriesMap.entries()) {
+        const series = rawSeries.sort((a,b) => a.snapshotTs - b.snapshotTs);
+        const meta = series.at(-1);
+        const recent = series.slice(-win);
+        const deltas = [];
+        for (let i = 1; i < recent.length; i++) {
+          const prev = recent[i-1];
+          const cur = recent[i];
+          const h = Math.max(0.0001, (cur.snapshotTs - prev.snapshotTs) / 3600000);
+          const dIn = Math.max(0, cur.inTot - prev.inTot);
+          const dOut = Math.max(0, cur.outTot - prev.outTot);
+          deltas.push({
+            hours: h,
+            dIn,
+            dOut,
+            rateIn: dIn / h,
+            rateOut: dOut / h,
+            from: prev.snapshotLabel,
+            to: cur.snapshotLabel
+          });
+        }
 
-/* ===== Analisi IA completa (carica i file storici rimanenti) ===== */
-let IA_RUNNING=false;
-async function runFullIA(){
-  if(IA_RUNNING) return;
-  if(!PENDING_FILES.length){
-    toast('Lo storico completo è già stato caricato.');
-    return;
-  }
-  IA_RUNNING=true;
-  showLoadBar('Analisi IA completa in corso…',10);
-  const toLoad=[...PENDING_FILES];
-  PENDING_FILES=[];
-  await loadSinotticiSet(toLoad,false);
-  localStorage.setItem(HIST_KEY,JSON.stringify(history));
-  buildModelStats();
-  renderModelStats();
-  hideLoadBar();
-  IA_RUNNING=false;
-  document.getElementById('iaStatus').textContent='IA calcolata su tutto lo storico disponibile.';
-}
-document.getElementById('btnFullIA').onclick=async()=>{
-  // entra direttamente in modalità IA e carica eventuale storico
-  setMode('ia');
-  await runFullIA();
-};
-document.getElementById('btnIaRebuild').onclick=async()=>{
-  setMode('ia');
-  await runFullIA();
-};
+        const ratesIn = deltas.map(x => x.rateIn);
+        const ratesOut = deltas.map(x => x.rateOut);
+        const avgRateIn = predictionAverage(ratesIn, mode);
+        const avgRateOut = predictionAverage(ratesOut, mode);
+        const corr = pearson(deltas.map(x => x.dIn), deltas.map(x => x.dOut));
+        const predIn24 = avgRateIn * 24;
+        const predOut24 = avgRateOut * 24;
+        const payoutRatioReal = meta.inTot > 0 ? (meta.outTot / meta.inTot) * 100 : 0;
+        const payoutTarget = meta.payoutPct;
+        const payoutGap = payoutTarget != null ? payoutRatioReal - payoutTarget : null;
+        const phasePct = meta.ciclo ? ((meta.inTot % meta.ciclo) / meta.ciclo) * 100 : null;
+        const currentCycleIn = meta.ciclo ? (meta.inTot % meta.ciclo) : null;
+        const expectedCycleOut = (currentCycleIn != null && payoutTarget != null) ? currentCycleIn * (payoutTarget / 100) : null;
+        const realCycleOutApprox = deltas.reduce((a,b)=>a+b.dOut,0);
+        const imbalance = expectedCycleOut != null ? (realCycleOutApprox - expectedCycleOut) : null;
+        const stability = ratesIn.length > 1 ? Math.max(0, 100 - ((stdDev(ratesIn) / Math.max(1, avgRateIn)) * 100)) : 50;
 
-/* ===== Event: cambio modalità dal titolo (clic su label) ===== */
-document.getElementById('modeLabel').addEventListener('click',()=>{
-  setMode(MODE==='classic'?'ia':'classic');
-});
+        let risk = 0;
+        const reasons = [];
+        if (corr == null) {
+          risk += 8;
+          reasons.push('storico insufficiente');
+        } else if (corr < 0.05 && avgRateIn > 20) {
+          risk += 25;
+          reasons.push('correlazione IN/OUT molto bassa');
+        } else if (corr < 0.25) {
+          risk += 14;
+          reasons.push('correlazione debole');
+        }
+        if (payoutGap != null) {
+          if (Math.abs(payoutGap) > 18) { risk += 30; reasons.push('payout reale molto distante dal target'); }
+          else if (Math.abs(payoutGap) > 10) { risk += 18; reasons.push('payout reale distante dal target'); }
+        }
+        if (imbalance != null) {
+          if (Math.abs(imbalance) > 1800) { risk += 22; reasons.push('squilibrio di ciclo molto alto'); }
+          else if (Math.abs(imbalance) > 900) { risk += 12; reasons.push('squilibrio di ciclo sensibile'); }
+        }
+        if (stability < 35) { risk += 12; reasons.push('comportamento instabile'); }
+        if (String(meta.warning || '').trim()) { risk += 10; reasons.push('warning presente'); }
+        if (String(meta.stato || '').toLowerCase().includes('mancato')) { risk += 10; reasons.push('collegamento problematico'); }
+        risk = Math.min(100, Math.round(risk));
+        const anomalyLevel = risk >= 70 ? 'Alta' : risk >= 40 ? 'Media' : 'Bassa';
+        const narrative = buildNarrative({ meta, corr, avgRateIn, avgRateOut, predIn24, predOut24, payoutRatioReal, payoutTarget, payoutGap, phasePct, imbalance, risk, reasons, stability });
 
-/* ===== Init search e IA default ===== */
-loadSettingsUI();
+        results.push({
+          codeId, meta, series, deltas,
+          avgRateIn, avgRateOut, predIn24, predOut24,
+          corr, payoutRatioReal, payoutTarget, payoutGap,
+          phasePct, imbalance, stability, risk, anomalyLevel, reasons, narrative
+        });
+      }
 
-/* ===== Salvataggio query ===== */
-const savedQ=localStorage.getItem('awp_q');
-if(savedQ) document.getElementById('search').value=savedQ;
-document.getElementById('search').addEventListener('input',()=>{
-  localStorage.setItem('awp_q',document.getElementById('search').value);
-  renderCurrent();
-});
-</script>
+      state.analyzed = results;
+      if (!state.selectedCodeId && results.length) state.selectedCodeId = results[0].codeId;
+    }
+
+    function renderAll() {
+      const q = $('filterSearch').value.trim().toLowerCase();
+      const sortMode = $('sortMode').value;
+      const riskThreshold = Number($('riskThreshold').value || 70);
+      let rows = [...state.analyzed];
+      if (q) {
+        rows = rows.filter(r => (`${r.meta.sede} ${r.meta.comune} ${r.meta.modello} ${r.meta.codeId} ${r.meta.pda}`).toLowerCase().includes(q));
+      }
+      rows.sort((a, b) => {
+        if (sortMode === 'imbalance') return Math.abs(b.imbalance || 0) - Math.abs(a.imbalance || 0);
+        if (sortMode === 'activity') return (b.avgRateIn + b.avgRateOut) - (a.avgRateIn + a.avgRateOut);
+        if (sortMode === 'phase') return (b.phasePct || 0) - (a.phasePct || 0);
+        return b.risk - a.risk;
+      });
+
+      $('kpiMachines').textContent = rows.length;
+      $('kpiMatched').textContent = rows.filter(r => r.meta.ciclo).length;
+      $('kpiHighAlerts').textContent = rows.filter(r => r.risk >= riskThreshold).length;
+      $('kpiPredIn').textContent = fmtEuro(rows.reduce((a,b)=>a+b.predIn24,0));
+      $('kpiPredOut').textContent = fmtEuro(rows.reduce((a,b)=>a+b.predOut24,0));
+      const corrVals = rows.map(r => r.corr).filter(v => typeof v === 'number');
+      $('kpiCorrAvg').textContent = corrVals.length ? (corrVals.reduce((a,b)=>a+b,0)/corrVals.length).toFixed(2) : '—';
+      $('summaryText').textContent = rows.length ? `${rows.length} slot elaborate su ${state.rawSnapshots.length} sinottici.` : 'Nessun dato disponibile.';
+
+      renderMainTable(rows);
+      renderSlotList(rows);
+      renderSelectedSlot(rows);
+      renderAlertsTable(rows, riskThreshold);
+      renderModelsTable(rows);
+      renderAggregateChart(rows);
+      renderRiskChart(rows);
+      renderUsersTable();
+    }
+
+    function renderMainTable(rows) {
+      $('mainTable').querySelector('tbody').innerHTML = rows.map(r => `
+        <tr>
+          <td>${riskBadge(r.risk)}</td>
+          <td>${h(r.meta.sede || '—')}</td>
+          <td>${h(r.meta.comune || '—')}</td>
+          <td>${h(r.meta.modello || '—')}</td>
+          <td>${h(r.meta.codeId)}</td>
+          <td>${h(r.meta.pda || '—')}</td>
+          <td>${r.phasePct != null ? r.phasePct.toFixed(1) + '%' : '—'}</td>
+          <td>${fmtEuro(r.avgRateIn)}/h</td>
+          <td>${fmtEuro(r.avgRateOut)}/h</td>
+          <td>${r.corr != null ? r.corr.toFixed(2) : '—'}</td>
+          <td>${fmtEuro(r.predIn24)}</td>
+          <td>${fmtEuro(r.predOut24)}</td>
+          <td>${r.imbalance != null ? signed(r.imbalance, '€') : '—'}</td>
+          <td>${anomalyBadge(r.anomalyLevel)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderSlotList(rows) {
+      $('slotList').innerHTML = rows.map(r => `
+        <div class="slot-item ${state.selectedCodeId === r.codeId ? 'active' : ''}" data-codeid="${ha(r.codeId)}">
+          <h4>${h(r.meta.sede || 'Sede sconosciuta')}</h4>
+          <div class="mini"><span>${h(r.meta.modello || '—')}</span><span>${stripHtml(riskBadge(r.risk))}</span></div>
+          <div class="mini" style="margin-top:6px;"><span>CODEID ${h(r.meta.codeId)}</span><span>${fmtEuro(r.predIn24)} / ${fmtEuro(r.predOut24)}</span></div>
+        </div>
+      `).join('');
+      $('slotList').querySelectorAll('.slot-item').forEach(item => item.addEventListener('click', () => { state.selectedCodeId = item.dataset.codeid; renderAll(); }));
+    }
+
+    function renderSelectedSlot(rows) {
+      const slot = rows.find(r => r.codeId === state.selectedCodeId) || rows[0];
+      if (!slot) return;
+      state.selectedCodeId = slot.codeId;
+      $('slotTitle').textContent = `${slot.meta.sede || 'Locale'} · ${slot.meta.modello || 'Modello sconosciuto'}`;
+      $('slotSubtitle').textContent = `CODEID ${slot.meta.codeId} • Comune ${slot.meta.comune || '—'} • Ultimo snapshot ${slot.meta.snapshotLabel}`;
+      $('slotNarrative').textContent = slot.narrative;
+      $('slotDetails').innerHTML = [
+        ['Rischio', `${slot.risk}/100`],
+        ['Correlazione', slot.corr != null ? slot.corr.toFixed(2) : '—'],
+        ['Pred. IN 24h', fmtEuro(slot.predIn24)],
+        ['Pred. OUT 24h', fmtEuro(slot.predOut24)],
+        ['Payout reale', `${slot.payoutRatioReal.toFixed(1)}%`],
+        ['Target modello', slot.payoutTarget != null ? `${slot.payoutTarget.toFixed(1)}%` : '—'],
+        ['Scarto payout', slot.payoutGap != null ? signed(slot.payoutGap, '%') : '—'],
+        ['Fase ciclo', slot.phasePct != null ? `${slot.phasePct.toFixed(1)}%` : '—'],
+        ['Squilibrio', slot.imbalance != null ? signed(slot.imbalance, '€') : '—'],
+        ['Stabilità', `${slot.stability.toFixed(0)}/100`],
+        ['Stato', slot.meta.stato || '—'],
+        ['Warning', slot.meta.warning || '—']
+      ].map(([k,v]) => `<div class="kv"><div class="k">${h(k)}</div><div class="v">${h(v)}</div></div>`).join('');
+
+      const labels = slot.series.map(x => x.snapshotLabel);
+      const inVals = slot.series.map(x => x.inTot);
+      const outVals = slot.series.map(x => x.outTot);
+      const dIn = [0, ...slot.series.slice(1).map((x,i) => Math.max(0, x.inTot - slot.series[i].inTot))];
+      const dOut = [0, ...slot.series.slice(1).map((x,i) => Math.max(0, x.outTot - slot.series[i].outTot))];
+      makeChart('slotChart', {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [
+            { label: 'IN totale', data: inVals, borderWidth: 2, tension: 0.25 },
+            { label: 'OUT totale', data: outVals, borderWidth: 2, tension: 0.25 },
+            { label: 'Δ IN', data: dIn, borderWidth: 2, tension: 0.25 },
+            { label: 'Δ OUT', data: dOut, borderWidth: 2, tension: 0.25 }
+          ]
+        },
+        options: chartOptions()
+      });
+    }
+
+    function renderAlertsTable(rows, riskThreshold) {
+      const data = rows.filter(r => r.risk >= riskThreshold || r.reasons.length);
+      $('alertsTable').querySelector('tbody').innerHTML = data.map(r => `
+        <tr>
+          <td>${riskBadge(r.risk)}</td>
+          <td>${h(r.meta.sede || '—')}</td>
+          <td>${h(r.meta.comune || '—')}</td>
+          <td>${h(r.meta.modello || '—')}</td>
+          <td>${h(r.meta.codeId)}</td>
+          <td>${h(r.reasons[0] || 'monitorare')}</td>
+          <td>${h(r.reasons.join(' • ') || 'nessun dettaglio')}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderModelsTable(rows) {
+      const seen = new Map();
+      rows.forEach(r => seen.set(String(r.meta.codiceModello || '—'), (seen.get(String(r.meta.codiceModello || '—')) || 0) + 1));
+      $('modelsTable').querySelector('tbody').innerHTML = state.cicloslot.map(m => `
+        <tr>
+          <td>${h(String(m.codiceModello))}</td>
+          <td>${h(m.nomeModello)}</td>
+          <td>${fmtEuro(m.ciclo)}</td>
+          <td>${h(String(m.payout))}%</td>
+          <td>${seen.get(String(m.codiceModello)) || 0}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderUsersTable() {
+      $('usersTable').querySelector('tbody').innerHTML = state.users.map(u => `
+        <tr>
+          <td>${h(u.user)}</td>
+          <td>${h(u.level)}</td>
+          <td>${h(formatEuropeanDate(u.expires))}</td>
+          <td>${isExpired(u.expires) ? '<span class="badge bad">Scaduto</span>' : '<span class="badge good">Attivo</span>'}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderAggregateChart(rows) {
+      const top = rows.slice(0, 12);
+      makeChart('aggregateChart', {
+        type: 'bar',
+        data: {
+          labels: top.map(r => r.meta.sede || r.meta.codeId),
+          datasets: [
+            { label: 'Pred. IN 24h', data: top.map(r => Math.round(r.predIn24)) },
+            { label: 'Pred. OUT 24h', data: top.map(r => Math.round(r.predOut24)) }
+          ]
+        },
+        options: chartOptions()
+      });
+    }
+
+    function renderRiskChart(rows) {
+      const bands = { Bassa: 0, Media: 0, Alta: 0 };
+      rows.forEach(r => bands[r.anomalyLevel]++);
+      makeChart('riskChart', {
+        type: 'doughnut',
+        data: { labels: Object.keys(bands), datasets: [{ data: Object.values(bands) }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#eef4ff' } } } }
+      });
+    }
+
+    function normalizeRow(row, snapshot) {
+      const codeId = String(getAliasValue(row, aliases.codeId) || '').trim();
+      if (!codeId) return null;
+      const codiceModello = String(getAliasValue(row, aliases.codiceModello) || '').trim();
+      const modelRef = state.cicloslot.find(x => String(x.codiceModello).trim() === codiceModello);
+      return {
+        snapshotTs: snapshot.parsed.ts,
+        snapshotLabel: snapshot.parsed.label,
+        filename: snapshot.filename,
+        codeId,
+        codiceModello,
+        modello: String(getAliasValue(row, aliases.modello) || modelRef?.nomeModello || '—').trim(),
+        pda: String(getAliasValue(row, aliases.pda) || '').trim(),
+        sede: String(getAliasValue(row, aliases.sede) || '').trim(),
+        comune: String(getAliasValue(row, aliases.comune) || '').trim(),
+        provincia: String(getAliasValue(row, aliases.provincia) || '').trim(),
+        indirizzo: String(getAliasValue(row, aliases.indirizzo) || '').trim(),
+        stato: String(getAliasValue(row, aliases.stato) || '').trim(),
+        warning: String(getAliasValue(row, aliases.warning) || '').trim(),
+        inTot: parseNumeric(getAliasValue(row, aliases.inTot)),
+        outTot: parseNumeric(getAliasValue(row, aliases.outTot)),
+        ciclo: modelRef?.ciclo ?? null,
+        payoutPct: modelRef?.payout ?? null
+      };
+    }
+
+    function buildNarrative({ meta, corr, avgRateIn, avgRateOut, predIn24, predOut24, payoutRatioReal, payoutTarget, payoutGap, phasePct, imbalance, risk, reasons, stability }) {
+      const p = [];
+      p.push(`La macchina ${meta.codeId} nel locale ${meta.sede || '—'} ha una velocità media di incasso di ${fmtEuro(avgRateIn)}/h e una velocità media di pagamento di ${fmtEuro(avgRateOut)}/h.`);
+      if (corr != null) p.push(`La correlazione tra crescita IN e crescita OUT è ${corr.toFixed(2)}.`);
+      if (phasePct != null) p.push(`La fase del ciclo attuale è ${phasePct.toFixed(1)}%.`);
+      if (payoutTarget != null) p.push(`Il payout reale è ${payoutRatioReal.toFixed(1)}% rispetto a un target del ${payoutTarget.toFixed(1)}%, con scarto ${signed(payoutGap, '%')}.`);
+      if (imbalance != null) p.push(`Lo squilibrio di ciclo stimato è ${signed(imbalance, '€')}.`);
+      p.push(`Previsione prossime 24 ore: incasso ${fmtEuro(predIn24)}, pagamento ${fmtEuro(predOut24)}.`);
+      p.push(`Indice di rischio ${risk}/100 e stabilità ${stability.toFixed(0)}/100.`);
+      if (reasons.length) p.push(`Fattori principali: ${reasons.join(', ')}.`);
+      return p.join(' ');
+    }
+
+    function predictionAverage(values, mode) {
+      if (!values.length) return 0;
+      if (mode === 'recent') {
+        return values.reduce((acc, v, i) => acc + v * (i + 2), 0) / values.reduce((acc, _, i) => acc + (i + 2), 0);
+      }
+      return values.reduce((acc, v, i) => acc + v * (i + 1), 0) / values.reduce((acc, _, i) => acc + (i + 1), 0);
+    }
+
+    function pearson(xs, ys) {
+      if (xs.length < 2 || ys.length < 2 || xs.length !== ys.length) return null;
+      const n = xs.length;
+      const mx = xs.reduce((a,b)=>a+b,0)/n;
+      const my = ys.reduce((a,b)=>a+b,0)/n;
+      let num = 0, dx = 0, dy = 0;
+      for (let i = 0; i < n; i++) {
+        const a = xs[i] - mx, b = ys[i] - my;
+        num += a * b; dx += a * a; dy += b * b;
+      }
+      const den = Math.sqrt(dx * dy);
+      return den ? num / den : null;
+    }
+
+    function stdDev(arr) {
+      if (arr.length < 2) return 0;
+      const mean = arr.reduce((a,b)=>a+b,0) / arr.length;
+      return Math.sqrt(arr.reduce((a,b)=>a + (b - mean) ** 2, 0) / arr.length);
+    }
+
+    function getAliasValue(row, names) {
+      for (const n of names) if (row[n] !== undefined && row[n] !== null && row[n] !== '') return row[n];
+      return null;
+    }
+
+    function parseManifestFilename(filename) {
+      const m = String(filename).match(/^Sinottico-?(\d{4})-(\d{2})-(\d{2})-(\d{4})\.xlsx$/i);
+      if (!m) return null;
+      const [, y, mo, d, hm] = m;
+      const hh = hm.slice(0,2), mm = hm.slice(2,4);
+      const ts = new Date(`${y}-${mo}-${d}T${hh}:${mm}:00`).getTime();
+      return { y, mo, d, hh, mm, ts, label: `${d}/${mo}/${y} ${hh}:${mm}` };
+    }
+
+    function parseNumeric(value) {
+      if (value == null || value === '') return 0;
+      if (typeof value === 'number') return value;
+      let s = String(value).trim().replace(/\s/g, '');
+      s = s.replace(/\.(?=\d{3}(\D|$))/g, '');
+      s = s.replace(/,(\d{1,2})$/, '.$1');
+      const n = Number(s.replace(/[^0-9.-]/g, ''));
+      return Number.isFinite(n) ? n : 0;
+    }
+
+    function isExpired(dateStr) {
+      if (!dateStr) return false;
+      const d = new Date(`${dateStr}T23:59:59`);
+      return Number.isFinite(d.getTime()) ? Date.now() > d.getTime() : false;
+    }
+
+    function formatEuropeanDate(dateStr) {
+      if (!dateStr) return '—';
+      const d = new Date(`${dateStr}T00:00:00`);
+      if (!Number.isFinite(d.getTime())) return String(dateStr);
+      return new Intl.DateTimeFormat('it-IT').format(d);
+    }
+
+    function makeChart(id, config) {
+      if (state.charts[id]) state.charts[id].destroy();
+      state.charts[id] = new Chart($(id).getContext('2d'), config);
+    }
+
+    function chartOptions() {
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: { ticks: { color: '#bfd0ef' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+          y: { ticks: { color: '#bfd0ef' }, grid: { color: 'rgba(255,255,255,0.06)' } }
+        },
+        plugins: { legend: { labels: { color: '#eef4ff' } } }
+      };
+    }
+
+    async function fetchJson(path) {
+      const r = await fetch(path);
+      if (!r.ok) throw new Error(`Errore caricamento ${path}`);
+      return r.json();
+    }
+
+    async function fetchArrayBuffer(path) {
+      const r = await fetch(path);
+      if (!r.ok) throw new Error(`Errore caricamento ${path}`);
+      return r.arrayBuffer();
+    }
+
+    function riskBadge(v) {
+      const cls = v >= 70 ? 'bad' : v >= 40 ? 'warn' : 'good';
+      return `<span class="badge ${cls}"><span class="dot ${cls}"></span>${v}/100</span>`;
+    }
+    function anomalyBadge(v) {
+      const cls = v === 'Alta' ? 'bad' : v === 'Media' ? 'warn' : 'good';
+      return `<span class="badge ${cls}">${h(v)}</span>`;
+    }
+    function fmtEuro(v) {
+      return new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(Number(v || 0));
+    }
+    function signed(v, suffix) {
+      const n = Number(v || 0);
+      const p = n > 0 ? '+' : '';
+      return suffix === '€' ? `${p}${fmtEuro(n)}` : `${p}${n.toFixed(1)}${suffix}`;
+    }
+    function h(s) {
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+    }
+    function ha(s) { return h(s).replace(/"/g, '&quot;'); }
+    function stripHtml(html) { const d = document.createElement('div'); d.innerHTML = html; return d.textContent || ''; }
+  </script>
 </body>
 </html>
