@@ -45,6 +45,22 @@ function setProgress(i, n){
   $("progressText").textContent = n ? `Caricamento ${i}/${n} (${pct}%)` : "—";
 }
 
+function sortManifestByDate(files){
+  return [...files].sort((a,b)=>{
+    const da = parseDateFromFilename(a);
+    const db = parseDateFromFilename(b);
+    if(da && db) return da - db;
+    if(da) return -1;
+    if(db) return 1;
+    return String(a).localeCompare(String(b));
+  });
+}
+
+function latestFiles(files, count=3){
+  const sorted = sortManifestByDate(files);
+  return sorted.slice(-count);
+}
+
 async function fetchXlsx(file){
   const r = await fetch("Dati/" + file, { cache:"no-store" });
   if(!r.ok) throw new Error(`Errore download: ${file}`);
@@ -55,10 +71,13 @@ async function fetchXlsx(file){
 }
 
 async function loadFiles(files){
+  const alreadyLoaded = new Set(S.loadedFiles);
+  const pending = files.filter(f => !alreadyLoaded.has(f));
+
   let i = 0;
-  for(const f of files){
+  for(const f of pending){
     i++;
-    setProgress(i, files.length);
+    setProgress(i, pending.length);
     const sh = await fetchXlsx(f);
     const machines = parseSinotticoSheet(sh);
     const dtFile = parseDateFromFilename(f);
@@ -68,12 +87,30 @@ async function loadFiles(files){
   setProgress(0,0);
 }
 
+async function autoLoadHistory(manifest, session){
+  const sorted = sortManifestByDate(manifest);
+  const initial = latestFiles(sorted, 3);
+
+  $("menuHint").textContent = "Caricamento ultimi sinottici…";
+  await loadFiles(initial);
+  renderAll(session);
+
+  const initialSet = new Set(initial);
+  const history = sorted.filter(f => !initialSet.has(f));
+
+  if(history.length){
+    $("menuHint").textContent = `Caricamento storico automatico: 0/${history.length}`;
+    await loadFiles(history);
+    renderAll(session);
+  }
+
+  $("menuHint").textContent = `Storico completo caricato automaticamente (${S.loadedFiles.length} sinottici).`;
+}
+
 function renderAll(session){
-  // se abbonato scaduto: limita le viste
   const expiredLimited = session && session.level === "abbonato" && session.expired;
 
   if(expiredLimited){
-    // mostra solo profilo e bubble (dashboard come banner informativo)
     setView("viewProfile");
   }else{
     setView("viewDashboard");
@@ -84,9 +121,9 @@ function renderAll(session){
   renderAdmin(session);
   renderProfile(session);
 
-  $("menuHint").textContent = expiredLimited
-    ? "Abbonamento scaduto: funzioni limitate."
-    : "Pronto.";
+  if(expiredLimited){
+    $("menuHint").textContent = "Abbonamento scaduto: funzioni limitate.";
+  }
 }
 
 function renderModels(){
@@ -117,7 +154,6 @@ async function renderAdmin(session){
 
   if(!isAdmin) return;
 
-  // Users table
   const users = await loadUsers();
   const tb = document.querySelector("#tblUsers tbody");
   tb.innerHTML = "";
@@ -134,7 +170,6 @@ async function renderAdmin(session){
     tb.appendChild(tr);
   }
 
-  // Diagnostics
   $("diagBox").textContent =
     `Macchine: ${S.machinesById.size}\n` +
     `Storici: ${S.historyById.size}\n` +
@@ -200,7 +235,6 @@ function setupChat(){
 }
 
 async function boot(){
-  // menu bindings
   $("btnBurger").onclick = ()=>menu(true);
   $("btnCloseMenu").onclick = ()=>menu(false);
   $("backdrop").onclick = ()=>menu(false);
@@ -212,11 +246,9 @@ async function boot(){
     };
   });
 
-  // modal bindings
   $("modalBackdrop").onclick = ()=>showModal(false);
   $("btnCloseModal").onclick = ()=>showModal(false);
 
-  // filter/sort
   $("filterText").oninput = ()=>renderDashboard(S, getSession());
   $("sortBy").onchange = ()=>renderDashboard(S, getSession());
 
@@ -227,15 +259,12 @@ async function boot(){
 
   setupChat();
 
-  // carica cicloslot subito
   S.cicloMap = await loadCicloSlot();
 
-  // bubble da manifest
   const manifest = await loadManifest();
   const latest = pickLatestFromManifest(manifest);
   setBubble(latest?.dt || null);
 
-  // session
   const session = getSession();
   if(session){
     $("viewLogin").classList.remove("active");
@@ -244,16 +273,13 @@ async function boot(){
     $("userLevel").textContent = session.level + (session.expired ? " (scaduto)" : "");
     renderAll(session);
 
-    // auto-load ultimi 3 se non scaduto
     if(!(session.level === "abbonato" && session.expired)){
-      await loadFiles(manifest.slice(-3));
-      renderAll(session);
+      await autoLoadHistory(manifest, session);
     }
   }else{
     setView("viewLogin");
   }
 
-  // login
   $("btnLogin").onclick = async ()=>{
     $("loginMsg").textContent = "Accesso…";
     const u = $("loginUser").value;
@@ -270,30 +296,30 @@ async function boot(){
     $("userLevel").textContent = session2.level + (session2.expired ? " (scaduto)" : "");
     $("loginMsg").textContent = "OK";
 
-    // se scaduto: solo profilo/bubble
     renderAll(session2);
 
     if(!(session2.level === "abbonato" && session2.expired)){
+      S.machinesById.clear();
+      S.historyById.clear();
+      S.loadedFiles = [];
       const man = await loadManifest();
-      await loadFiles(man.slice(-3));
-      renderAll(session2);
+      await autoLoadHistory(man, session2);
     }
   };
 
-  // logout
   $("btnLogout").onclick = ()=>{
     logout();
     location.reload();
   };
 
-  // load buttons
   $("btnLoadLast3").onclick = async ()=>{
     const s = getSession();
     if(!s || (s.level==="abbonato" && s.expired)) return;
     S.machinesById.clear(); S.historyById.clear(); S.loadedFiles = [];
     const man = await loadManifest();
-    await loadFiles(man.slice(-3));
+    await loadFiles(latestFiles(man, 3));
     renderAll(s);
+    $("menuHint").textContent = "Caricati manualmente gli ultimi 3 sinottici.";
   };
 
   $("btnLoadAll").onclick = async ()=>{
@@ -301,8 +327,9 @@ async function boot(){
     if(!s || (s.level==="abbonato" && s.expired)) return;
     S.machinesById.clear(); S.historyById.clear(); S.loadedFiles = [];
     const man = await loadManifest();
-    await loadFiles(man);
+    await loadFiles(sortManifestByDate(man));
     renderAll(s);
+    $("menuHint").textContent = `Storico completo caricato (${S.loadedFiles.length} sinottici).`;
   };
 }
 
