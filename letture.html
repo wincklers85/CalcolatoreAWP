@@ -242,7 +242,7 @@ footer{padding:14px;text-align:center;color:var(--muted)}
   function pickModello(r){ return pick(r,['MODELLO','MOD','MODEL','MODEL NAME']); }
 
   async function fetchJSON(u,label){ const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error(`Caricamento ${label||u} fallito (${r.status})`); return r.json(); }
-  async function fetchXLSX_largest(u,label){
+  async function fetchXLSX_largest(u,label){if(/\.json(?:$|\?)/i.test(u)){const data=await fetchJSON(u,label);return{rows:Array.isArray(data)?data:(data.rows||[]),sheetName:'JSON'};}
     const r=await fetch(u,{cache:'no-store'}); if(!r.ok) throw new Error(`Caricamento ${label||u} fallito (${r.status})`);
     const ab=await r.arrayBuffer(); const wb=XLSX.read(ab,{type:'array'});
     let best=null,rows=[],len=0; for(const n of wb.SheetNames){ const ws=wb.Sheets[n]; const arr=XLSX.utils.sheet_to_json(ws,{defval:null}); if(arr.length>len){len=arr.length;rows=arr;best=n;} }
@@ -474,7 +474,7 @@ footer{padding:14px;text-align:center;color:var(--muted)}
       try{ esattori=await fetchJSON('./Dati/esattori.json','esattori.json'); }catch(_){ esattori=[]; }
       $('#selEsattore').innerHTML='<option value="">— Tutti —</option>'+esattori.map(e=>`<option value="${String(e).toUpperCase()}">${String(e).toUpperCase()}</option>`).join('');
 
-      const pdv=await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.xlsx','PDV-e-ESATTORI.xlsx'); 
+      const pdv=await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.json','PDV-e-ESATTORI.xlsx'); 
       sedeToEs=new Map();
       for(const r of pdv.rows){ const sede=normalizeSede(r['DENOMIN. SEDE']); const es=(r['ESATTORE']??'').toString().trim().toUpperCase()||'—'; if(sede) sedeToEs.set(sede,es); }
 

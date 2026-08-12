@@ -258,7 +258,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
       $('#selEsattore').innerHTML='<option value="">— Tutti —</option>'+esattori.map(e=>`<option value="${String(e).toUpperCase()}">${String(e).toUpperCase()}</option>`).join('');
 
       // PDV → sede→esattore
-      const pdv=await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.xlsx','PDV-e-ESATTORI.xlsx');
+      const pdv=await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.json','PDV-e-ESATTORI.xlsx');
       const sedeToEs=new Map();
       for(const r of pdv.rows){
         const sede=normalizeSede(r['DENOMIN. SEDE']);

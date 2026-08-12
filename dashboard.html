@@ -250,7 +250,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
 
   /* ===== Caricamento principale ===== */
   async function fetchJSON(u,label){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${label||u} fallito (${r.status})`);return r.json();}
-  async function fetchXLSX_largest(u,label){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${label||u} fallito (${r.status})`);const ab=await r.arrayBuffer();const wb=XLSX.read(ab,{type:'array'});let best=null,brows=[],len=0;for(const n of wb.SheetNames){const ws=wb.Sheets[n];const rows=XLSX.utils.sheet_to_json(ws,{defval:null});if(rows.length>len){len=rows.length;brows=rows;best=n;}}return{rows:brows,sheetName:best||wb.SheetNames[0]}}
+  async function fetchXLSX_largest(u,label){if(/\.json(?:$|\?)/i.test(u)){const data=await fetchJSON(u,label);return{rows:Array.isArray(data)?data:(data.rows||[]),sheetName:'JSON'};}const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${label||u} fallito (${r.status})`);const ab=await r.arrayBuffer();const wb=XLSX.read(ab,{type:'array'});let best=null,brows=[],len=0;for(const n of wb.SheetNames){const ws=wb.Sheets[n];const rows=XLSX.utils.sheet_to_json(ws,{defval:null});if(rows.length>len){len=rows.length;brows=rows;best=n;}}return{rows:brows,sheetName:best||wb.SheetNames[0]}}
 
   async function loadAll(){
     showLoader(true); $('#errorBox').style.display='none';
@@ -266,7 +266,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
       if(elMetaEs) elMetaEs.textContent='Esattori: '+(esattori.length||'—');
 
       // PDV → mappa sede→esattore (colonna unificata: DENOMIN. SEDE)
-      const pdv=await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.xlsx','PDV-e-ESATTORI.xlsx');
+      const pdv=await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.json','PDV-e-ESATTORI.xlsx');
       const sedeToEs=new Map();
       for(const r of pdv.rows){
         const sede = normalizeSede(r['DENOMIN. SEDE']);
