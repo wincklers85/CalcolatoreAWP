@@ -20,3 +20,14 @@ for name in FILES:
     if text != before:
         path.write_text(text, encoding='utf-8')
         print(f'Aggiornato {name}')
+
+# Allarmi usa due loader distinti: xlsx() per i sinottici e json() per i dati statici.
+path = ROOT / 'allarmi.html'
+if path.exists():
+    text = path.read_text(encoding='utf-8')
+    before = text
+    text = text.replace("xlsx('./Dati/PDV-e-ESATTORI.xlsx')", "json('./Dati/PDV-e-ESATTORI.json')")
+    text = text.replace('for(const r of pdv.rows){', 'for(const r of pdv){')
+    if text != before:
+        path.write_text(text, encoding='utf-8')
+        print('Aggiornato allarmi.html')
