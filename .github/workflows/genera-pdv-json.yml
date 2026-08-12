@@ -1,0 +1,35 @@
+name: Genera anagrafica PDV JSON
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Dati/PDV-e-ESATTORI.xlsx'
+      - 'tools/genera_pdv_json.py'
+      - '.github/workflows/genera-pdv-json.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  genera-json:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install openpyxl
+      - run: python tools/genera_pdv_json.py
+      - name: Commit JSON aggiornato
+        run: |
+          if git diff --quiet -- Dati/PDV-e-ESATTORI.json; then
+            echo 'JSON già aggiornato'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add Dati/PDV-e-ESATTORI.json
+          git commit -m 'Aggiorna anagrafica PDV JSON'
+          git push
