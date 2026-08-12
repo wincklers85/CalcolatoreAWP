@@ -24,7 +24,7 @@ jobs:
       - run: python tools/genera_pdv_json.py
       - name: Commit JSON aggiornato
         run: |
-          if git diff --quiet -- Dati/PDV-e-ESATTORI.json; then
+          if [ -z "$(git status --porcelain -- Dati/PDV-e-ESATTORI.json)" ]; then
             echo 'JSON già aggiornato'
             exit 0
           fi
