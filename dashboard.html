@@ -1,1 +1,364 @@
-<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>AWP Manager — Dashboard</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet"><style>:root{--bg:#f5f7fa;--fg:#1b1b1b;--muted:#5d6b7a;--card:#fff;--border:#dfe3ea;--acc:#007bff;--ok:#2ea043;--bad:#ef4444;--head:#eef2f7}body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,Arial}body.theme-dark{--bg:#121417;--fg:#e4e7ec;--muted:#9aa3af;--card:#181b20;--border:#2a2f36;--head:#1c2128}.navbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--border);position:sticky;top:0}.brand{color:var(--fg);text-decoration:none;font-weight:700}.nav a{color:var(--fg);text-decoration:none;margin:0 6px}.nav a[aria-current=page]{font-weight:700;text-decoration:underline}select,button{padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:var(--card);color:var(--fg)}button.primary{background:var(--acc);color:#fff}main{max-width:1200px;margin:auto;padding:18px}.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}.span{grid-column:1/-1}.k{font-size:30px;font-weight:800}.ok{color:var(--ok)}.bad{color:var(--bad)}.meta{font-size:12px;color:var(--muted)}table{width:100%;border-collapse:collapse}th,td{padding:9px;border-bottom:1px solid var(--border)}th{background:var(--head);text-align:left}.bar{height:12px;background:var(--head);border-radius:8px;overflow:hidden}.bar i{display:block;height:100%;background:var(--acc)}#loader{display:none;position:fixed;inset:0;background:#0002;align-items:center;justify-content:center}.spinner{width:48px;height:48px;border:5px solid #9995;border-top-color:var(--acc);border-radius:50%;animation:s 1s linear infinite}@keyframes s{to{transform:rotate(360deg)}}@media(max-width:800px){.grid{grid-template-columns:repeat(2,1fr)}}</style></head><body><div class="navbar"><a class="brand" href="./dashboard.html">AWP Manager</a><nav class="nav"><a href="./dashboard.html" aria-current="page">Dashboard</a><a href="./letture.html">Letture</a><a href="./allarmi.html">Allarmi</a><a href="./manutenzione.html">Manutenzione</a><a href="./anagrafica.html">Anagrafica</a></nav><div><select id="theme"><option value="">Chiaro</option><option value="theme-dark">Scuro</option></select> <button id="refresh" class="primary">Aggiorna</button></div></div><main><div class="grid"><div class="card"><div class="meta">Totale macchine attive</div><div class="k" id="tot">—</div></div><div class="card"><div class="meta">Aggiornate oggi</div><div class="k ok" id="today">—</div></div><div class="card"><div class="meta">Mancate letture</div><div class="k bad" id="bad">—</div></div><div class="card"><div class="meta">Sinottico</div><div class="k" style="font-size:16px" id="sin">—</div></div><div class="card span"><h3>Aggiornate per esattore / zona</h3><div id="bars"></div></div><div class="card span"><h3>Criticità</h3><div style="overflow:auto"><table><thead><tr><th>ESATTORE / ZONA</th><th>ATTIVE</th><th>OGGI</th><th>MANCATE</th><th>%</th></tr></thead><tbody id="tb"></tbody></table></div></div></div></main><div id="loader"><div class="spinner"></div></div><script>(function(){const urls=['./libs/xlsx.full.min.js','https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js'];function l(u){return new Promise((a,b)=>{let s=document.createElement('script');s.src=u;s.onload=a;s.onerror=b;document.head.appendChild(s)})}(async()=>{for(const u of urls){try{await l(u);if(XLSX)break}catch(_){}}})()})();</script><script>(function(){const $=s=>document.querySelector(s);function norm(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase()}const ov=new Map([[norm('BAR MATCH SRLS'),'ALESSANDRO'],[norm('MAX BAR'),'SANREMO']]);function nes(es,sede){if(ov.has(norm(sede)))return ov.get(norm(sede));es=String(es||'').trim().toUpperCase();return es==='LUCA'?'SANREMO':(es||'—')}function pick(r,n){for(const k of n)if(r[k]!=null&&r[k]!=='')return r[k];return ''}function date(v){if(typeof v==='number'){const b=new Date(Date.UTC(1899,11,30)),d=new Date(b.getTime()+v*86400000);return new Date(d.getFullYear(),d.getMonth(),d.getDate())}let d=new Date(String(v||'').replace(/(\d{1,2})-(\d{1,2})-(\d{4})/,'$3-$2-$1'));return isNaN(d)?null:new Date(d.getFullYear(),d.getMonth(),d.getDate())}async function x(u){let r=await fetch(u,{cache:'no-store'}),ab=await r.arrayBuffer(),w=XLSX.read(ab,{type:'array'}),best=[];for(const n of w.SheetNames){let a=XLSX.utils.sheet_to_json(w.Sheets[n],{defval:null});if(a.length>best.length)best=a}return best}async function load(){$('#loader').style.display='flex';try{while(!window.XLSX)await new Promise(r=>setTimeout(r,50));let m=await (await fetch('./Dati/manifest.json',{cache:'no-store'})).json(),name=m.sinottici.at(-1);$('#sin').textContent=name;let [sn,pdv]=await Promise.all([x('./Dati/'+name),x('./Dati/PDV-e-ESATTORI.xlsx')]);let map=new Map();for(const r of pdv){let s=pick(r,['DENOMIN. SEDE','DENOMIN.SEDE','DENOMINAZIONE SEDE']);if(s)map.set(norm(s),nes(pick(r,['ESATTORE']),s))}for(const[k,v]of ov)map.set(k,v);let t=new Date();t.setHours(0,0,0,0);let by={};for(const r of sn){let st=String(pick(r,['DESCR. STATO','DESCR.STATO','STATO'])||'').toLowerCase().replace(/\s/g,'');if(st!=='attiva')continue;let sede=pick(r,['DENOMIN. SEDE','DENOMIN.SEDE','DENOMINAZIONE SEDE']),es=nes(map.get(norm(sede)),sede),d=date(pick(r,['DATA ULTIMA LETTURA VAL.','DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));let oggi=!!d&&d.getTime()===t.getTime();if(!by[es])by[es]={tot:0,oggi:0};by[es].tot++;if(oggi)by[es].oggi++}let keys=Object.keys(by).filter(k=>k!=='LUCA').sort();let total=keys.reduce((s,k)=>s+by[k].tot,0),oggi=keys.reduce((s,k)=>s+by[k].oggi,0);$('#tot').textContent=total;$('#today').textContent=oggi;$('#bad').textContent=total-oggi;$('#tb').innerHTML=keys.map(k=>{let a=by[k],p=a.tot?Math.round(a.oggi/a.tot*100):0;return `<tr><td>${k}</td><td>${a.tot}</td><td>${a.oggi}</td><td class="bad">${a.tot-a.oggi}</td><td>${p}%</td></tr>`}).join('');$('#bars').innerHTML=keys.map(k=>{let a=by[k],p=a.tot?Math.round(a.oggi/a.tot*100):0;return `<div style="margin:10px 0"><div><strong>${k}</strong> <span class="meta">${a.oggi}/${a.tot} — ${p}%</span></div><div class="bar"><i style="width:${p}%"></i></div></div>`}).join('')}finally{$('#loader').style.display='none'}}$('#refresh').onclick=load;$('#theme').onchange=e=>{document.body.className=e.target.value;localStorage.setItem('awp_theme',e.target.value)};window.onload=()=>{let t=localStorage.getItem('awp_theme')||'';document.body.className=t;$('#theme').value=t;load()}})();</script></body></html>
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AWP Manager — Dashboard</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+<style>
+:root{
+  --bg:#f5f7fa; --fg:#1b1b1b; --muted:#5d6b7a; --card:#ffffff; --border:#dfe3ea;
+  --acc:#007bff; --ok:#2ea043; --warn:#f59e0b; --bad:#ef4444;
+  --table-head:#eef2f7; --shadow:0 10px 26px rgba(0,0,0,.08);
+}
+body.theme-light{}
+body.theme-dark{ --bg:#121417; --fg:#e4e7ec; --muted:#9aa3af; --card:#181b20; --border:#2a2f36; --acc:#3399ff; --table-head:#1c2128; --shadow:0 10px 30px rgba(0,0,0,.35) }
+body.theme-blue{ --bg:#e9f5ff; --fg:#002b4d; --muted:#335d7a; --card:#ffffff; --border:#cfe6fb; --acc:#0066cc; --table-head:#d9eeff; --shadow:0 12px 28px rgba(0,80,160,.15) }
+body.theme-contrast{ --bg:#000; --fg:#ff0; --muted:#ffe766; --card:#0b0b0b; --border:#333; --acc:#ff3333; --table-head:#111; --shadow:0 10px 26px rgba(255,255,0,.12) }
+
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:Inter,system-ui,Segoe UI,Roboto,Arial,sans-serif}
+
+/* NAVBAR */
+.navbar{
+  position:sticky; top:0; z-index:30;
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  padding:10px 16px; background:var(--card); border-bottom:1px solid var(--border);
+  backdrop-filter: blur(6px);
+}
+.brand{display:flex; align-items:center; gap:10px; text-decoration:none; color:var(--fg)}
+.brand img{height:28px}
+.nav-mid{display:flex; align-items:center; gap:12px}
+.navlinks a{ color:var(--fg); text-decoration:none; margin:0 8px; padding:6px 10px; border-radius:8px }
+.navlinks a:hover{ background:var(--table-head) }
+.navlinks a[aria-current="page"]{ font-weight:700; text-decoration:underline }
+.right{display:flex; align-items:center; gap:8px}
+select,button{ background:var(--card); color:var(--fg); border:1px solid var(--border); border-radius:10px; padding:8px 12px; font-weight:600 }
+button.primary{ background:var(--acc); color:#fff; border-color:var(--acc) }
+
+/* Badge fiscale */
+.badge{ display:inline-block; padding:6px 12px; border-radius:999px; font-size:13px; font-weight:800; border:2px solid var(--border); background:var(--card) }
+.badge.ok{border-color:var(--ok);color:var(--ok)}
+.badge.warn{border-color:var(--warn);color:var(--warn)}
+.badge.danger{border-color:var(--bad);color:var(--bad)}
+
+/* LAYOUT */
+main{ padding:18px; max-width:1200px; margin:0 auto }
+.grid{ display:grid; gap:14px; grid-template-columns:repeat(12,1fr) }
+.card{ background:var(--card); border:1px solid var(--border); border-radius:16px; padding:16px; box-shadow:var(--shadow); animation:fadeIn .35s ease }
+.card h3{ margin:0 0 6px; font-size:14px; color:var(--muted) }
+.kpi{ display:flex; align-items:center; justify-content:space-between }
+.k-num{ font-size:34px; font-weight:800 }
+.ok{ color:var(--ok) } .bad{ color:var(--bad) }
+.span-3{grid-column:span 3} .span-12{grid-column:span 12}
+@media (max-width:980px){ .span-3{grid-column:span 6} .span-12{grid-column:span 12} }
+
+table{ width:100%; border-collapse:collapse }
+th,td{ padding:10px 12px; border-bottom:1px solid var(--border) }
+th{ background:var(--table-head); text-align:left }
+tr:hover td{ background:rgba(0,0,0,.03) }
+.meta{ margin-top:6px; font-size:12px; color:var(--muted) }
+.pill{ display:inline-block; padding:3px 8px; border:1px solid var(--border); border-radius:999px; background:var(--card); margin-right:6px }
+
+.fx-wrap{ position:relative }
+#fxCanvas{ position:absolute; inset:0; pointer-events:none; }
+
+/* Loader + Error */
+#loader{ position:fixed; inset:0; background:rgba(0,0,0,.08); display:none; align-items:center; justify-content:center; z-index:40 }
+.spinner{ width:54px; height:54px; border-radius:50%; border:5px solid rgba(0,0,0,.15); border-top-color:var(--acc); animation:spin .9s linear infinite }
+@keyframes spin{ to{ transform:rotate(360deg) } }
+#errorBox{ max-width:1200px; margin:10px auto 0; background:#ffecec; border:1px solid #ffb3b3; color:#7a0000; padding:10px 14px; border-radius:10px; display:none; }
+
+footer{ padding:14px; text-align:center; color:var(--muted) }
+@keyframes fadeIn{ from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:none} }
+</style>
+</head>
+<body>
+  <div class="navbar">
+    <a class="brand" href="./dashboard.html"><img src="./logo-awp.svg" alt="AWP"><strong>AWP Manager</strong></a>
+    <div class="nav-mid">
+      <span id="taxBadge" class="badge">—</span>
+      <nav class="navlinks">
+        <a href="./dashboard.html" aria-current="page">Dashboard</a>
+        <a href="./letture.html">Letture</a>
+        <a href="./manutenzione.html">Manutenzione</a>
+        <a href="./anagrafica.html">Anagrafica</a>
+      </nav>
+    </div>
+    <div class="right">
+      <label for="themeSel" style="font-size:13px;color:var(--muted)">Tema</label>
+      <select id="themeSel">
+        <option value="theme-light">☀️ Chiaro AWP</option>
+        <option value="theme-dark">🌙 Scuro AWP</option>
+        <option value="theme-blue">🌤️ Azzurro AWP</option>
+        <option value="theme-contrast">⚫ Alto Contrasto</option>
+      </select>
+      <button id="btnRefresh" class="primary">🔄 Aggiorna</button>
+    </div>
+  </div>
+
+  <div id="errorBox"></div>
+
+  <main>
+    <div class="grid">
+      <div class="card span-3">
+        <h3>Totale macchine (attive)</h3>
+        <div class="kpi"><div id="kpiTot" class="k-num">—</div></div>
+        <div class="meta"><span class="pill" id="metaSinottico">Sinottico: —</span> <span class="pill" id="metaFoglio">Foglio: —</span></div>
+      </div>
+      <div class="card span-3">
+        <h3>Aggiornate oggi</h3>
+        <div class="kpi"><div id="kpiOk" class="k-num ok">—</div><div id="kpiOkPerc" class="meta">—%</div></div>
+        <div class="meta">Letture con data = oggi</div>
+      </div>
+      <div class="card span-3">
+        <h3>Mancate letture</h3>
+        <div class="kpi"><div id="kpiBad" class="k-num bad">—</div><div id="kpiBadPerc" class="meta">—%</div></div>
+        <div class="meta">Escluse ferie/manutenzione/blocchi</div>
+      </div>
+      <div class="card span-3">
+        <h3>Ferie &amp; Manutenzione</h3>
+        <div class="kpi"><div id="kpiFerie" class="k-num">—</div><div id="kpiMan" class="meta">/ <span>— manut.</span></div></div>
+        <div class="meta">Fonte: DESCR. STATO + M.S./FERIE</div>
+      </div>
+
+      <div class="card span-12 fx-wrap">
+        <h3>% aggiornate per Esattore (oggi)</h3>
+        <canvas id="chartEsattori" height="120"></canvas>
+        <canvas id="fxCanvas"></canvas>
+        <div class="meta"><span class="pill" id="metaEsattori">Esattori: —</span> Quota aggiornate oggi / totale ATTIVE per ciascun esattore</div>
+      </div>
+
+      <div class="card span-12">
+        <h3>Top criticità (esattori con più mancate letture)</h3>
+        <div style="overflow:auto">
+          <table id="tblTop">
+            <thead><tr><th>ESATTORE</th><th>Totale attive</th><th>Aggiornate oggi</th><th>Mancate letture</th><th>% Aggiornate</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <div class="meta">Esclusi i PDV in ferie/manutenzione/blocchi</div>
+      </div>
+    </div>
+  </main>
+
+  <footer>© <span id="year"></span> AWP Manager — Dashboard</footer>
+  <div id="loader"><div class="spinner" aria-label="Caricamento"></div></div>
+
+<script>
+(function(){
+  /* ===== Loader librerie (locale → CDN) ===== */
+  const urls = {
+    xlsx:['./libs/xlsx.full.min.js','https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js','https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.20.2/xlsx.full.min.js','https://unpkg.com/xlsx@0.20.2/dist/xlsx.full.min.js'],
+    chart:['./libs/chart.umd.min.js','https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js','https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js','https://unpkg.com/chart.js@4.4.1/dist/chart.umd.min.js']
+  };
+  function loadOne(u){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=u;s.async=false;s.onload=()=>res(u);s.onerror=()=>rej(new Error(u));document.head.appendChild(s);});}
+  async function loadWithFallback(list,test){let last=null;for(const u of list){try{await loadOne(u);if(test())return u;}catch(e){last=e}}throw last||new Error('Libreria non disponibile');}
+
+  /* ===== UI helpers ===== */
+  const $=sel=>document.querySelector(sel);
+  function showLoader(v){$('#loader').style.display=v?'flex':'none';}
+  function showError(msg){const box=$('#errorBox');box.textContent=msg;box.style.display='block';alert(msg);}
+  function animateNumber(el,target,dur=700){const start=Number(el.textContent.replace(/[^\d]/g,''))||0;const t0=performance.now();function step(t){const p=Math.min(1,(t-t0)/dur);el.textContent=Math.round(start+(target-start)*p).toLocaleString('it-IT');if(p<1)requestAnimationFrame(step);}requestAnimationFrame(step);}
+
+  /* ===== Tema ===== */
+  function applyTheme(t){document.body.className=t;}
+  function initTheme(){const t=localStorage.getItem('awp_theme')||'theme-light';applyTheme(t);$('#themeSel').value=t;}
+  $('#themeSel').addEventListener('change',e=>{applyTheme(e.target.value);localStorage.setItem('awp_theme',e.target.value);});
+
+  /* ===== Badge fiscale ===== */
+  function isLastDayOfMonth(d){const p=new Date(d.getFullYear(),d.getMonth()+1,0);return d.getDate()===p.getDate();}
+  function daysUntil(a,b){const t0=new Date(a.getFullYear(),a.getMonth(),a.getDate());const t1=new Date(b.getFullYear(),b.getMonth(),b.getDate());return Math.round((t1-t0)/86400000);}
+  function nextTaxDay(from){const y=from.getFullYear(),m=from.getMonth();const d15=new Date(y,m,15);const last=new Date(y,m+1,0);if(from.getDate()<=15)return d15;if(from.getDate()<last.getDate())return last;return new Date(y,m+1,15);}
+  function updateTaxBadge(){const el=$('#taxBadge');const t=new Date();t.setHours(0,0,0,0);if(t.getDate()===15||isLastDayOfMonth(t)){el.textContent='⚠️ Oggi lettura obbligatoria';el.className='badge danger';return;}const target=nextTaxDay(t);const diff=daysUntil(t,target);el.className='badge '+(diff<=2?'warn':'ok');el.textContent=`⏳ Mancano ${diff} gg — ${target.getDate()===15?'15 del mese':'Ultimo del mese'}`;}
+
+  /* ===== Text & date ===== */
+  function normalizeSede(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/\s+/g,' ').replace(/[^\w\s\-&']/g,'').trim().toUpperCase();}
+  function pick(row, names){ for(const n of names){ if(row[n]!=null && row[n]!=='' ) return row[n]; } return ''; }
+  function pickCodeId(row){
+    const norm=k=>k.toUpperCase().replace(/[^A-Z0-9]/g,''); const keys=Object.keys(row);
+    let hit=keys.find(k=>norm(k)==='CODEID'); if(hit) return String(row[hit]??'').trim();
+    hit=keys.find(k=>/COD(ICE)?ID/i.test(k)); if(hit) return String(row[hit]??'').trim();
+    hit=keys.find(k=>/(SERIALE|MATRICOLA|AWP)/i.test(k)); return hit?String(row[hit]??'').trim():'';
+  }
+  function parseDateIT(v){
+    if(v==null||v==='')return null;
+    if(typeof v==='number'||/^[0-9]+$/.test(String(v).trim())){
+      const n=Number(v); if(!Number.isNaN(n)&&n>0&&n<2958465){const base=new Date(Date.UTC(1899,11,30));const d=new Date(base.getTime()+n*86400000);return new Date(d.getFullYear(),d.getMonth(),d.getDate());}
+    }
+    const s=String(v).trim().replace(/[\/\.]/g,'-');
+    const m=s.match(/^(\d{1,2})-(\d{1,2})-(\d{4})(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/);
+    if(m){const[,gg,mm,yyyy]=m;return new Date(+yyyy,+mm-1,+gg);}
+    const d=new Date(s); if(!isNaN(d)) return new Date(d.getFullYear(),d.getMonth(),d.getDate());
+    return null;
+  }
+  function daysDiffFromToday(d){ if(!d) return Infinity; const t=new Date(); t.setHours(0,0,0,0); const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()); return Math.floor((t-x)/86400000); }
+
+  /* ===== Nuova logica STATO ===== */
+  function pickMSFerie(row){
+    const v = (row['M.S. / FERIE'] ?? row['M.S./ FERIE'] ?? row['M.S./FERIE'] ?? row['MS / FERIE'] ?? row['MS/FERIE'] ?? row['M.S.'] ?? '').toString().trim();
+    return v;
+  }
+  function classifyState(descrStato, msFerie){
+    const ms = (msFerie||'').toUpperCase();
+    if(/FERIE/.test(ms)) return 'FERIE';
+    if(/MANUT/.test(ms) || /M\.S\./.test(ms)) return 'MANUT';
+    const s = (descrStato||'').toUpperCase();
+    if(/BLOCCO\s*AMMINISTRATIVO/.test(s)) return 'FERIE';
+    if(/724\s*IN\s*CORSO/.test(s))       return 'MANUT';
+    if(/BLOCCO\s*DA\s*DA/.test(s))       return 'BLOCCO_DA_DA';
+    if(/\bBLOCCO\b/.test(s) || /\bBLOCCATA\b/.test(s)) return 'BLOCCO';
+    if(/\bATTIVA\b/.test(s))             return 'ATTIVA';
+    return 'ATTIVA';
+  }
+  function isActiveForEsattore(cat){ return cat==='ATTIVA'; }
+
+  /* ===== Chart & fireworks ===== */
+  let chart=null;
+  function renderChart(labels,values){
+    if(!window.Chart){console.warn('Chart.js non caricato');return;}
+    const ctx=$('#chartEsattori').getContext('2d');
+    if(chart) chart.destroy();
+    chart=new Chart(ctx,{
+      type:'bar',
+      data:{labels,datasets:[{label:'% aggiornate oggi',data:values,borderWidth:1}]},
+      options:{animation:{duration:900},scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}},plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.parsed.y.toFixed(1)+'%'}}}}
+    });
+    if(values.some(v=>Math.round(v)===100)){ launchFireworks(); }
+  }
+  function launchFireworks(){
+    const canvas=$('#fxCanvas'); const wrap=canvas.parentElement;
+    const rect=wrap.getBoundingClientRect(); canvas.width=rect.width; canvas.height=rect.height;
+    const c=canvas.getContext('2d'); let particles=[]; const N=160; const D=1800; const start=performance.now();
+    function spawn(){ for(let i=0;i<N;i++){ const a=Math.random()*Math.PI*2, sp=2+Math.random()*3; particles.push({x:canvas.width*0.8,y:canvas.height*0.2,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:800+Math.random()*700}); } }
+    spawn();
+    function frame(t){
+      const elapsed=t-start; c.clearRect(0,0,canvas.width,canvas.height);
+      particles.forEach(p=>{ p.x+=p.vx; p.y+=p.vy; p.vy+=0.02; p.life-=16; const alpha=Math.max(0,p.life/900); c.globalAlpha=alpha; c.beginPath(); c.arc(p.x,p.y,2,0,Math.PI*2); c.fill(); });
+      c.globalAlpha=1; if(elapsed<D){ requestAnimationFrame(frame); } else { c.clearRect(0,0,canvas.width,canvas.height); }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  /* ===== DOM refs ===== */
+  const elTot=$('#kpiTot'), elOk=$('#kpiOk'), elOkP=$('#kpiOkPerc'), elBad=$('#kpiBad'), elBadP=$('#kpiBadPerc'),
+        elFer=$('#kpiFerie'), elMan=$('#kpiMan'),
+        elMetaSin=$('#metaSinottico'), elMetaFog=$('#metaFoglio'), elMetaEs=$('#metaEsattori'),
+        tbBody=$('#tblTop tbody');
+
+  /* ===== Caricamento principale ===== */
+  async function fetchJSON(u,label){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${label||u} fallito (${r.status})`);return r.json();}
+  async function fetchXLSX_largest(u,label){const r=await fetch(u,{cache:'no-store'});if(!r.ok)throw new Error(`Caricamento ${label||u} fallito (${r.status})`);const ab=await r.arrayBuffer();const wb=XLSX.read(ab,{type:'array'});let best=null,brows=[],len=0;for(const n of wb.SheetNames){const ws=wb.Sheets[n];const rows=XLSX.utils.sheet_to_json(ws,{defval:null});if(rows.length>len){len=rows.length;brows=rows;best=n;}}return{rows:brows,sheetName:best||wb.SheetNames[0]}}
+
+  async function loadAll(){
+    showLoader(true); $('#errorBox').style.display='none';
+    try{
+      // manifest → ultimo sinottico
+      const manifest=await fetchJSON('./Dati/manifest.json','manifest.json');
+      if(!manifest.sinottici||!manifest.sinottici.length) throw new Error('manifest.json: lista sinottici vuota');
+      const latest=manifest.sinottici[manifest.sinottici.length-1];
+      elMetaSin.textContent='Sinottico: '+latest;
+
+      // esattori (ordine opzionale)
+      let esattori=[]; try{ esattori=await fetchJSON('./Dati/esattori.json','esattori.json'); }catch(_){}
+      if(elMetaEs) elMetaEs.textContent='Esattori: '+(esattori.length||'—');
+
+      // PDV → mappa sede→esattore (colonna unificata: DENOMIN. SEDE)
+      const pdv=await fetchXLSX_largest('./Dati/PDV-e-ESATTORI.xlsx','PDV-e-ESATTORI.xlsx');
+      const sedeToEs=new Map();
+      for(const r of pdv.rows){
+        const sede = normalizeSede(r['DENOMIN. SEDE']);
+        const esa  = String(r['ESATTORE']??'').trim().toUpperCase() || '—';
+        if(sede) sedeToEs.set(sede, esa);
+      }
+
+      // Sinottico (foglio più grande) → mappa CODEID → riga più recente (salvo anche MS)
+      const sn=await fetchXLSX_largest('./Dati/'+latest, latest);
+      elMetaFog.textContent='Foglio: '+sn.sheetName;
+
+      const byCode=new Map();
+      for(const row of sn.rows){
+        const codeid = pickCodeId(row);
+        if(!codeid) continue;
+        const sedeRaw = row['DENOMIN. SEDE'] ?? pick(row,['DENOMIN.SEDE','DENOMINAZIONE SEDE']);
+        const stato   = String(row['DESCR.STATO'] ?? row['STATO'] ?? '').trim();
+        const ms      = pickMSFerie(row);
+        const data    = parseDateIT(row['DATA ULTIMA LETTURA VAL.'] ?? pick(row,['DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
+        const prev = byCode.get(codeid);
+        if(!prev || (data && prev.data && data>prev.data) || (!prev?.data && data)){
+          byCode.set(codeid,{ codeid, sede:sedeRaw||'', stato, ms, data });
+        }
+      }
+
+      // Normalizza + classifica stato
+      const rows=[];
+      for(const {codeid,sede,stato,ms,data} of byCode.values()){
+        const es     = sedeToEs.get(normalizeSede(sede)) ?? '—';
+        const cat    = classifyState(stato, ms);
+        const giorni = daysDiffFromToday(data);
+        rows.push({ CODEID:codeid, SEDE:sede, ESATTORE:es, STATO:stato, MS:ms, CAT:cat, DATA:data, GIORNI:giorni });
+      }
+
+      // Esclusioni per conteggi esattore: SOLO ATTIVE
+      const attive = rows.filter(r=>isActiveForEsattore(r.CAT));
+      const inFerie = rows.filter(r=>r.CAT==='FERIE');
+      const inManut = rows.filter(r=>r.CAT==='MANUT');
+
+      // KPI
+      const tot=attive.length;
+      const ok =attive.filter(r=>r.GIORNI===0).length;
+      const bad=attive.filter(r=>r.GIORNI>0 || !isFinite(r.GIORNI)).length;
+      animateNumber(elTot,tot); animateNumber(elOk,ok); elOkP.textContent=(tot?(ok*100/tot).toFixed(1):'0.0')+'%';
+      animateNumber(elBad,bad); elBadP.textContent=(tot?(bad*100/tot).toFixed(1):'0.0')+'%';
+      elFer.textContent=inFerie.length.toLocaleString('it-IT'); elMan.innerHTML='/ <span>'+inManut.length.toLocaleString('it-IT')+' manut.</span>';
+
+      // Aggregazione per esattore (ATTIVE)
+      const byEs=new Map();
+      esattori.forEach(e=>byEs.set(String(e).toUpperCase(),{tot:0,ok:0}));
+      for(const r of attive){
+        const es=(r.ESATTORE||'—').toUpperCase();
+        if(!byEs.has(es)) byEs.set(es,{tot:0,ok:0});
+        const a=byEs.get(es); a.tot++; if(r.GIORNI===0) a.ok++;
+      }
+
+      // labels ordinate come esattori.json + extra
+      const labels=(esattori.length?esattori.map(x=>String(x).toUpperCase()):Array.from(byEs.keys()));
+      Array.from(byEs.keys()).forEach(k=>{if(!labels.includes(k))labels.push(k);});
+      const perc=labels.map(es=>{const a=byEs.get(es)||{tot:0,ok:0};return a.tot?(a.ok*100/a.tot):0;});
+
+      renderChart(labels, perc);
+
+      // Tabella criticità (ordina per BAD desc)
+      tbBody.innerHTML='';
+      labels.map(es=>{const a=byEs.get(es)||{tot:0,ok:0};return{ES:es,TOT:a.tot,OK:a.ok,BAD:a.tot-a.ok,PERC:a.tot?(a.ok*100/a.tot):0}})
+        .sort((A,B)=>B.BAD-A.BAD)
+        .forEach(r=>{
+          const tr=document.createElement('tr');
+          if(Math.round(r.PERC)===100) tr.classList.add('success');
+          tr.innerHTML=`<td>${r.ES}</td><td>${r.TOT}</td><td class="ok">${r.OK}</td><td class="bad">${r.BAD}</td><td>${r.PERC.toFixed(1)}%</td>`;
+          tbBody.appendChild(tr);
+        });
+
+    }catch(e){ showError(e.message||'Errore sconosciuto'); }
+    finally{ showLoader(false); }
+  }
+
+  /* ===== Boot ===== */
+  window.addEventListener('load', async ()=>{
+    $('#year').textContent=new Date().getFullYear();
+    initTheme(); updateTaxBadge(); showLoader(true);
+    try{
+      await loadWithFallback(urls.xlsx, ()=>!!window.XLSX);
+      try{ await loadWithFallback(urls.chart, ()=>!!window.Chart); }catch(_){}
+      await loadAll();
+    }catch(e){ showError('Errore librerie: '+(e.message||e)); }
+    showLoader(false);
+  });
+
+  $('#btnRefresh').addEventListener('click', ()=>{ updateTaxBadge(); loadAll(); });
+})();
+</script>
+</body>
+</html>
