@@ -26,12 +26,12 @@ jobs:
       - run: python tools/usa_pdv_json.py
       - name: Commit anagrafica e pagine aggiornate
         run: |
-          if [ -z "$(git status --porcelain -- Dati/PDV-e-ESATTORI.json dashboard.html letture.html manutenzione.html anagrafica.html letture1.html)" ]; then
+          if [ -z "$(git status --porcelain -- Dati/PDV-e-ESATTORI.json dashboard.html letture.html manutenzione.html anagrafica.html letture1.html allarmi.html)" ]; then
             echo 'Anagrafica e pagine già aggiornate'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add Dati/PDV-e-ESATTORI.json dashboard.html letture.html manutenzione.html anagrafica.html letture1.html
+          git add Dati/PDV-e-ESATTORI.json dashboard.html letture.html manutenzione.html anagrafica.html letture1.html allarmi.html
           git commit -m 'Usa anagrafica PDV JSON nelle pagine'
           git push
