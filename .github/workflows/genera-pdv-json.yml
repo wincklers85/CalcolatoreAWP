@@ -6,6 +6,7 @@ on:
     paths:
       - 'Dati/PDV-e-ESATTORI.xlsx'
       - 'tools/genera_pdv_json.py'
+      - 'tools/usa_pdv_json.py'
       - '.github/workflows/genera-pdv-json.yml'
   workflow_dispatch:
 
@@ -22,14 +23,15 @@ jobs:
           python-version: '3.12'
       - run: pip install openpyxl
       - run: python tools/genera_pdv_json.py
-      - name: Commit JSON aggiornato
+      - run: python tools/usa_pdv_json.py
+      - name: Commit anagrafica e pagine aggiornate
         run: |
-          if [ -z "$(git status --porcelain -- Dati/PDV-e-ESATTORI.json)" ]; then
-            echo 'JSON già aggiornato'
+          if [ -z "$(git status --porcelain -- Dati/PDV-e-ESATTORI.json dashboard.html letture.html manutenzione.html anagrafica.html letture1.html)" ]; then
+            echo 'Anagrafica e pagine già aggiornate'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add Dati/PDV-e-ESATTORI.json
-          git commit -m 'Aggiorna anagrafica PDV JSON'
+          git add Dati/PDV-e-ESATTORI.json dashboard.html letture.html manutenzione.html anagrafica.html letture1.html
+          git commit -m 'Usa anagrafica PDV JSON nelle pagine'
           git push
