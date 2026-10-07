@@ -6,8 +6,11 @@ export function renderDashboard(S, session){
   const tbody = document.querySelector("#tblMachines tbody");
   const filter = document.getElementById("filterText").value.trim().toLowerCase();
   const sortBy = document.getElementById("sortBy").value;
+  const statusOut = document.getElementById("statusOut")?.value || "all";
 
   const items = [];
+  let outActiveCount = 0;
+
   for(const m of S.machinesById.values()){
     const hist = S.historyById.get(m.codeid) || [];
     const act = activityScore(hist);
@@ -15,11 +18,19 @@ export function renderDashboard(S, session){
     const rec = recencyStatus(m.lastRead);
     const cyc = cycleMetrics(m, S.cicloMap);
     const out = payoutWindowMetrics(hist, cyc.payout || 65);
+    const payoutTarget = Number(cyc.payout || 65);
+    const theoreticalOut = cyc.ok ? cyc.cicloEur * (payoutTarget/100) : null;
+
+    if(out.statusKey === "good" && Number(out.lastOut) > 0) outActiveCount++;
 
     const rowText = `${m.locale} ${m.comune} ${m.modelName} ${m.codeid} ${m.pda}`.toLowerCase();
     if(filter && !rowText.includes(filter)) continue;
 
-    items.push({ m, hist, act, heat, rec, cyc, out });
+    if(statusOut === "active" && !(out.statusKey === "good" && Number(out.lastOut) > 0)) continue;
+    if(statusOut === "observed" && !(Number(out.lastOut) > 0)) continue;
+    if(statusOut === "none" && !(out.lastOut === 0)) continue;
+
+    items.push({ m, hist, act, heat, rec, cyc, out, theoreticalOut });
   }
 
   items.sort((a,b)=>{
@@ -40,24 +51,22 @@ export function renderDashboard(S, session){
     const tr = document.createElement("tr");
     tr.dataset.codeid = it.m.codeid;
 
-    const recBadge = badge(it.rec.key, it.rec.label);
-    const activityBadge = badge(it.heat.key, `${it.act.score}%`);
     const outBadge = badge(it.out.statusKey, it.out.statusLabel);
     const phaseTxt = it.cyc.ok ? `${it.cyc.phasePct}%` : "—";
+    const leftIn = it.cyc.ok ? fmtEuro(it.cyc.leftEur) : "—";
+    const theoreticalOut = it.theoreticalOut!=null ? fmtEuro(it.theoreticalOut) : "—";
     const lastOut = it.out.lastOut!=null ? fmtEuro(it.out.lastOut) : "—";
     const payout = it.out.windowPayout!=null ? `${it.out.windowPayout.toFixed(1)}%` : "—";
 
     tr.innerHTML = `
-      <td>${recBadge}</td>
+      <td>${outBadge}</td>
       <td>${esc(it.m.locale)}</td>
-      <td>${esc(it.m.comune)}</td>
       <td>${esc(it.m.modelName)}</td>
       <td class="mono">${esc(it.m.codeid)}</td>
-      <td class="mono">${esc(it.m.pda)}</td>
       <td>${esc(phaseTxt)}</td>
-      <td>${activityBadge}</td>
-      <td>${outBadge}</td>
-      <td>${esc(lastOut)}</td>
+      <td><strong>${esc(leftIn)}</strong></td>
+      <td>${esc(theoreticalOut)}</td>
+      <td><strong>${esc(lastOut)}</strong></td>
       <td>${esc(payout)}</td>
     `;
     tbody.appendChild(tr);
@@ -65,6 +74,8 @@ export function renderDashboard(S, session){
 
   document.getElementById("kpiMachines").textContent = String(S.machinesById.size);
   document.getElementById("kpiLocales").textContent = String(new Set([...S.machinesById.values()].map(x=>x.locale)).size);
+  const kpiOut = document.getElementById("kpiOutActive");
+  if(kpiOut) kpiOut.textContent = String(outActiveCount);
 
   let match = 0;
   for(const m of S.machinesById.values()){
@@ -75,7 +86,7 @@ export function renderDashboard(S, session){
   const onlyDashboard = session && session.level === "abbonato" && session.expired;
   document.getElementById("dataHint").textContent = onlyDashboard
     ? "Abbonamento scaduto: puoi vedere solo stato aggiornamento + profilo."
-    : `Sinottici caricati: ${S.loadedFiles.length}${S.loadErrors?.length ? ` · saltati: ${S.loadErrors.length}` : ""} · storico ricostruito per ${S.historyById.size} CODEID.`;
+    : `Visualizzate ${items.length} macchine. “OUT attivo” significa che il contatore OUT è aumentato nell’ultimo intervallo osservato. “OUT teorico ciclo” = payout configurato × valore del ciclo; non è una previsione della prossima giocata.`;
 }
 
 export function bindRowClicks(S, onOpen){
