@@ -17,7 +17,7 @@
 
     <div class="brand">
       <div class="brand-title">AWP Analyzer Ultra V3</div>
-      <div class="brand-sub">Sinottici • Cicli • Storico • Diagnostica</div>
+      <div class="brand-sub">Sinottici • Cicli • Storico IN/OUT • Diagnostica</div>
     </div>
 
     <div class="spacer"></div>
@@ -120,7 +120,9 @@
         <div class="row wrapgap" style="margin-top:10px">
           <input id="filterText" class="input" placeholder="Filtra per locale, comune, modello, codeid…" />
           <select id="sortBy" class="input">
-            <option value="activityDesc">Ordina: Attività ↓</option>
+            <option value="outRecent">Ordina: ΔOUT ultimo intervallo ↓</option>
+            <option value="windowPayout">Ordina: Payout finestra recente ↓</option>
+            <option value="activityDesc">Ordina: Utilizzo ↓</option>
             <option value="phaseDesc">Ordina: Fase ciclo ↓</option>
             <option value="recency">Ordina: Aggiornamento</option>
             <option value="locale">Ordina: Locale A→Z</option>
@@ -138,7 +140,10 @@
                 <th>CODEID</th>
                 <th>PDA</th>
                 <th>Fase ciclo</th>
-                <th>Attività</th>
+                <th>Utilizzo</th>
+                <th>Stato OUT</th>
+                <th>ΔOUT ultimo</th>
+                <th>Payout recente</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -249,7 +254,7 @@
         </div>
 
         <div class="card inner">
-          <h3 class="h3">Storico (ΔOUT)</h3>
+          <h3 class="h3">Storico ΔIN / ΔOUT</h3>
           <canvas id="chartOut" height="160"></canvas>
           <div class="muted small" id="chartHint">—</div>
         </div>
