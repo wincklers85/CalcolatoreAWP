@@ -169,7 +169,8 @@ async function renderAdmin(session){
     `Macchine: ${S.machinesById.size}\n` +
     `Storici: ${S.historyById.size}\n` +
     `File caricati: ${S.loadedFiles.length}\n` +
-    `File saltati: ${S.loadErrors.length}\n` +\n    `Modelli in cicloslot: ${S.cicloMap.size}\n`;
+    `File saltati: ${S.loadErrors.length}\n` +
+    `Modelli in cicloslot: ${S.cicloMap.size}\n`;
 }
 
 function renderProfile(session){
