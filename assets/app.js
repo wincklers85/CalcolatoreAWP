@@ -47,24 +47,54 @@ function setProgress(i, n){
 
 async function fetchXlsx(file){
   const r = await fetch("Dati/" + file, { cache:"no-store" });
-  if(!r.ok) throw new Error(`Errore download: ${file}`);
+  if(!r.ok) throw new Error("Errore download " + r.status + ": " + file);
   const b = await r.arrayBuffer();
   const wb = XLSX.read(b, { type:"array" });
-  const sh = wb.Sheets[wb.SheetNames[0]];
-  return sh;
+
+  // Alcuni export possono avere più fogli: scegli quello con più righe utili.
+  let best=null, bestRows=-1;
+  for(const name of wb.SheetNames){
+    const sh=wb.Sheets[name];
+    let n=0;
+    try{ n=XLSX.utils.sheet_to_json(sh,{header:1,defval:null}).length; }catch(_){}
+    if(n>bestRows){ bestRows=n; best=sh; }
+  }
+  if(!best) throw new Error("Nessun foglio leggibile: " + file);
+  return best;
 }
 
 async function loadFiles(files){
-  let i = 0;
-  for(const f of files){
-    i++;
-    setProgress(i, files.length);
-    const sh = await fetchXlsx(f);
-    const machines = parseSinotticoSheet(sh);
-    const dtFile = parseDateFromFilename(f);
-    mergeState(S, machines, dtFile);
-    S.loadedFiles.push(f);
+  const list=[...new Set((files||[]).filter(Boolean))];
+  let done=0;
+  S.loadErrors=[];
+
+  // Caricamento concorrente limitato: usa tutto il manifest senza aprire
+  // centinaia di richieste contemporaneamente.
+  const concurrency=6;
+  let cursor=0;
+
+  async function worker(){
+    while(cursor<list.length){
+      const pos=cursor++;
+      const file=list[pos];
+      try{
+        const dtFile=parseDateFromFilename(file);
+        if(!dtFile) throw new Error("Nome sinottico non riconosciuto");
+        const sh=await fetchXlsx(file);
+        const machines=parseSinotticoSheet(sh);
+        mergeState(S,machines,dtFile,file);
+        S.loadedFiles.push(file);
+      }catch(err){
+        console.warn("Sinottico saltato",file,err);
+        S.loadErrors.push({file,error:String(err?.message||err)});
+      }finally{
+        done++;
+        setProgress(done,list.length);
+      }
+    }
   }
+
+  await Promise.all(Array.from({length:Math.min(concurrency,list.length||1)},()=>worker()));
   setProgress(0,0);
 }
 
@@ -138,8 +168,7 @@ async function renderAdmin(session){
   $("diagBox").textContent =
     `Macchine: ${S.machinesById.size}\n` +
     `Storici: ${S.historyById.size}\n` +
-    `File caricati: ${S.loadedFiles.length}\n` +
-    `Modelli in cicloslot: ${S.cicloMap.size}\n`;
+    `File caricati: ${S.loadedFiles.length}\n` +\n    `File saltati: ${S.loadErrors.length}\n` +\n    `Modelli in cicloslot: ${S.cicloMap.size}\n`;
 }
 
 function renderProfile(session){
@@ -244,9 +273,9 @@ async function boot(){
     $("userLevel").textContent = session.level + (session.expired ? " (scaduto)" : "");
     renderAll(session);
 
-    // auto-load ultimi 3 se non scaduto
+    // Analisi principale: usa tutto lo storico disponibile nel manifest.
     if(!(session.level === "abbonato" && session.expired)){
-      await loadFiles(manifest.slice(-3));
+      await loadFiles(manifest);
       renderAll(session);
     }
   }else{
@@ -275,7 +304,7 @@ async function boot(){
 
     if(!(session2.level === "abbonato" && session2.expired)){
       const man = await loadManifest();
-      await loadFiles(man.slice(-3));
+      await loadFiles(man);
       renderAll(session2);
     }
   };
@@ -290,7 +319,7 @@ async function boot(){
   $("btnLoadLast3").onclick = async ()=>{
     const s = getSession();
     if(!s || (s.level==="abbonato" && s.expired)) return;
-    S.machinesById.clear(); S.historyById.clear(); S.loadedFiles = [];
+    S.machinesById.clear(); S.historyById.clear(); S.loadedFiles = []; S.loadErrors = [];
     const man = await loadManifest();
     await loadFiles(man.slice(-3));
     renderAll(s);
@@ -299,7 +328,7 @@ async function boot(){
   $("btnLoadAll").onclick = async ()=>{
     const s = getSession();
     if(!s || (s.level==="abbonato" && s.expired)) return;
-    S.machinesById.clear(); S.historyById.clear(); S.loadedFiles = [];
+    S.machinesById.clear(); S.historyById.clear(); S.loadedFiles = []; S.loadErrors = [];
     const man = await loadManifest();
     await loadFiles(man);
     renderAll(s);
