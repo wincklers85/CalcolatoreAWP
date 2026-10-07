@@ -51,15 +51,21 @@ export function parseExcelDate(v){
 }
 
 export function parseDateFromFilename(name){
+  // Accetta anche varianti realmente presenti nello storico:
   // Sinottico-YYYY-MM-DD-hhmm.xlsx
   // Sinottico-YYYY-MM-DD-hh:mm.xlsx
-  // Sinottico-YYYY-MM-DD.xlsx
-  const base = String(name||"").replace(/\.xlsx$/i,"");
-  const m = base.match(/Sinottico-(\d{4})-(\d{1,2})-(\d{1,2})(?:-(\d{2})(?::?(\d{2}))?)?/i);
+  // SinotticoYYYY-MM-DD-hhmm.xlsx
+  // trattini Unicode e giorno/mese a 1 cifra.
+  let base = String(name||"").replace(/\.xlsx$/i,"").trim();
+  base = base.replace(/[–—−]/g,"-").replace(/\s+/g,"");
+  const m = base.match(/^Sinottico-?(\d{4})-(\d{1,2})-(\d{1,2})(?:-(\d{2})(?::?(\d{2}))?)?$/i);
   if(!m) return null;
-  const y = +m[1], mo = +m[2], d = +m[3];
-  const hh = +(m[4]||0), mm = +(m[5]||0);
-  return new Date(y, mo-1, d, hh, mm, 0);
+
+  const y=+m[1], mo=+m[2], d=+m[3], hh=+(m[4]||0), mm=+(m[5]||0);
+  if(mo<1||mo>12||d<1||d>31||hh>23||mm>59) return null;
+  const dt = new Date(y,mo-1,d,hh,mm,0);
+  if(dt.getFullYear()!==y || dt.getMonth()!==mo-1 || dt.getDate()!==d) return null;
+  return dt;
 }
 
 export function fmtItDate(dt){
@@ -165,37 +171,68 @@ export function createState(){
     machinesById: new Map(),
     historyById: new Map(),
     loadedFiles: [],
+    loadErrors: [],
     cicloMap: new Map()
   };
 }
 
-export function mergeState(S, machines, fileDt){
+export function mergeState(S, machines, fileDt, filename=""){
+  const fileTs = fileDt ? new Date(fileDt).getTime() : null;
+
   for(const m of machines){
     if(!m.codeid) continue;
 
-    // timestamp: preferisci lastRead, altrimenti data dal filename
-    const ts = m.lastRead || fileDt || null;
-    const tsn = ts ? new Date(ts).getTime() : null;
+    // IMPORTANTE: il punto storico è il momento del SINOTTICO.
+    // lastRead resta un attributo della macchina e non viene usato
+    // per collassare sinottici diversi nello stesso timestamp.
+    const snapshotTs = Number.isFinite(fileTs)
+      ? fileTs
+      : (m.lastRead ? new Date(m.lastRead).getTime() : null);
+    if(!Number.isFinite(snapshotTs)) continue;
 
-    // snapshot più recente
+    const current = { ...m, snapshotTs, snapshotFile: filename || "" };
     const prev = S.machinesById.get(m.codeid);
-    const prevT = prev?.lastRead ? new Date(prev.lastRead).getTime() : null;
-
-    if(!prev || (tsn && (!prevT || tsn > prevT))){
-      S.machinesById.set(m.codeid, { ...m, lastRead: ts });
+    if(!prev || !Number.isFinite(prev.snapshotTs) || snapshotTs >= prev.snapshotTs){
+      S.machinesById.set(m.codeid, current);
     }
 
-    // storico
     const arr = S.historyById.get(m.codeid) || [];
-    if(tsn && !arr.some(p => p.ts === tsn)){
-      arr.push({ ts: tsn, inTot: m.inTot, outTot: m.outTot });
-      arr.sort((a,b)=>a.ts-b.ts);
-      for(let i=1;i<arr.length;i++){
-        arr[i].dIn  = arr[i].inTot  - arr[i-1].inTot;
-        arr[i].dOut = arr[i].outTot - arr[i-1].outTot;
+    const idx = arr.findIndex(p => p.ts === snapshotTs);
+    const point = {
+      ts: snapshotTs,
+      file: filename || "",
+      lastRead: m.lastRead ? new Date(m.lastRead).getTime() : null,
+      inTot: Number(m.inTot),
+      outTot: Number(m.outTot)
+    };
+    if(idx >= 0) arr[idx] = point;
+    else arr.push(point);
+
+    arr.sort((a,b)=>a.ts-b.ts);
+
+    for(let i=0;i<arr.length;i++){
+      const cur=arr[i];
+      cur.dIn=null; cur.dOut=null; cur.hours=null; cur.counterReset=false;
+      if(i===0) continue;
+      const prevPoint=arr[i-1];
+      const hours=(cur.ts-prevPoint.ts)/3600000;
+      if(!Number.isFinite(hours)||hours<=0) continue;
+
+      const dIn=cur.inTot-prevPoint.inTot;
+      const dOut=cur.outTot-prevPoint.outTot;
+      cur.hours=hours;
+
+      // Se un contatore torna indietro trattiamo l'intervallo come reset/sostituzione,
+      // non come incasso/pagamento negativo.
+      if(dIn<0 || dOut<0){
+        cur.counterReset=true;
+        continue;
       }
-      S.historyById.set(m.codeid, arr);
+      cur.dIn=dIn;
+      cur.dOut=dOut;
     }
+
+    S.historyById.set(m.codeid, arr);
   }
 }
 
@@ -222,28 +259,94 @@ export function cycleMetrics(machine, cicloMap){
 }
 
 export function activityScore(history){
-  // indice attività 0..100 basato sugli ultimi delta OUT (robusto, non “magico”)
-  if(!history || history.length < 3) return { score: 30, confidence: 30, note:"Storico scarso" };
+  // Indice di UTILIZZO, basato sull'IN per ora. Non è una previsione di vincita.
+  if(!history || history.length < 2) return { score:25, confidence:20, note:"Storico insufficiente" };
 
-  const tail = history.slice(-6);
-  const deltas = tail.map(x => Number(x.dOut || 0)).filter(x => Number.isFinite(x) && x >= 0);
+  const seg = history.slice(-8).filter(x =>
+    Number.isFinite(x.dIn) && Number.isFinite(x.hours) && x.hours>0 && !x.counterReset
+  );
+  if(!seg.length) return { score:25, confidence:25, note:"Delta IN insufficienti" };
 
-  if(deltas.length < 3) return { score: 35, confidence: 35, note:"Delta insufficienti" };
+  const rates=seg.map(x=>x.dIn/x.hours).filter(Number.isFinite);
+  const avg=rates.reduce((a,b)=>a+b,0)/Math.max(1,rates.length);
+  const recent=rates.at(-1) ?? avg;
 
-  const avg = deltas.reduce((s,x)=>s+x,0) / deltas.length;
-  const max = Math.max(...deltas);
-  const volatility = max ? (max - avg) / max : 0;
+  // Scala volutamente morbida: circa 0 €/h -> 10, 10 €/h -> 40, 30 €/h -> 75.
+  let score=Math.round(10 + 65*(1-Math.exp(-Math.max(0,recent)/22)));
+  score=Math.max(0,Math.min(100,score));
 
-  // scala: 0..100
-  // più OUT recente = più “attiva”
-  let score = 40 + (avg * 2.2);
-  score = Math.max(0, Math.min(100, Math.round(score)));
+  const mean=avg||0;
+  const variance=rates.length>1
+    ? rates.reduce((s,x)=>s+Math.pow(x-mean,2),0)/rates.length
+    : 0;
+  const cv=mean>0 ? Math.sqrt(variance)/mean : 1;
+  let confidence=Math.round(35 + Math.min(35,rates.length*6) - Math.min(25,cv*18));
+  confidence=Math.max(10,Math.min(95,confidence));
 
-  // confidenza: più punti + meno volatilità
-  let conf = 40 + deltas.length*6 - volatility*30;
-  conf = Math.max(10, Math.min(100, Math.round(conf)));
+  return {
+    score,
+    confidence,
+    note:"IN recente " + recent.toFixed(1) + " €/h · media " + avg.toFixed(1) + " €/h"
+  };
+}
 
-  return { score, confidence: conf, note: `avgΔOUT=${avg.toFixed(0)}€` };
+export function payoutWindowMetrics(history, targetPayout=65){
+  const empty={
+    statusKey:"bad",statusLabel:"Dati insufficienti",lastOut:null,lastIn:null,lastHours:null,
+    outRate:0,inRate:0,windowPayout:null,targetPayout:Number(targetPayout)||65,
+    payoutGap:null,projectionOut24:null,trend:"—",segments:0
+  };
+  if(!history || history.length<2) return empty;
+
+  const seg=history.slice(-10).filter(x =>
+    Number.isFinite(x.dIn) && Number.isFinite(x.dOut) &&
+    Number.isFinite(x.hours) && x.hours>0 && !x.counterReset
+  );
+  if(!seg.length) return empty;
+
+  const last=seg.at(-1);
+  const sumHours=seg.reduce((s,x)=>s+x.hours,0);
+  const sumIn=seg.reduce((s,x)=>s+x.dIn,0);
+  const sumOut=seg.reduce((s,x)=>s+x.dOut,0);
+  const inRate=sumHours>0?sumIn/sumHours:0;
+  const outRate=sumHours>0?sumOut/sumHours:0;
+  const windowPayout=sumIn>0?(sumOut/sumIn)*100:null;
+  const target=Number(targetPayout)||65;
+  const payoutGap=windowPayout!=null?windowPayout-target:null;
+
+  const lastOutRate=last.hours>0?last.dOut/last.hours:0;
+  const prev=seg.slice(0,-1);
+  const prevOutRate=prev.length
+    ? prev.reduce((s,x)=>s+(x.dOut/x.hours),0)/prev.length
+    : 0;
+
+  let trend="Stabile";
+  if(prev.length){
+    if(lastOutRate>prevOutRate*1.35 && last.dOut>0) trend="OUT in aumento";
+    else if(lastOutRate<prevOutRate*0.65) trend="OUT in calo";
+  }
+
+  // Stato OSSERVATO nell'ultimo intervallo. Non indica cosa accadrà alla prossima giocata.
+  let statusKey="bad", statusLabel="Nessun OUT nell'ultimo intervallo";
+  if(last.dOut>0){
+    if(last.hours<=8){
+      statusKey="good";
+      statusLabel="OUT attivo nell'ultimo intervallo";
+    }else if(last.hours<=36){
+      statusKey="warn";
+      statusLabel="OUT rilevato nell'ultimo intervallo";
+    }else{
+      statusKey="warn";
+      statusLabel="OUT rilevato (campione distante)";
+    }
+  }
+
+  return {
+    statusKey,statusLabel,
+    lastOut:last.dOut,lastIn:last.dIn,lastHours:last.hours,
+    outRate,inRate,windowPayout,targetPayout:target,payoutGap,
+    projectionOut24:outRate*24,trend,segments:seg.length
+  };
 }
 
 export function heatLabel(score){
