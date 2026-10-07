@@ -130,9 +130,10 @@
             <option value="none">Nessun OUT nell'ultimo intervallo</option>
           </select>
           <select id="sortBy" class="input">
+            <option value="etaAsc">Ordina: Fine ciclo più vicina</option>
+            <option value="confidenceDesc">Ordina: Affidabilità forecast ↓</option>
             <option value="outRecent">Ordina: ΔOUT ultimo intervallo ↓</option>
             <option value="windowPayout">Ordina: Payout finestra recente ↓</option>
-            <option value="activityDesc">Ordina: Utilizzo ↓</option>
             <option value="phaseDesc">Ordina: Fase ciclo ↓</option>
             <option value="recency">Ordina: Aggiornamento</option>
             <option value="locale">Ordina: Locale A→Z</option>
@@ -148,9 +149,10 @@
                 <th>Modello</th>
                 <th>CODEID</th>
                 <th>Fase ciclo</th>
-                <th>Manca IN al ciclo</th>
-                <th>OUT teorico ciclo</th>
-                <th>ΔOUT ultimo</th>
+                <th>IN residuo</th>
+                <th>ETA fine ciclo</th>
+                <th>OUT stimato sul residuo</th>
+                <th>Affidabilità</th>
                 <th>Payout recente</th>
               </tr>
             </thead>
@@ -262,7 +264,7 @@
         </div>
 
         <div class="card inner">
-          <h3 class="h3">Storico ΔIN / ΔOUT</h3>
+          <h3 class="h3">Andamento ΔIN / ΔOUT</h3>
           <canvas id="chartOut" height="160"></canvas>
           <div class="muted small" id="chartHint">—</div>
         </div>
