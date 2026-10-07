@@ -1,4 +1,4 @@
-import { fmtItDate, recencyStatus, cycleMetrics, activityScore, heatLabel, payoutWindowMetrics } from "./engine.js";
+import { fmtItDate, recencyStatus, payoutWindowMetrics, operationalForecast } from "./engine.js";
 
 let chart = null;
 
@@ -13,13 +13,10 @@ export function renderDashboard(S, session){
 
   for(const m of S.machinesById.values()){
     const hist = S.historyById.get(m.codeid) || [];
-    const act = activityScore(hist);
-    const heat = heatLabel(act.score);
-    const rec = recencyStatus(m.lastRead);
-    const cyc = cycleMetrics(m, S.cicloMap);
+    const forecast = operationalForecast(S,m);
+    const cyc = forecast.cyc;
     const out = payoutWindowMetrics(hist, cyc.payout || 65);
-    const payoutTarget = Number(cyc.payout || 65);
-    const theoreticalOut = cyc.ok ? cyc.cicloEur * (payoutTarget/100) : null;
+    const rec = recencyStatus(m.lastRead);
 
     if(out.statusKey === "good" && Number(out.lastOut) > 0) outActiveCount++;
 
@@ -30,14 +27,19 @@ export function renderDashboard(S, session){
     if(statusOut === "observed" && !(Number(out.lastOut) > 0)) continue;
     if(statusOut === "none" && !(out.lastOut === 0)) continue;
 
-    items.push({ m, hist, act, heat, rec, cyc, out, theoreticalOut });
+    items.push({ m, hist, forecast, cyc, out, rec });
   }
 
   items.sort((a,b)=>{
-    if(sortBy==="activityDesc") return b.act.score - a.act.score;
     if(sortBy==="phaseDesc") return (b.cyc.phasePct||-1) - (a.cyc.phasePct||-1);
     if(sortBy==="outRecent") return (b.out.lastOut||0) - (a.out.lastOut||0);
     if(sortBy==="windowPayout") return (b.out.windowPayout||-1) - (a.out.windowPayout||-1);
+    if(sortBy==="etaAsc"){
+      const av=Number.isFinite(a.forecast.etaHours)?a.forecast.etaHours:Number.POSITIVE_INFINITY;
+      const bv=Number.isFinite(b.forecast.etaHours)?b.forecast.etaHours:Number.POSITIVE_INFINITY;
+      return av-bv;
+    }
+    if(sortBy==="confidenceDesc") return b.forecast.confidence-a.forecast.confidence;
     if(sortBy==="locale") return (a.m.locale||"").localeCompare(b.m.locale||"");
     if(sortBy==="recency"){
       const rank = k => k==="good"?2:k==="warn"?1:0;
@@ -54,9 +56,10 @@ export function renderDashboard(S, session){
     const outBadge = badge(it.out.statusKey, it.out.statusLabel);
     const phaseTxt = it.cyc.ok ? `${it.cyc.phasePct}%` : "—";
     const leftIn = it.cyc.ok ? fmtEuro(it.cyc.leftEur) : "—";
-    const theoreticalOut = it.theoreticalOut!=null ? fmtEuro(it.theoreticalOut) : "—";
-    const lastOut = it.out.lastOut!=null ? fmtEuro(it.out.lastOut) : "—";
+    const eta = formatEta(it.forecast.etaHours,it.forecast.etaDate);
+    const projectedOut = it.forecast.projectedOutToCycleEnd!=null ? fmtEuro(it.forecast.projectedOutToCycleEnd) : "—";
     const payout = it.out.windowPayout!=null ? `${it.out.windowPayout.toFixed(1)}%` : "—";
+    const conf = `${it.forecast.confidence}%`;
 
     tr.innerHTML = `
       <td>${outBadge}</td>
@@ -65,8 +68,9 @@ export function renderDashboard(S, session){
       <td class="mono">${esc(it.m.codeid)}</td>
       <td>${esc(phaseTxt)}</td>
       <td><strong>${esc(leftIn)}</strong></td>
-      <td>${esc(theoreticalOut)}</td>
-      <td><strong>${esc(lastOut)}</strong></td>
+      <td>${esc(eta)}</td>
+      <td>${esc(projectedOut)}</td>
+      <td><strong>${esc(conf)}</strong></td>
       <td>${esc(payout)}</td>
     `;
     tbody.appendChild(tr);
@@ -86,7 +90,7 @@ export function renderDashboard(S, session){
   const onlyDashboard = session && session.level === "abbonato" && session.expired;
   document.getElementById("dataHint").textContent = onlyDashboard
     ? "Abbonamento scaduto: puoi vedere solo stato aggiornamento + profilo."
-    : `Visualizzate ${items.length} macchine. “OUT attivo” significa che il contatore OUT è aumentato nell’ultimo intervallo osservato. “OUT teorico ciclo” = payout configurato × valore del ciclo; non è una previsione della prossima giocata.`;
+    : `Visualizzate ${items.length} macchine. I buchi nello storico vengono interpolati solo tra due letture reali coerenti. ETA e OUT stimato sono forecast operativi di flusso, non indicano l'esito di una giocata.`;
 }
 
 export function bindRowClicks(S, onOpen){
@@ -110,10 +114,14 @@ export function openSlotModal(S, codeid){
   document.getElementById("modalSubtitle").textContent =
     `CODEID ${m.codeid} • Sinottico: ${snap} • Ultima lettura macchina: ${fmtItDate(m.lastRead)}`;
 
-  const cyc = cycleMetrics(m, S.cicloMap);
-  const act = activityScore(hist);
+  const forecast = operationalForecast(S,m);
+  const cyc = forecast.cyc;
   const rec = recencyStatus(m.lastRead);
   const out = payoutWindowMetrics(hist, cyc.payout || 65);
+  const profile = forecast.modelProfile;
+  const currentBin = cyc.ok && profile.ok
+    ? profile.bins[Math.min(profile.bins.length-1,Math.max(0,Math.floor((cyc.phasePct||0)/10)))]
+    : null;
 
   document.getElementById("kvTech").innerHTML = kv([
     ["Locale", m.locale],
@@ -132,24 +140,29 @@ export function openSlotModal(S, codeid){
 
   document.getElementById("kvAnalysis").innerHTML = kv([
     ["Aggiornamento macchina", rec.label],
-    ["Utilizzo", `${act.score}% (conf. ${act.confidence}%)`],
-    ["Nota utilizzo", act.note],
     ["Stato OUT osservato", out.statusLabel],
     ["Trend OUT", out.trend],
-    ["Ultimo intervallo", out.lastHours!=null ? `${out.lastHours.toFixed(1)} h` : "—"],
     ["ΔIN ultimo intervallo", out.lastIn!=null ? fmtEuro(out.lastIn) : "—"],
     ["ΔOUT ultimo intervallo", out.lastOut!=null ? fmtEuro(out.lastOut) : "—"],
-    ["Velocità OUT finestra", `${fmtEuro(out.outRate)}/h`],
-    ["Proiezione tecnica OUT 24h", out.projectionOut24!=null ? fmtEuro(out.projectionOut24) : "—"],
-    ["Payout finestra recente", out.windowPayout!=null ? `${out.windowPayout.toFixed(1)}%` : "—"],
-    ["Target modello", `${out.targetPayout}%`],
-    ["Scarto payout finestra", out.payoutGap!=null ? signedPct(out.payoutGap) : "—"],
-    ["Ciclo", cyc.ok ? `${cyc.cicloEur}€ IN` : "—"],
+    ["Velocità IN recente", forecast.inRate>0 ? `${fmtEuro(forecast.inRate)}/h` : "—"],
+    ["Velocità OUT recente", forecast.outRate>0 ? `${fmtEuro(forecast.outRate)}/h` : "—"],
+    ["Ciclo modello", cyc.ok ? `${fmtEuro(cyc.cicloEur)} IN` : "—"],
     ["Fase ciclo", cyc.ok ? `${cyc.phasePct}%` : "—"],
-    ["Residuo ciclo", cyc.ok ? fmtEuro(cyc.leftEur) : "—"]
+    ["IN residuo al fine ciclo", cyc.ok ? fmtEuro(cyc.leftEur) : "—"],
+    ["ETA fine ciclo", formatEta(forecast.etaHours,forecast.etaDate)],
+    ["OUT operativo stimato sul residuo", forecast.projectedOutToCycleEnd!=null ? fmtEuro(forecast.projectedOutToCycleEnd) : "—"],
+    ["Payout finestra recente", out.windowPayout!=null ? `${out.windowPayout.toFixed(1)}%` : "—"],
+    ["Target modello", `${forecast.targetPayoutPct}%`],
+    ["Payout storico modello in questa fascia", currentBin?.payout!=null ? `${currentBin.payout.toFixed(1)}%` : "—"],
+    ["Campioni modello", profile.ok ? `${profile.segments} intervalli / ${profile.machines} macchine` : "—"],
+    ["Punti reali", String(forecast.rebuilt.actual)],
+    ["Punti ricostruiti", String(forecast.rebuilt.estimated)],
+    ["Passo storico tipico", forecast.rebuilt.medianHours!=null ? `${forecast.rebuilt.medianHours.toFixed(1)} h` : "—"],
+    ["Affidabilità forecast", `${forecast.confidence}%`],
+    ["Accuratezza backtest OUT", forecast.backtest.accuracy!=null ? `${forecast.backtest.accuracy}% su ${forecast.backtest.tests} test` : "Storico insufficiente"]
   ]);
 
-  const tail=hist.slice(-30);
+  const tail=forecast.rebuilt.points.slice(-40);
   const labels = tail.map(p => {
     const d = new Date(p.ts);
     return `${String(d.getDate()).padStart(2,"0")}/${String(d.getMonth()+1).padStart(2,"0")} ${String(d.getHours()).padStart(2,"0")}:${String(d.getMinutes()).padStart(2,"0")}`;
@@ -163,18 +176,27 @@ export function openSlotModal(S, codeid){
   chart = new Chart(canvas, {
     type: "line",
     data: { labels, datasets: [
-      { label:"ΔOUT (€)", data:outValues, tension:0.25 },
-      { label:"ΔIN (€)", data:inValues, tension:0.25 }
+      {
+        label:"ΔOUT (€)", data:outValues, tension:0.25,
+        pointRadius: tail.map(p=>p.estimated?2:4),
+        segment:{ borderDash:ctx => tail[ctx.p1DataIndex]?.estimated ? [5,4] : undefined }
+      },
+      {
+        label:"ΔIN (€)", data:inValues, tension:0.25,
+        pointRadius: tail.map(p=>p.estimated?2:4),
+        segment:{ borderDash:ctx => tail[ctx.p1DataIndex]?.estimated ? [5,4] : undefined }
+      }
     ]},
     options: {
       responsive:true,
+      interaction:{mode:"index",intersect:false},
       plugins:{ legend:{ display:true } },
       scales:{ y:{ beginAtZero:true } }
     }
   });
 
   document.getElementById("chartHint").textContent = hist.length
-    ? `Punti storico: ${hist.length} (mostrati ultimi ${Math.min(30,hist.length)}). La proiezione 24h è una semplice estrapolazione del ritmo storico, non indica l'esito della prossima giocata.`
+    ? `Storico reale: ${forecast.rebuilt.actual} punti · ricostruiti: ${forecast.rebuilt.estimated}. I tratti stimati sono interpolazioni lineari tra letture reali; non vengono creati oltre reset contatori o buchi anomali. Il forecast serve per analisi di flusso e ciclo, non per prevedere l'esito della prossima giocata.`
     : "Nessuno storico disponibile.";
 
   showModal(true);
@@ -212,10 +234,12 @@ function fmtEuro(v){
   return new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR",maximumFractionDigits:2}).format(n);
 }
 
-function signedPct(v){
-  const n=Number(v);
-  if(!Number.isFinite(n)) return "—";
-  return `${n>0?"+":""}${n.toFixed(1)}%`;
+function formatEta(hours,date){
+  if(!Number.isFinite(hours)||hours<0) return "—";
+  let span;
+  if(hours<24) span=`${hours.toFixed(1)} h`;
+  else span=`${(hours/24).toFixed(1)} gg`;
+  return date ? `${span} · ~${fmtItDate(date)}` : span;
 }
 
 function esc(s){
