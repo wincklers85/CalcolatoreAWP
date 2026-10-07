@@ -349,6 +349,203 @@ export function payoutWindowMetrics(history, targetPayout=65){
   };
 }
 
+
+function median(values){
+  const a=(values||[]).filter(Number.isFinite).slice().sort((x,y)=>x-y);
+  if(!a.length) return null;
+  const m=Math.floor(a.length/2);
+  return a.length%2 ? a[m] : (a[m-1]+a[m])/2;
+}
+
+export function interpolateHistory(history){
+  const src=(history||[]).slice().sort((a,b)=>a.ts-b.ts);
+  if(src.length<2) return { points:src.map(x=>({...x,estimated:false})), actual:src.length, estimated:0, medianHours:null };
+
+  const gaps=[];
+  for(let i=1;i<src.length;i++){
+    const h=(src[i].ts-src[i-1].ts)/3600000;
+    if(Number.isFinite(h)&&h>0&&h<=24*14) gaps.push(h);
+  }
+  const medianHours=median(gaps);
+  if(!medianHours || medianHours<=0) return { points:src.map(x=>({...x,estimated:false})), actual:src.length, estimated:0, medianHours:null };
+
+  const out=[];
+  let estimated=0;
+  for(let i=0;i<src.length;i++){
+    const a=src[i];
+    out.push({...a,estimated:false});
+    if(i===src.length-1) continue;
+    const b=src[i+1];
+    const gapHours=(b.ts-a.ts)/3600000;
+    if(!Number.isFinite(gapHours) || gapHours < medianHours*1.8 || gapHours > medianHours*20) continue;
+    if(!Number.isFinite(a.inTot)||!Number.isFinite(a.outTot)||!Number.isFinite(b.inTot)||!Number.isFinite(b.outTot)) continue;
+    if(b.inTot<a.inTot || b.outTot<a.outTot) continue;
+
+    const missing=Math.min(24,Math.max(0,Math.round(gapHours/medianHours)-1));
+    for(let k=1;k<=missing;k++){
+      const ratio=k/(missing+1);
+      out.push({
+        ts:a.ts+(b.ts-a.ts)*ratio,
+        file:"stima",
+        lastRead:null,
+        inTot:a.inTot+(b.inTot-a.inTot)*ratio,
+        outTot:a.outTot+(b.outTot-a.outTot)*ratio,
+        estimated:true,
+        counterReset:false
+      });
+      estimated++;
+    }
+  }
+
+  out.sort((a,b)=>a.ts-b.ts);
+  for(let i=0;i<out.length;i++){
+    const cur=out[i];
+    cur.dIn=null; cur.dOut=null; cur.hours=null;
+    if(i===0) continue;
+    const prev=out[i-1];
+    const hours=(cur.ts-prev.ts)/3600000;
+    const dIn=cur.inTot-prev.inTot;
+    const dOut=cur.outTot-prev.outTot;
+    if(hours>0 && dIn>=0 && dOut>=0){
+      cur.hours=hours;
+      cur.dIn=dIn;
+      cur.dOut=dOut;
+    }
+  }
+  return { points:out, actual:src.length, estimated, medianHours };
+}
+
+export function modelPhaseProfile(S, modelCode, bins=10){
+  const cfg=S.cicloMap.get(String(modelCode||""));
+  if(!cfg?.ciclo || cfg.ciclo<=0) return { ok:false,bins:[],segments:0,machines:0 };
+  const ciclo=cfg.ciclo;
+  const stats=Array.from({length:bins},(_,i)=>({
+    from:(i*100/bins),to:((i+1)*100/bins),sumIn:0,sumOut:0,hours:0,segments:0,outEvents:0
+  }));
+  let segments=0, machines=0;
+
+  for(const m of S.machinesById.values()){
+    if(String(m.modelCode||"")!==String(modelCode||"")) continue;
+    machines++;
+    const hist=S.historyById.get(m.codeid)||[];
+    for(const p of hist){
+      if(!Number.isFinite(p.dIn)||!Number.isFinite(p.dOut)||p.dIn<0||p.dOut<0||p.counterReset) continue;
+      const midpointIn=p.inTot-(p.dIn/2);
+      const mod=((midpointIn%ciclo)+ciclo)%ciclo;
+      const phase=(mod/ciclo)*100;
+      const idx=Math.min(bins-1,Math.max(0,Math.floor(phase/(100/bins))));
+      const b=stats[idx];
+      b.sumIn+=p.dIn; b.sumOut+=p.dOut; b.hours+=Number(p.hours)||0; b.segments++;
+      if(p.dOut>0) b.outEvents++;
+      segments++;
+    }
+  }
+
+  return {
+    ok:segments>0,
+    machines,segments,
+    bins:stats.map(b=>({
+      ...b,
+      payout:b.sumIn>0?(b.sumOut/b.sumIn)*100:null,
+      outPerIn:b.sumIn>0?b.sumOut/b.sumIn:null,
+      outEventRate:b.segments>0?(b.outEvents/b.segments)*100:null
+    }))
+  };
+}
+
+function weightedRate(segments,key){
+  let value=0,hours=0;
+  for(const p of segments){
+    if(!Number.isFinite(p[key])||!Number.isFinite(p.hours)||p.hours<=0) continue;
+    value+=p[key]; hours+=p.hours;
+  }
+  return hours>0?value/hours:0;
+}
+
+export function forecastBacktest(history){
+  const src=(history||[]).filter(p=>
+    Number.isFinite(p.dIn)&&Number.isFinite(p.dOut)&&p.dIn>=0&&p.dOut>=0&&!p.counterReset
+  );
+  if(src.length<6) return { accuracy:null,tests:0,mae:null };
+
+  let absErr=0, scale=0, tests=0;
+  for(let i=4;i<src.length;i++){
+    const train=src.slice(Math.max(0,i-6),i);
+    const sumIn=train.reduce((s,p)=>s+p.dIn,0);
+    const sumOut=train.reduce((s,p)=>s+p.dOut,0);
+    if(sumIn<=0) continue;
+    const ratio=sumOut/sumIn;
+    const pred=Math.max(0,src[i].dIn*ratio);
+    absErr+=Math.abs(pred-src[i].dOut);
+    scale+=Math.max(src[i].dOut,src[i].dIn*0.1,1);
+    tests++;
+  }
+  if(!tests) return { accuracy:null,tests:0,mae:null };
+  const mae=absErr/tests;
+  const norm=scale/tests;
+  const accuracy=Math.max(0,Math.min(100,Math.round((1-(mae/norm))*100)));
+  return { accuracy,tests,mae };
+}
+
+export function operationalForecast(S, machine){
+  const hist=S.historyById.get(machine.codeid)||[];
+  const rebuilt=interpolateHistory(hist);
+  const valid=rebuilt.points.filter(p=>
+    Number.isFinite(p.dIn)&&Number.isFinite(p.dOut)&&Number.isFinite(p.hours)&&p.hours>0&&!p.counterReset
+  );
+  const recent=valid.slice(-10);
+  const cyc=cycleMetrics(machine,S.cicloMap);
+  const inRate=weightedRate(recent,"dIn");
+  const outRate=weightedRate(recent,"dOut");
+  const etaHours=cyc.ok&&inRate>0?cyc.leftEur/inRate:null;
+
+  const profile=modelPhaseProfile(S,machine.modelCode,10);
+  let phaseOutPerIn=null;
+  if(cyc.ok&&profile.ok){
+    const start=Math.min(9,Math.max(0,Math.floor((cyc.phasePct||0)/10)));
+    let wIn=0,wOut=0;
+    for(let i=start;i<profile.bins.length;i++){
+      wIn+=profile.bins[i].sumIn;
+      wOut+=profile.bins[i].sumOut;
+    }
+    if(wIn>0) phaseOutPerIn=wOut/wIn;
+  }
+
+  const target=(Number(cyc.payout)||65)/100;
+  const ratio=Number.isFinite(phaseOutPerIn)?phaseOutPerIn:target;
+  const projectedOutToCycleEnd=cyc.ok?Math.max(0,cyc.leftEur*ratio):null;
+  const backtest=forecastBacktest(hist);
+
+  const actual=rebuilt.actual, estimated=rebuilt.estimated;
+  const coverage=actual+estimated>0?actual/(actual+estimated):0;
+  const sampleScore=Math.min(1,actual/20);
+  const modelScore=Math.min(1,(profile.segments||0)/100);
+  const stabilityScore=backtest.accuracy==null?0.45:backtest.accuracy/100;
+  const confidence=Math.round(100*Math.max(0,Math.min(1,
+    0.35*coverage+0.25*sampleScore+0.20*modelScore+0.20*stabilityScore
+  )));
+
+  let etaDate=null;
+  if(Number.isFinite(etaHours) && etaHours>=0 && machine.snapshotTs){
+    etaDate=new Date(machine.snapshotTs+etaHours*3600000);
+  }
+
+  return {
+    rebuilt,
+    cyc,
+    inRate,
+    outRate,
+    etaHours,
+    etaDate,
+    projectedOutToCycleEnd,
+    confidence,
+    backtest,
+    modelProfile:profile,
+    phaseOutPerIn,
+    targetPayoutPct:Number(cyc.payout)||65
+  };
+}
+
 export function heatLabel(score){
   if(score >= 70) return { key:"good", label:"Calda" };
   if(score >= 40) return { key:"warn", label:"Neutra" };
