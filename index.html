@@ -87,7 +87,7 @@
     <!-- DASHBOARD VIEW -->
     <section class="view" id="viewDashboard">
       <div class="row between wrapgap">
-        <h2 class="h2">Dashboard</h2>
+        <h2 class="h2">Analisi macchine</h2>
         <div class="row wrapgap">
           <button class="btn" id="btnLoadLast3">Carica ultimi 3</button>
           <button class="btn secondary" id="btnLoadAll">Carica tutti</button>
@@ -109,6 +109,10 @@
               <div class="kpiLabel">Match ciclo</div>
               <div class="kpiValue" id="kpiCycleMatch">—</div>
             </div>
+            <div class="kpi">
+              <div class="kpiLabel">OUT attivo</div>
+              <div class="kpiValue" id="kpiOutActive">—</div>
+            </div>
           </div>
 
           <div class="progressWrap">
@@ -118,7 +122,13 @@
         </div>
 
         <div class="row wrapgap" style="margin-top:10px">
-          <input id="filterText" class="input" placeholder="Filtra per locale, comune, modello, codeid…" />
+          <input id="filterText" class="input" placeholder="Cerca locale, modello o CODEID…" />
+          <select id="statusOut" class="input">
+            <option value="all">Tutte le macchine</option>
+            <option value="active">OUT attivo (pagamento osservato)</option>
+            <option value="observed">OUT rilevato</option>
+            <option value="none">Nessun OUT nell'ultimo intervallo</option>
+          </select>
           <select id="sortBy" class="input">
             <option value="outRecent">Ordina: ΔOUT ultimo intervallo ↓</option>
             <option value="windowPayout">Ordina: Payout finestra recente ↓</option>
@@ -133,15 +143,13 @@
           <table class="table" id="tblMachines">
             <thead>
               <tr>
-                <th>Agg</th>
+                <th>Stato OUT</th>
                 <th>Locale</th>
-                <th>Comune</th>
                 <th>Modello</th>
                 <th>CODEID</th>
-                <th>PDA</th>
                 <th>Fase ciclo</th>
-                <th>Utilizzo</th>
-                <th>Stato OUT</th>
+                <th>Manca IN al ciclo</th>
+                <th>OUT teorico ciclo</th>
                 <th>ΔOUT ultimo</th>
                 <th>Payout recente</th>
               </tr>
