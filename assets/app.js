@@ -250,6 +250,7 @@ async function boot(){
   // filter/sort
   $("filterText").oninput = ()=>renderDashboard(S, getSession());
   $("sortBy").onchange = ()=>renderDashboard(S, getSession());
+  $("statusOut").onchange = ()=>renderDashboard(S, getSession());
 
   bindRowClicks(S, (codeid)=>{
     selectedCodeId = codeid;
