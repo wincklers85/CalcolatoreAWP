@@ -259,17 +259,20 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
   let historyController=null, historyRequest=0;
 
   function parseSnapshotDate(name){
-    const s=String(name||'');
-    let m=s.match(/Sinottico-(\d{4})-(\d{1,2})-(\d{1,2})(?:-(\d{2,4})(?=\.xlsx|\b))?/i);
+    // Nei file storici possono comparire sia GG-MM-AAAA sia AAAA-MM-GG,
+    // orari HHMM o HH:MM e separatori tipografici (es. trattino lungo).
+    const normalized=String(name||'').replace(/[‐‑‒–—−]/g,'-');
+    let m=normalized.match(/^Sinottico-(\d{4})-(\d{1,2})-(\d{1,2})(?:-(\d{1,2}:\d{2}|\d{3,4}))?\.xlsx$/i);
     let y,mo,d,hm='';
     if(m){y=+m[1];mo=+m[2];d=+m[3];hm=m[4]||'';}
     else{
-      m=s.match(/Sinottico-(\d{1,2})-(\d{1,2})-(\d{4})(?:-(\d{2,4}))?/i);
+      m=normalized.match(/^Sinottico-(\d{1,2})-(\d{1,2})-(\d{4})(?:-(\d{1,2}:\d{2}|\d{3,4}))?\.xlsx$/i);
       if(!m)return null;
       d=+m[1];mo=+m[2];y=+m[3];hm=m[4]||'';
     }
     const hhmm=hm.replace(':','').padStart(4,'0');
     const hours=hm?+hhmm.slice(0,2):0,mins=hm?+hhmm.slice(-2):0;
+    if(hours>23||mins>59)return null;
     const date=new Date(y,mo-1,d,hours,mins);
     return date.getFullYear()===y&&date.getMonth()===mo-1&&date.getDate()===d?date:null;
   }
