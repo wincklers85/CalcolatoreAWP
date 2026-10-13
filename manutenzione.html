@@ -47,6 +47,28 @@ table{ width:100%; border-collapse:collapse }
 th,td{ padding:10px 12px; border-bottom:1px solid var(--border) }
 th{ background:var(--table-head); text-align:left }
 tr:hover td{ background:rgba(0,0,0,.03) }
+#tbl tbody tr.clickable{ cursor:pointer }
+#tbl tbody tr.clickable:focus{ outline:3px solid var(--acc);outline-offset:-3px }
+#tbl tbody tr.clickable:hover td{ background:var(--table-head) }
+.modal-back{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;padding:12px;background:rgba(0,0,0,.62)}
+.modal-back.open{display:flex}
+.modal-window{width:min(900px,100%);max-height:calc(100vh - 24px);overflow-y:auto;background:var(--card);color:var(--fg);border:1px solid var(--border);border-radius:16px;padding:18px;box-shadow:0 18px 60px rgba(0,0,0,.25)}
+.modal-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.modal-head h2{font-size:20px;margin:0 0 4px}
+.modal-subtitle{color:var(--muted);font-size:13px}
+.history-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin:14px 0}
+.history-box{border:1px solid var(--border);border-radius:12px;padding:12px;background:var(--bg)}
+.history-box strong{display:block;margin-bottom:7px}
+.history-box div{white-space:pre-line;line-height:1.5;font-size:13px}
+.history-status{color:var(--muted);font-size:13px;margin:12px 0}
+.history-events{display:grid;gap:8px;margin:10px 0}
+.history-event{border-left:4px solid var(--border);padding:9px 12px;border-radius:8px;background:var(--bg)}
+.history-event.important{border-left-color:var(--warn)}
+.history-event strong{display:block}
+.history-event .event-date{font-size:12px;color:var(--muted);margin-top:3px}
+.history-event p{font-size:13px;margin:5px 0 0;white-space:pre-line}
+.modal-window h3{font-size:15px;margin:18px 0 8px}
+@media(max-width:600px){.modal-window{padding:12px}.modal-head h2{font-size:17px}}
 
 .meta{ margin-top:6px; font-size:12px; color:var(--muted) }
 
@@ -127,13 +149,35 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
           <tbody></tbody>
         </table>
       </div>
-      <div class="meta">Ordine: esattore → tipo → locale → data.</div>
+      <div class="meta">Ordine: esattore → tipo → locale → data. Clicca o tocca una macchina per vedere sedi precedenti e storico 724.</div>
     </div>
   </main>
 
   <footer>© <span id="year"></span> AWP Manager — Manutenzione</footer>
 
   <div id="loader"><div class="spinner"></div></div>
+
+  <div id="machineModal" class="modal-back" role="presentation">
+    <section class="modal-window" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+      <div class="modal-head">
+        <div>
+          <h2 id="mTitle">Storico AWP</h2>
+          <div id="mSubtitle" class="modal-subtitle">—</div>
+        </div>
+        <button type="button" id="mClose" aria-label="Chiudi storico">✖ Chiudi</button>
+      </div>
+      <div class="history-grid">
+        <div class="history-box"><strong>Ultimo ingresso rilevato in 724</strong><div id="m724">—</div></div>
+        <div class="history-box"><strong>Sede prima del 724</strong><div id="mBefore724">—</div></div>
+        <div class="history-box"><strong>Sedi precedenti</strong><div id="mPlaces">—</div></div>
+      </div>
+      <div id="mCoverage" class="history-status" aria-live="polite">Caricamento storico…</div>
+      <button type="button" id="mCancel" style="display:none">Interrompi ricerca</button>
+      <h3>Eventi e cambi di stato</h3>
+      <div id="mTimeline" class="history-events"></div>
+      <div class="meta">Le date indicano la prima osservazione nei sinottici disponibili, non necessariamente il giorno esatto di spostamento o apertura 724. La data dell'ultima lettura non viene usata per datare questi eventi.</div>
+    </section>
+  </div>
 
   <!-- XLSX loader (locale → CDN) -->
   <script>
@@ -210,7 +254,196 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
   }
 
   /* ===== Stato pagina ===== */
-  let rowsAll=[], esattori=[];
+  let rowsAll=[], esattori=[], manifestList=[], latestName='', latestRows=[];
+  const historyCache=new Map();
+  let historyController=null, historyRequest=0;
+
+  function parseSnapshotDate(name){
+    const s=String(name||'');
+    let m=s.match(/Sinottico-(\d{4})-(\d{1,2})-(\d{1,2})(?:-(\d{2,4})(?=\.xlsx|\b))?/i);
+    let y,mo,d,hm='';
+    if(m){y=+m[1];mo=+m[2];d=+m[3];hm=m[4]||'';}
+    else{
+      m=s.match(/Sinottico-(\d{1,2})-(\d{1,2})-(\d{4})(?:-(\d{2,4}))?/i);
+      if(!m)return null;
+      d=+m[1];mo=+m[2];y=+m[3];hm=m[4]||'';
+    }
+    const hhmm=hm.replace(':','').padStart(4,'0');
+    const hours=hm?+hhmm.slice(0,2):0,mins=hm?+hhmm.slice(-2):0;
+    const date=new Date(y,mo-1,d,hours,mins);
+    return date.getFullYear()===y&&date.getMonth()===mo-1&&date.getDate()===d?date:null;
+  }
+  function fmtSnapshot(d){if(!d)return 'Data non disponibile';return fmtDate(d)+' '+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+  function pickStatus(row){return String(pick(row,['DESCR. STATO','DESCR.STATO','DESCR.STATO ','STATO'])||'').trim();}
+  function in724(status,ms){return /\b724\b/.test(String(status||'')+' '+String(ms||''));}
+  function setDetail(id,txt){document.getElementById(id).textContent=txt||'—';}
+  function historyEvent(kind,date,details,important=false){
+    const el=document.createElement('div');el.className='history-event'+(important?' important':'');
+    const t=document.createElement('strong');t.textContent=kind;
+    const when=document.createElement('div');when.className='event-date';when.textContent=fmtSnapshot(date);
+    const body=document.createElement('p');body.textContent=details;
+    el.append(t,when,body);return el;
+  }
+  function closeHistory(){
+    historyRequest++;
+    if(historyController){historyController.abort();historyController=null;}
+    $('#machineModal').classList.remove('open');
+    $('#mCancel').style.display='none';
+  }
+  function formatEventDetails(r){
+    return 'Locale: '+(r.sede||'Non indicato')+(r.comune?' ('+r.comune+')':'')+
+      '\nStato: '+(r.status||'Non indicato')+(r.ms?' • M.S./Ferie: '+r.ms:'')+
+      (r.gioco?'\nGioco: '+r.gioco:'');
+  }
+  function showHistory(result){
+    const items=result.items;
+    const timeline=$('#mTimeline');timeline.replaceChildren();
+    if(!items.length){
+      setDetail('m724','Nessuna rilevazione 724 trovata.');
+      setDetail('mBefore724','Non ricostruibile.');
+      setDetail('mPlaces','Nessuna sede precedente trovata.');
+      timeline.append(historyEvent('Nessuna rilevazione',null,'CODEID non individuato nei sinottici esaminati.'));
+      return;
+    }
+    const current=items[items.length-1];
+    const periods=[];
+    for(const item of items){
+      const prev=periods[periods.length-1];
+      const key=normalizeSede(item.sede);
+      if(!prev||prev.key!==key)periods.push({key,sede:item.sede||'Sede non indicata',start:item.snapshot,end:item.snapshot});
+      else prev.end=item.snapshot;
+    }
+    const prevPlaces=periods.slice(0,-1).filter(p=>p.key);
+    setDetail('mPlaces',prevPlaces.length?
+      prevPlaces.slice().reverse().map(p=>p.sede+' (rilevata '+fmtDate(p.start)+(p.end&&p.start&&p.end.getTime()!==p.start.getTime()?' – '+fmtDate(p.end):'')+')').join('\n'):
+      'Non risultano spostamenti di sede nello storico disponibile.');
+
+    const starts=items.map((v,i)=>({v,i})).filter(({v,i})=>v.is724 && (i===0||!items[i-1].is724));
+    if(starts.length){
+      const {v,i}=starts[starts.length-1];
+      const before=i>0?items[i-1]:null;
+      setDetail('m724',
+        'Rilevato dal '+fmtSnapshot(v.snapshot)+'\n'+(v.sede||'Sede non indicata')+
+        '\n'+(v.status||v.ms||'Stato 724')+
+        (starts.length>1?'\nEpisodi distinti osservati: '+starts.length:'')+
+        (!before?'\nGià in 724 alla prima presenza disponibile.':''));
+      setDetail('mBefore724',before?
+        (before.sede||'Sede non indicata')+'\nStato precedente: '+(before.status||before.ms||'Non indicato')+'\nSinottico: '+fmtSnapshot(before.snapshot):
+        'Non disponibile: il primo sinottico trovato mostra già lo stato 724.');
+    }else{
+      setDetail('m724','Nessuna occorrenza 724 nei sinottici esaminati.');
+      setDetail('mBefore724','Non applicabile.');
+    }
+    const events=[];
+    for(let i=0;i<items.length;i++){
+      const curr=items[i],prev=items[i-1];
+      if(!prev){
+        events.push({kind:'Prima presenza disponibile',r:curr,description:formatEventDetails(curr),important:curr.is724});
+        continue;
+      }
+      if(normalizeSede(curr.sede)!==normalizeSede(prev.sede)){
+        events.push({kind:'Cambio sede rilevato',r:curr,
+          description:'Da: '+(prev.sede||'Non indicata')+'\nA: '+(curr.sede||'Non indicata')+'\n'+formatEventDetails(curr),important:false});
+      }
+      if(curr.is724&&!prev.is724){
+        events.push({kind:'Ingresso in 724 rilevato',r:curr,description:
+          'Nel sinottico precedente: '+(prev.status||prev.ms||'Stato non indicato')+
+          '\n'+formatEventDetails(curr),important:true});
+      }else if(!curr.is724&&prev.is724){
+        events.push({kind:'Uscita da 724 rilevata',r:curr,description:formatEventDetails(curr),important:false});
+      }else if((curr.status||'').toUpperCase()!==(prev.status||'').toUpperCase()||
+               (curr.ms||'').toUpperCase()!==(prev.ms||'').toUpperCase()){
+        events.push({kind:'Cambio stato rilevato',r:curr,description:
+          'Prima: '+(prev.status||prev.ms||'Non indicato')+'\n'+formatEventDetails(curr),important:false});
+      }
+    }
+    for(const e of events.reverse())timeline.append(historyEvent(e.kind,e.r.snapshot,e.description,e.important));
+    if(!events.length)timeline.append(historyEvent('Nessun cambio rilevato',current.snapshot,formatEventDetails(current)));
+  }
+  async function readHistoricalXLSX(name,signal){
+    if(name===latestName&&latestRows.length)return latestRows;
+    const response=await fetch('./Dati/'+encodeURIComponent(name),{cache:'force-cache',signal});
+    if(!response.ok)throw new Error(name+' HTTP '+response.status);
+    const bytes=await response.arrayBuffer();
+    const book=XLSX.read(bytes,{type:'array'});
+    let ws=null,best=-1;
+    for(const sheetName of book.SheetNames){
+      const sheet=book.Sheets[sheetName];const ref=sheet&&sheet['!ref'];
+      if(!ref)continue;
+      const count=XLSX.utils.decode_range(ref).e.r;
+      if(count>best){best=count;ws=sheet;}
+    }
+    return ws?XLSX.utils.sheet_to_json(ws,{defval:null}):[];
+  }
+  async function collectHistory(codeid,signal,report){
+    if(historyCache.has(codeid))return historyCache.get(codeid);
+    const ordered=manifestList.map((name,index)=>({name,index,date:parseSnapshotDate(name)}))
+      .sort((a,b)=>(a.date?a.date.getTime():Infinity)-(b.date?b.date.getTime():Infinity)||a.index-b.index);
+    let next=0,processed=0,errors=0;
+    const found=new Array(ordered.length);
+    async function worker(){
+      while(next<ordered.length&&!signal.aborted){
+        const index=next++;const entry=ordered[index];
+        try{
+          const rows=await readHistoricalXLSX(entry.name,signal);
+          let matched=null;
+          for(const row of rows){
+            if(String(pickCodeId(row)||'').trim().toUpperCase()!==codeid.toUpperCase())continue;
+            const data=parseDateIT(pick(row,['DATA ULTIMA LETTURA VAL.','DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
+            if(!matched||(!matched.data&&data)||(data&&matched.data&&data>matched.data)){
+              const status=pickStatus(row),ms=pickMSFerie(row);
+              matched={snapshot:entry.date,data,sede:pick(row,['DENOMIN. SEDE','DENOMIN.SEDE','DENOMINAZIONE SEDE']),
+                comune:pick(row,['COMUNE','CITTA','LOCALITA','CITTÀ']),status,ms,is724:in724(status,ms),
+                gioco:pickGameName(row),pda:pick(row,['PDA','COD.PDA','ID PDA','IDPDA','COD_PDA'])};
+            }
+          }
+          found[index]=matched;
+        }catch(e){if(signal.aborted)return;errors++;console.warn('Storico: sinottico non leggibile',entry.name,e);}
+        finally{
+          processed++;
+          if(processed%5===0||processed===ordered.length)report(processed,ordered.length,errors);
+        }
+      }
+    }
+    await Promise.all(Array.from({length:Math.min(6,ordered.length)},()=>worker()));
+    if(signal.aborted)throw new Error('Ricerca interrotta');
+    const result={items:found.filter(Boolean),errors,checked:ordered.length};
+    if(errors===0)historyCache.set(codeid,result);
+    return result;
+  }
+  async function openHistory(row){
+    historyRequest++;
+    const ownRequest=historyRequest;
+    if(historyController)historyController.abort();
+    historyController=new AbortController();
+    const controller=historyController;
+    $('#machineModal').classList.add('open');
+    $('#mTitle').textContent='Storico AWP '+row.CODEID;
+    $('#mSubtitle').textContent=(row.GIOCO||'Gioco non indicato')+' • '+(row.SEDE||'Sede non indicata')+' • '+row.TIPO;
+    ['m724','mBefore724','mPlaces'].forEach(id=>setDetail(id,'Ricostruzione in corso…'));
+    $('#mTimeline').replaceChildren();
+    $('#mCancel').style.display='inline-block';
+    $('#mCoverage').textContent='Analisi dei sinottici storici in corso…';
+    try{
+      if(!window.XLSX)throw new Error('Libreria XLSX non ancora caricata. Aggiorna la pagina e riprova.');
+      const result=await collectHistory(row.CODEID,controller.signal,(done,total,errors)=>{
+        if(ownRequest===historyRequest)$('#mCoverage').textContent='Sinottici esaminati: '+done+' / '+total+(errors?' • File non leggibili: '+errors:'');
+      });
+      if(ownRequest!==historyRequest||controller.signal.aborted)return;
+      showHistory(result);
+      $('#mCoverage').textContent='Storico ricostruito: '+result.items.length+' rilevazioni su '+result.checked+' sinottici'+
+        (result.errors?' • '+result.errors+' file non leggibili: storico potenzialmente incompleto.':'')+'.';
+    }catch(e){
+      if(ownRequest!==historyRequest||controller.signal.aborted)return;
+      $('#mCoverage').textContent='Impossibile completare lo storico: '+(e.message||String(e));
+    }finally{
+      if(ownRequest===historyRequest){$('#mCancel').style.display='none';historyController=null;}
+    }
+  }
+  $('#mClose').addEventListener('click',closeHistory);
+  $('#mCancel').addEventListener('click',closeHistory);
+  $('#machineModal').addEventListener('click',e=>{if(e.target.id==='machineModal')closeHistory();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#machineModal').classList.contains('open'))closeHistory();});
 
   function buildFilteredList(){
     const esSel=($('#selEsattore').value||'').toUpperCase();
@@ -229,7 +462,10 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
   function renderTable(list){
     const tb=$('#tbl tbody'); tb.innerHTML='';
     list.forEach(r=>{
-      const tr=document.createElement('tr');
+      const tr=document.createElement('tr');tr.className='clickable';tr.tabIndex=0;tr.setAttribute('role','button');
+      tr.setAttribute('aria-label','Apri storico AWP '+r.CODEID);
+      tr.addEventListener('click',()=>openHistory(r));
+      tr.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();openHistory(r);}});
       tr.innerHTML=`<td>${r.ESATTORE||'—'}</td>
                     <td>${r.SEDE||''}</td>
                     <td>${r.CODEID||''}</td>
@@ -254,9 +490,12 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     showLoader(true); $('#errorBox').style.display='none';
     try{
       // manifest → ultimo
+      closeHistory();
       const manifest=await fetchJSON('./Dati/manifest.json','manifest.json');
       if(!manifest.sinottici||!manifest.sinottici.length) throw new Error('manifest.json: lista sinottici vuota');
-      const latest=manifest.sinottici[manifest.sinottici.length-1];
+      manifestList=manifest.sinottici.slice();historyCache.clear();
+      const latest=manifestList[manifestList.length-1];
+      latestName=latest;
       $('#pillSin').textContent='Sinottico: '+latest;
 
       // esattori
@@ -274,13 +513,14 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
 
       // Sinottico (foglio più grande) → CODEID più recente (includo MS)
       const sn=await fetchXLSX_largest('./Dati/'+latest, latest);
+      latestRows=sn.rows;
       $('#pillFoglio').textContent='Foglio: '+sn.sheetName;
 
       const byCode=new Map();
       for(const row of sn.rows){
         const codeid=pickCodeId(row); if(!codeid) continue;
         const sede  = row['DENOMIN. SEDE'] ?? pick(row,['DENOMIN.SEDE','DENOMINAZIONE SEDE']);
-        const stato = String(row['DESCR.STATO'] ?? row['STATO'] ?? '').trim();
+        const stato = pickStatus(row);
         const ms    = pickMSFerie(row);
         const data  = parseDateIT(row['DATA ULTIMA LETTURA VAL.'] ?? pick(row,['DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
         const comune= pick(row,['COMUNE','CITTA','LOCALITA','CITTÀ']);
