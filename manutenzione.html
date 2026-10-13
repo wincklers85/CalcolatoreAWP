@@ -98,7 +98,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
             <option value="MANUT">Manutenzione</option>
           </select>
         </label>
-        <input id="search" placeholder="Cerca locale/comune/CODEID…" />
+        <input id="search" placeholder="Cerca locale/comune/CODEID/gioco…" />
         <button id="btnApply" class="primary">Applica</button>
         <button id="btnDownload">⬇️ Scarica XLSX</button>
         <span class="pill" id="pillSin">Sinottico: —</span>
@@ -117,6 +117,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
               <th>ESATTORE</th>
               <th>LOCALE</th>
               <th>AWP (CODEID)</th>
+              <th>NOME GIOCO</th>
               <th>PDA</th>
               <th>TIPO</th>
               <th>ULTIMA LETTURA</th>
@@ -160,6 +161,10 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     let h=keys.find(k=>norm(k)==='CODEID'); if(h) return String(row[h]??'').trim();
     h=keys.find(k=>/COD(ICE)?ID/i.test(k)); if(h) return String(row[h]??'').trim();
     h=keys.find(k=>/(SERIALE|MATRICOLA|AWP)/i.test(k)); return h?String(row[h]??'').trim():'';
+  }
+  // Il nome del gioco è riportato nel campo MODELLO dei sinottici.
+  function pickGameName(row){
+    return String(pick(row,['MODELLO','MOD','MODEL','MODEL NAME','NOME GIOCO','GIOCO','DESCR. GIOCO','DESCRIZIONE GIOCO'])||'').trim();
   }
   function parseDateIT(v){
     if(v==null||v==='')return null;
@@ -212,7 +217,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     const tipo=$('#selTipo').value;
     const q=($('#search').value||'').trim().toUpperCase();
     let list=rowsAll.filter(r=>(!esSel || r.ESATTORE===esSel) && (!tipo || r.TIPO===tipo));
-    if(q) list=list.filter(r=>(r.SEDE||'').toUpperCase().includes(q) || (r.COMUNE||'').toUpperCase().includes(q) || (r.CODEID||'').toUpperCase().includes(q));
+    if(q) list=list.filter(r=>(r.SEDE||'').toUpperCase().includes(q) || (r.COMUNE||'').toUpperCase().includes(q) || (r.CODEID||'').toUpperCase().includes(q) || (r.GIOCO||'').toUpperCase().includes(q));
     list.sort((a,b)=>{
       const d1=(a.ESATTORE||'').localeCompare(b.ESATTORE||''); if(d1) return d1;
       const d2=(a.TIPO||'').localeCompare(b.TIPO||''); if(d2) return d2;
@@ -228,6 +233,7 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
       tr.innerHTML=`<td>${r.ESATTORE||'—'}</td>
                     <td>${r.SEDE||''}</td>
                     <td>${r.CODEID||''}</td>
+                    <td>${r.GIOCO||'—'}</td>
                     <td>${r.PDA||''}</td>
                     <td>${r.TIPO}</td>
                     <td>${fmtDate(r.DATA)}</td>
@@ -237,8 +243,8 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
     $('#pillCount').textContent='Totale: '+list.length.toLocaleString('it-IT');
   }
   function downloadXLSX(list){
-    const headers=['ESATTORE','LOCALE','AWP (CODEID)','PDA','TIPO','ULTIMA LETTURA','COMUNE'];
-    const data=list.map(r=>[r.ESATTORE||'', r.SEDE||'', r.CODEID||'', r.PDA||'', r.TIPO, fmtDate(r.DATA), r.COMUNE||'']);
+    const headers=['ESATTORE','LOCALE','AWP (CODEID)','NOME GIOCO','PDA','TIPO','ULTIMA LETTURA','COMUNE'];
+    const data=list.map(r=>[r.ESATTORE||'', r.SEDE||'', r.CODEID||'', r.GIOCO||'', r.PDA||'', r.TIPO, fmtDate(r.DATA), r.COMUNE||'']);
     const ws=XLSX.utils.aoa_to_sheet([headers,...data]);
     const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Ferie_Manutenzione');
     XLSX.writeFile(wb,'Ferie_Manutenzione.xlsx');
@@ -279,19 +285,20 @@ footer{ padding:14px; text-align:center; color:var(--muted) }
         const data  = parseDateIT(row['DATA ULTIMA LETTURA VAL.'] ?? pick(row,['DATA ULTIMA LETTURA','ULTIMA LETTURA','DATA']));
         const comune= pick(row,['COMUNE','CITTA','LOCALITA','CITTÀ']);
         const pda   = pick(row,['PDA','COD.PDA','ID PDA','IDPDA','COD_PDA']);
+        const gioco = pickGameName(row);
         const prev  = byCode.get(codeid);
         if(!prev || (data && prev.data && data>prev.data) || (!prev?.data && data)){
-          byCode.set(codeid,{codeid,sede,stato,ms,data,comune,pda});
+          byCode.set(codeid,{codeid,sede,stato,ms,data,comune,pda,gioco});
         }
       }
 
       // Estrai solo FERIE e MANUT (in base alla classificazione nuova)
       const out=[];
-      for(const {codeid,sede,stato,ms,data,comune,pda} of byCode.values()){
+      for(const {codeid,sede,stato,ms,data,comune,pda,gioco} of byCode.values()){
         const cat = classifyState(stato, ms);
         if(cat!=='FERIE' && cat!=='MANUT') continue;
         const es  = sedeToEs.get(normalizeSede(sede)) ?? '—';
-        out.push({ ESATTORE:es, SEDE:sede, CODEID:codeid, PDA:pda, TIPO:cat, DATA:data, COMUNE:comune });
+        out.push({ ESATTORE:es, SEDE:sede, CODEID:codeid, GIOCO:gioco, PDA:pda, TIPO:cat, DATA:data, COMUNE:comune });
       }
 
       rowsAll = out;
